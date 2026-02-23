@@ -3883,74 +3883,126 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
-  <script>
-    // 🔴 1. แก้ไข: วาง URL /exec ของ Google Script คุณตรงนี้
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
+<script>
+  // 1. วาง URL /exec ที่ได้จาก Google Script ตรงนี้
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
 
-    // ฟังก์ชันส่งข้อมูลไป Google Script
-    const callGAS = async (action, data = null) => {
-      const response = await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action, data })
-      });
+  // ตั้งค่าคอลัมน์ (GitHub ต้องแปะไว้ตรงๆ แบบนี้)
+  const COL = { ID: "ID", TIMESTAMP: "tiemstarmp", EMAIL: "Email", TITLE: "คำนำหน้า", FNAME: "ชื่อ", LNAME: "นามสกุล", PHONE: "เบอร์โทรศัพท์", LICENSE: "เลขที่ใบประกอบวิชาชีพ", REG_TYPE: "ประเภทการลงทะเบียน", POSITION: "ตำแหน่งปัจจุบัน", FOOD: "ประเภทอาหาร", WORK_GROUP: "กลุ่มงาน", DEPARTMENT: "หน่วยงาน", WORKPLACE: "สถานที่ทำงานปัจจุบัน", RECEIPT_NAME: "ชื่อที่ระบุในใบเสร็จรับเงิน", ADDRESS: "ที่อยู่", TAX_ID: "เลขประจำตัวผู้เสียภาษี", IMAGE: "รูปภาพ", PAYIN_STATUS: "สถานะ Pay-in", PAYMENT_STATUS: "สถานะชำระเงิน", SLIP: "slip", ATTEND_1: "วันที่ 1", ATTEND_2: "วันที่ 2", ATTEND_1_TIME: "Timestamp Day1", ATTEND_2_TIME: "Timestamp Day2", CERT_URL: "URL ประกาศนียบัตร", DOWNLOAD: "จำนวนดาวน์โหลด" };
+  const REG_STATUS = { INTERNAL: 'พยาบาลในฝ่ายการพยาบาล รพ.จุฬาลงกรณ์', QUOTA: 'สำหรับผู้ที่ได้รับโควต้าตามจดหมายเชิญ', EXTERNAL: 'สำหรับผู้ลงทะเบียนภายนอก' };
+
+  // ฟังก์ชันคุยกับ Google Script
+  const callGAS = async (action, data = null) => {
+    try {
+      const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action, data }) });
       return await response.json();
-    };
+    } catch (err) {
+      console.error(err);
+      return { success: false, message: "ติดต่อเซิร์ฟเวอร์ไม่ได้" };
+    }
+  };
 
-    const { createApp, ref, onMounted } = Vue;
+  const { createApp, ref, onMounted, computed, watch } = Vue;
 
-    createApp({
-      setup() {
-        const form = ref({ firstName: '', lastName: '', email: '' });
-        const loading = ref(false);
-        const isCameraActive = ref(false);
-        const profilePreview = ref(null);
-        let webcam = null;
+  createApp({
+    setup() {
+      const OPTIONAL_POSITIONS = ['วิทยากร', 'คณะกรรมการฯ', 'พิธีกร', 'อื่นๆ'];
+      const step = ref(1);
+      const loading = ref(false);
+      const currentView = ref('form');
+      const searchQuery = ref('');
+      const searchResult = ref(null);
+      const isEditMode = ref(false);
+      const isAdminLoggedIn = ref(false);
+      const userRole = ref('');
+      const adminData = ref([]);
+      const workGroupData = ref({});
+      const currentDepts = ref([]);
+      const prefixOptions = ref([]);
+      const affiliationOptions = ref([]);
+      const professionOptions = ref([]);
+      const login = ref({ user: '', pass: '' });
+      const showPassword = ref(false);
+      const errors = ref({});
 
-        // ฟังก์ชันเปิดกล้อง (ทำงานบน GitHub ได้ 100%)
-        const startWebcam = async () => {
+      // ข้อมูลฟอร์ม
+      const form = ref({ rowNumber: null, email: '', title_Name: 'นางสาว', firstName: '', lastName: '', phoneNumber: '', proLicense: '', foodType: 'อาหารทั่วไป', status_Register: '', internalPosition: 'พยาบาล', workGroup: '', department: '', affiliation: '', workPlace: '', name_Receipt: '', address_subdistrict: '', address_district: '', address_province: '', address_postcode: '', taxpayer_ID: '', slipImage: null });
+
+      // กล้อง
+      const isCameraActive = ref(false);
+      const profilePreview = ref(null);
+      const cameraZoom = ref(1.0);
+      let stream = null;
+
+      // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
+      onMounted(async () => {
+        const resWG = await callGAS('getWorkGroupData');
+        if (resWG) workGroupData.value = resWG;
+        affiliationOptions.value = await callGAS('getAffiliationData') || [];
+        professionOptions.value = await callGAS('getProfessionData') || [];
+        prefixOptions.value = await callGAS('getPrefixData') || [];
+      });
+
+      // ฟังก์ชันเปิดกล้อง (แก้ปัญหา Permission)
+      const startWebcam = async () => {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const video = document.getElementById('webcam');
+          video.srcObject = stream;
           isCameraActive.value = true;
-          try {
-            // บังคับขอสิทธิ์กล้องก่อน
-            await navigator.mediaDevices.getUserMedia({ video: true });
-            const webcamElement = document.getElementById('webcam');
-            const canvasElement = document.getElementById('canvas');
-            webcam = new Webcam(webcamElement, 'user', canvasElement);
-            await webcam.start();
-          } catch (err) {
-            Swal.fire("Error", "ไม่สามารถเข้าถึงกล้องได้: " + err.message, "error");
-            isCameraActive.value = false;
-          }
-        };
+          profilePreview.value = null;
+        } catch (err) {
+          Swal.fire("เข้าถึงกล้องไม่ได้", "กรุณาเช็คว่าคุณอนุญาตสิทธิ์กล้องใน Browser หรือยัง หรือมีแอปอื่นใช้กล้องอยู่หรือไม่", "error");
+        }
+      };
 
-        // ถ่ายรูป
-        const capturePhoto = () => {
-          const photo = webcam.snap();
-          profilePreview.value = photo;
-          webcam.stop();
-          isCameraActive.value = false;
-        };
+      const capturePhoto = () => {
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        profilePreview.value = canvas.toDataURL('image/jpeg');
+        if(stream) stream.getTracks().forEach(track => track.stop());
+        isCameraActive.value = false;
+      };
 
-        // บันทึกข้อมูล
-        const submitData = async () => {
-          if(!form.value.firstName) return Swal.fire("แจ้งเตือน", "กรุณากรอกชื่อ", "warning");
-          loading.value = true;
-          
-          const res = await callGAS('processForm', {
-            ...form.value,
-            profilePreview: profilePreview.value
-          });
+      const handleSearch = async () => {
+        if (!searchQuery.value) return;
+        loading.value = true;
+        const res = await callGAS('searchUser', searchQuery.value);
+        loading.value = false;
+        if (res.success) { searchResult.value = res.data; }
+        else { Swal.fire("ไม่พบข้อมูล", res.message, "info"); }
+      };
 
-          loading.value = false;
-          if (res.success) {
-            Swal.fire("สำเร็จ", res.message, "success").then(() => location.reload());
-          } else {
-            Swal.fire("ผิดพลาด", res.message, "error");
-          }
-        };
+      const submitForm = async () => {
+        loading.value = true;
+        Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        const action = isEditMode.value ? 'updateForm' : 'processForm';
+        const res = await callGAS(action, { ...form.value, profilePreview: profilePreview.value });
+        loading.value = false;
+        if (res.success) {
+          Swal.fire("สำเร็จ", res.message, "success").then(() => location.reload());
+        } else {
+          Swal.fire("ผิดพลาด", res.message, "error");
+        }
+      };
 
-        return { form, loading, isCameraActive, profilePreview, startWebcam, capturePhoto, submitData };
-      }
-    }).mount('#app');
-  </script>
+      // ฟังก์ชันอื่นๆ ที่ HTML เรียกใช้
+      const selectMenu = (v) => { currentView.value = v; };
+      const resetForm = () => { location.reload(); };
+      const onWorkGroupChange = () => { currentDepts.value = workGroupData.value[form.value.workGroup] || []; };
+
+      return {
+        step, form, currentView, loading, searchQuery, searchResult, isEditMode,
+        isAdminLoggedIn, userRole, adminData, login, prefixOptions, affiliationOptions,
+        professionOptions, workGroupData, currentDepts, COL, REG_STATUS, showPassword,
+        errors, isCameraActive, profilePreview, cameraZoom, OPTIONAL_POSITIONS,
+        startWebcam, capturePhoto, handleSearch, submitForm, selectMenu, resetForm, onWorkGroupChange
+      };
+    }
+  }).mount('#app');
+</script>
 </body>
 </html>
