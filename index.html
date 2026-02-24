@@ -2,6 +2,7 @@
 <html lang="th">
 
 <head>
+  <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ลงทะเบียนประชุมวิชาการพยาบาล 2569</title>
@@ -3882,126 +3883,248 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
-<script>
-  // 1. วาง URL /exec ที่ได้จาก Google Script ตรงนี้
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
 
-  // ตั้งค่าคอลัมน์ (GitHub ต้องแปะไว้ตรงๆ แบบนี้)
-  const COL = { ID: "ID", TIMESTAMP: "tiemstarmp", EMAIL: "Email", TITLE: "คำนำหน้า", FNAME: "ชื่อ", LNAME: "นามสกุล", PHONE: "เบอร์โทรศัพท์", LICENSE: "เลขที่ใบประกอบวิชาชีพ", REG_TYPE: "ประเภทการลงทะเบียน", POSITION: "ตำแหน่งปัจจุบัน", FOOD: "ประเภทอาหาร", WORK_GROUP: "กลุ่มงาน", DEPARTMENT: "หน่วยงาน", WORKPLACE: "สถานที่ทำงานปัจจุบัน", RECEIPT_NAME: "ชื่อที่ระบุในใบเสร็จรับเงิน", ADDRESS: "ที่อยู่", TAX_ID: "เลขประจำตัวผู้เสียภาษี", IMAGE: "รูปภาพ", PAYIN_STATUS: "สถานะ Pay-in", PAYMENT_STATUS: "สถานะชำระเงิน", SLIP: "slip", ATTEND_1: "วันที่ 1", ATTEND_2: "วันที่ 2", ATTEND_1_TIME: "Timestamp Day1", ATTEND_2_TIME: "Timestamp Day2", CERT_URL: "URL ประกาศนียบัตร", DOWNLOAD: "จำนวนดาวน์โหลด" };
-  const REG_STATUS = { INTERNAL: 'พยาบาลในฝ่ายการพยาบาล รพ.จุฬาลงกรณ์', QUOTA: 'สำหรับผู้ที่ได้รับโควต้าตามจดหมายเชิญ', EXTERNAL: 'สำหรับผู้ลงทะเบียนภายนอก' };
+  <script>
+    /**
+     * 🛑 สำคัญ: วาง URL ของ Web App ที่ได้จาก Google Apps Script ที่นี่
+     */
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
 
-  // ฟังก์ชันคุยกับ Google Script
-  const callGAS = async (action, data = null) => {
-    try {
-      const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action, data }) });
-      return await response.json();
-    } catch (err) {
-      console.error(err);
-      return { success: false, message: "ติดต่อเซิร์ฟเวอร์ไม่ได้" };
+    const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
+
+    createApp({
+      setup() {
+        // --- API communication ---
+        const callApi = async (action, data = {}) => {
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action, data }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error("API Error:", error);
+                Swal.fire("Error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
+                return { success: false, message: error.toString() };
+            }
+        };
+
+        const COL = ref({});
+        const REG_STATUS = ref({});
+        const currentView = ref('form');
+        const step = ref(1);
+        const loading = ref(false);
+        const isEditMode = ref(false);
+        const isAdminLoggedIn = ref(false);
+        const userRole = ref('');
+        const login = ref({ user: '', pass: '' });
+        
+        const form = ref({
+          rowNumber: null, email: '', title_Name: 'นางสาว', firstName: '', lastName: '',
+          phoneNumber: '', proLicense: '', foodType: 'อาหารทั่วไป', status_Register: '',
+          workPlace: '', name_Receipt: '', taxpayer_ID: '', workGroup: '', department: ''
+        });
+
+        const workGroupData = ref({});
+        const prefixOptions = ref([]);
+        const affiliationOptions = ref([]);
+        const professionOptions = ref([]);
+        const currentDepts = ref([]);
+        const searchQuery = ref('');
+        const searchResult = ref(null);
+        const adminData = ref([]);
+        const adminSearch = ref('');
+
+        const deadlineTimestamp = ref(null);
+        const canUserEdit = ref(true);
+
+        onMounted(async () => {
+            loading.value = true;
+            const res = await callApi('loadInitialData');
+            if (res) {
+                workGroupData.value = res.workGroups;
+                affiliationOptions.value = res.affiliations;
+                professionOptions.value = res.professions;
+                prefixOptions.value = res.prefixes;
+                deadlineTimestamp.value = res.deadlines.reg;
+                
+                // Initialize constants
+                COL.value = { ID: "ID", TIMESTAMP: "Timestamp", EMAIL: "Email", TITLE: "คำนำหน้า", FNAME: "ชื่อ", LNAME: "นามสกุล", PHONE: "เบอร์โทรศัพท์", LICENSE: "เลขที่ใบประกอบวิชาชีพ", REG_TYPE: "ประเภทการลงทะเบียน", POSITION: "ตำแหน่งปัจจุบัน", FOOD: "ประเภทอาหาร", WORK_GROUP: "กลุ่มงาน", DEPARTMENT: "หน่วยงาน", WORKPLACE: "สถานที่ทำงานปัจจุบัน", RECEIPT_NAME: "ชื่อที่ระบุในใบเสร็จรับเงิน", ADDRESS: "ที่อยู่", TAX_ID: "เลขประจำตัวผู้เสียภาษี", IMAGE: "รูปภาพ", PAYIN_STATUS: "สถานะ Pay-in", PAYMENT_STATUS: "สถานะชำระเงิน", SLIP: "slip", ATTEND_1: "วันที่ 1", ATTEND_2: "วันที่ 2", ATTEND_1_TIME: "Timestamp Day1", ATTEND_2_TIME: "Timestamp Day2", CERT_URL: "URL ประกาศนียบัตร", DOWNLOAD: "จำนวนดาวน์โหลด" };
+                REG_STATUS.value = { INTERNAL: 'พยาบาลในฝ่ายการพยาบาล รพ.จุฬาลงกรณ์', QUOTA: 'สำหรับผู้ที่ได้รับโควต้าตามจดหมายเชิญ', EXTERNAL: 'สำหรับผู้ลงทะเบียนภายนอก' };
+            }
+            loading.value = false;
+            initThailandJS();
+            checkSession();
+        });
+
+        // Search & Registration
+        const handleSearch = async () => {
+            if (!searchQuery.value) return;
+            loading.value = true;
+            const res = await callApi('searchUser', { query: searchQuery.value });
+            loading.value = false;
+            if (res.success) searchResult.value = res.data;
+            else Swal.fire("ไม่พบข้อมูล", "", "info");
+        };
+
+        const goToSummary = () => { step.value = 2; };
+
+        const submitForm = async () => {
+            loading.value = true;
+            const action = isEditMode.value ? 'updateForm' : 'processForm';
+            const res = await callApi(action, { ...form.value, profilePreview: profilePreview.value });
+            loading.value = false;
+            if (res.success) {
+                Swal.fire("สำเร็จ", res.message, "success");
+                resetForm();
+            } else {
+                Swal.fire("ข้อผิดพลาด", res.message, "error");
+            }
+        };
+
+        const prepareEdit = (item) => {
+            form.value = { ...item, rowNumber: item.rowNumber };
+            profilePreview.value = item[COL.value.IMAGE] !== '-' ? item[COL.value.IMAGE] : null;
+            isEditMode.value = true;
+            step.value = 1;
+            searchResult.value = null;
+        };
+
+        const resetForm = () => {
+            isEditMode.value = false; step.value = 1;
+            form.value = { title_Name: 'นางสาว', foodType: 'อาหารทั่วไป' };
+            profilePreview.value = null;
+        };
+
+        // Admin Dash
+        const handleAdminLogin = async () => {
+            loading.value = true;
+            const res = await callApi('checkAdminLogin', { password: login.value.pass });
+            loading.value = false;
+            if (res.success) {
+                isAdminLoggedIn.value = true;
+                login.value.user = res.username;
+                userRole.value = res.role;
+                localStorage.setItem('nursing_session', JSON.stringify(res));
+                loadAdminTable();
+            } else {
+                Swal.fire("รหัสผ่านไม่ถูกต้อง", "", "error");
+            }
+        };
+
+        const loadAdminTable = async () => {
+            loading.value = true;
+            const res = await callApi('getAdminAllData');
+            if (res) adminData.value = res;
+            loading.value = false;
+        };
+
+        const filteredAdminData = computed(() => {
+            if (!adminSearch.value) return adminData.value;
+            const q = adminSearch.value.toLowerCase();
+            return adminData.value.filter(i => String(i[COL.value.FNAME]).toLowerCase().includes(q) || String(i[COL.value.ID]).includes(q));
+        });
+
+        const saveAdminStatus = async (item) => {
+            const statusData = [ item[COL.value.PAYIN_STATUS], item[COL.value.PAYMENT_STATUS], item[COL.value.ATTEND_1], item[COL.value.ATTEND_2], item[COL.value.ATTEND_1_TIME], item[COL.value.ATTEND_2_TIME], item[COL.value.CERT_URL], item[COL.value.DOWNLOAD] ];
+            const res = await callApi('updateAdminStatus', { rowNumber: item.rowNumber, statusData });
+            if (res.success) Swal.fire("บันทึกแล้ว", "", "success");
+        };
+
+        // Scanner
+        const scanDay = ref(1);
+        const isScanning = ref(false);
+        const scannedUser = ref(null);
+        let html5QrCode = null;
+
+        const startScanner = () => {
+            isScanning.value = true;
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (text) => {
+                const res = await callApi('recordAttendance', { text, day: scanDay.value });
+                if (res.success || res.isDuplicate) scannedUser.value = res.userData;
+                stopScanner();
+            });
+        };
+
+        const stopScanner = () => { 
+            if (html5QrCode) html5QrCode.stop().then(() => { isScanning.value = false; }); 
+        };
+
+        // UI & Helpers
+        const selectMenu = (v) => { currentView.value = v; if (v === 'dashboard' && isAdminLoggedIn.value) loadAdminTable(); };
+        const logoutAdmin = () => { isAdminLoggedIn.value = false; localStorage.removeItem('nursing_session'); };
+        const checkSession = () => { const s = localStorage.getItem('nursing_session'); if(s) { const d = JSON.parse(s); isAdminLoggedIn.value = true; login.value.user = d.username; userRole.value = d.role; } };
+        const onWorkGroupChange = () => { currentDepts.value = workGroupData.value[form.value.workGroup] || []; };
+        const formatPhone = (e) => { let v = e.target.value.replace(/\D/g, ""); if (v.length > 3 && v.length <= 6) v = v.slice(0, 3) + "-" + v.slice(3); else if (v.length > 6) v = v.slice(0, 3) + "-" + v.slice(3, 6) + "-" + v.slice(6, 10); form.value.phoneNumber = v; };
+        const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+        const scrollToBottom = () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
+        // Camera Logic
+        const isCameraActive = ref(false);
+        const profilePreview = ref(null);
+        const cameraZoom = ref(1.0);
+        let webcam = null;
+        let cropper = null;
+        const cropModal = ref(null);
+
+        const startWebcam = async () => {
+            isCameraActive.value = true;
+            await nextTick();
+            webcam = new Webcam(document.getElementById('webcam'), 'user', document.getElementById('canvas'));
+            await webcam.start();
+        };
+        const stopWebcam = () => { if(webcam) webcam.stop(); isCameraActive.value = false; };
+        const capturePhoto = () => {
+            const canvas = document.getElementById('canvas');
+            const video = document.getElementById('webcam');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            openCrop(canvas.toDataURL('image/jpeg'));
+            stopWebcam();
+        };
+        const openCrop = (src) => {
+            const img = document.getElementById('imageToCrop');
+            img.src = src;
+            cropModal.value = new bootstrap.Modal(document.getElementById('cropModal'));
+            cropModal.value.show();
+            if(cropper) cropper.destroy();
+            setTimeout(() => {
+                cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1 });
+            }, 300);
+        };
+        const applyCrop = () => {
+            profilePreview.value = cropper.getCroppedCanvas({ width: 400, height: 400 }).toDataURL('image/jpeg');
+            cropModal.value.hide();
+        };
+        const retakePhoto = () => { profilePreview.value = null; startWebcam(); };
+
+        return {
+          currentView, step, loading, isEditMode, isAdminLoggedIn, userRole, login, form,
+          workGroupData, prefixOptions, currentDepts, searchQuery, searchResult, adminData, adminSearch,
+          handleSearch, goToSummary, submitForm, prepareEdit, resetForm, handleAdminLogin, logoutAdmin,
+          filteredAdminData, saveAdminStatus, scanDay, isScanning, scannedUser, startScanner, stopScanner,
+          selectMenu, onWorkGroupChange, formatPhone, scrollToTop, scrollToBottom,
+          isCameraActive, profilePreview, startWebcam, stopWebcam, capturePhoto, applyCrop, retakePhoto,
+          COL, REG_STATUS, canUserEdit
+        };
+      }
+    }).mount('#app');
+
+    function initThailandJS() {
+        $.Thailand({
+            $district: $("#sub_district"), $amphoe: $("#district"), $province: $("#province"), $zipcode: $("#postcode"),
+            onDataFill: (data) => {
+                const app = document.getElementById('app').__vue_app__._instance.proxy;
+                app.form.address_subdistrict = data.district;
+                app.form.address_district = data.amphoe;
+                app.form.address_province = data.province;
+                app.form.address_postcode = data.zipcode;
+            }
+        });
     }
-  };
+  </script>
 
-  const { createApp, ref, onMounted, computed, watch } = Vue;
-
-  createApp({
-    setup() {
-      const OPTIONAL_POSITIONS = ['วิทยากร', 'คณะกรรมการฯ', 'พิธีกร', 'อื่นๆ'];
-      const step = ref(1);
-      const loading = ref(false);
-      const currentView = ref('form');
-      const searchQuery = ref('');
-      const searchResult = ref(null);
-      const isEditMode = ref(false);
-      const isAdminLoggedIn = ref(false);
-      const userRole = ref('');
-      const adminData = ref([]);
-      const workGroupData = ref({});
-      const currentDepts = ref([]);
-      const prefixOptions = ref([]);
-      const affiliationOptions = ref([]);
-      const professionOptions = ref([]);
-      const login = ref({ user: '', pass: '' });
-      const showPassword = ref(false);
-      const errors = ref({});
-
-      // ข้อมูลฟอร์ม
-      const form = ref({ rowNumber: null, email: '', title_Name: 'นางสาว', firstName: '', lastName: '', phoneNumber: '', proLicense: '', foodType: 'อาหารทั่วไป', status_Register: '', internalPosition: 'พยาบาล', workGroup: '', department: '', affiliation: '', workPlace: '', name_Receipt: '', address_subdistrict: '', address_district: '', address_province: '', address_postcode: '', taxpayer_ID: '', slipImage: null });
-
-      // กล้อง
-      const isCameraActive = ref(false);
-      const profilePreview = ref(null);
-      const cameraZoom = ref(1.0);
-      let stream = null;
-
-      // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
-      onMounted(async () => {
-        const resWG = await callGAS('getWorkGroupData');
-        if (resWG) workGroupData.value = resWG;
-        affiliationOptions.value = await callGAS('getAffiliationData') || [];
-        professionOptions.value = await callGAS('getProfessionData') || [];
-        prefixOptions.value = await callGAS('getPrefixData') || [];
-      });
-
-      // ฟังก์ชันเปิดกล้อง (แก้ปัญหา Permission)
-      const startWebcam = async () => {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          const video = document.getElementById('webcam');
-          video.srcObject = stream;
-          isCameraActive.value = true;
-          profilePreview.value = null;
-        } catch (err) {
-          Swal.fire("เข้าถึงกล้องไม่ได้", "กรุณาเช็คว่าคุณอนุญาตสิทธิ์กล้องใน Browser หรือยัง หรือมีแอปอื่นใช้กล้องอยู่หรือไม่", "error");
-        }
-      };
-
-      const capturePhoto = () => {
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        profilePreview.value = canvas.toDataURL('image/jpeg');
-        if(stream) stream.getTracks().forEach(track => track.stop());
-        isCameraActive.value = false;
-      };
-
-      const handleSearch = async () => {
-        if (!searchQuery.value) return;
-        loading.value = true;
-        const res = await callGAS('searchUser', searchQuery.value);
-        loading.value = false;
-        if (res.success) { searchResult.value = res.data; }
-        else { Swal.fire("ไม่พบข้อมูล", res.message, "info"); }
-      };
-
-      const submitForm = async () => {
-        loading.value = true;
-        Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-        const action = isEditMode.value ? 'updateForm' : 'processForm';
-        const res = await callGAS(action, { ...form.value, profilePreview: profilePreview.value });
-        loading.value = false;
-        if (res.success) {
-          Swal.fire("สำเร็จ", res.message, "success").then(() => location.reload());
-        } else {
-          Swal.fire("ผิดพลาด", res.message, "error");
-        }
-      };
-
-      // ฟังก์ชันอื่นๆ ที่ HTML เรียกใช้
-      const selectMenu = (v) => { currentView.value = v; };
-      const resetForm = () => { location.reload(); };
-      const onWorkGroupChange = () => { currentDepts.value = workGroupData.value[form.value.workGroup] || []; };
-
-      return {
-        step, form, currentView, loading, searchQuery, searchResult, isEditMode,
-        isAdminLoggedIn, userRole, adminData, login, prefixOptions, affiliationOptions,
-        professionOptions, workGroupData, currentDepts, COL, REG_STATUS, showPassword,
-        errors, isCameraActive, profilePreview, cameraZoom, OPTIONAL_POSITIONS,
-        startWebcam, capturePhoto, handleSearch, submitForm, selectMenu, resetForm, onWorkGroupChange
-      };
-    }
-  }).mount('#app');
-</script>
 </body>
 </html>
