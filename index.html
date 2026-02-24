@@ -75,6 +75,43 @@
         /* Spinner หมุน */
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* หน้าจอสถานะขณะโหลดข้อมูล */
+        #loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            items-center;
+            justify-content: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .loader-ring {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #4f46e5;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ทำให้ Card ผลลัพธ์ดูมีการโหลด */
+        .processing {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
     </style>
 </head>
 <body class="min-h-screen">
@@ -121,20 +158,23 @@
 
                 <!-- พื้นที่แสดงกล้อง (ปรับเป็น aspect-square เสมอ) -->
                 <div class="relative bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl aspect-square flex items-center justify-center border-4 border-white mx-auto w-full max-w-[450px]">
-                    <!-- ตัว Scanner -->
                     <div id="reader"></div>
 
-                    <!-- UI Overlay ที่เราสร้างเอง -->
+                    <!-- Overlay แสดงสถานะกำลังทำงาน (ซ่อนไว้ก่อน) -->
+                    <div id="loading-overlay" class="hidden">
+                        <span class="loader-ring"></span>
+                        <p class="mt-4 font-bold text-indigo-600 animate-pulse">กำลังตรวจสอบข้อมูล...</p>
+                    </div>
+
+                    <!-- UI Overlay กรอบมุม -->
                     <div id="scan-ui" class="absolute inset-0 pointer-events-none hidden">
                         <div class="scan-line"></div>
                         <div class="custom-corner corner-tl"></div>
-                        <div class="custom-scroll corner-tr"></div> <!-- แก้ class เป็น corner-tr -->
                         <div class="custom-corner corner-tr"></div>
                         <div class="custom-corner corner-bl"></div>
                         <div class="custom-corner corner-br"></div>
                     </div>
 
-                    <!-- Placeholder ตอนปิดกล้อง -->
                     <div id="scan-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
                         <svg class="w-16 h-16 mb-2 opacity-10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path></svg>
                         <p class="font-medium text-sm">พร้อมสำหรับการสแกน</p>
@@ -238,12 +278,36 @@
             }
         }
 
+        // ฟังก์ชันช่วยแสดง/ซ่อน Loading
+        function showProcessing(isWorking) {
+            const overlay = document.getElementById('loading-overlay');
+            const scanBtn = document.getElementById('toggleScannerBtn');
+            const uploadBtn = document.querySelector('button[onclick*="file-input"]');
+
+            if (isWorking) {
+                overlay.classList.remove('hidden');
+                scanBtn.classList.add('opacity-50', 'pointer-events-none');
+                uploadBtn.classList.add('opacity-50', 'pointer-events-none');
+            } else {
+                overlay.classList.add('hidden');
+                scanBtn.classList.remove('opacity-50', 'pointer-events-none');
+                uploadBtn.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
         async function onScanSuccess(decodedText) {
             if (isProcessing) return;
             isProcessing = true;
+
+            showProcessing(true); // เริ่มแสดงสถานะกำลังทำงาน
+
             try {
-                const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: decodedText, day: selectedDay } }) });
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: decodedText, day: selectedDay } }) 
+                });
                 const result = await response.json();
+
                 if (result.success) {
                     playTone('beepSuccess');
                     showUserData(result.user);
@@ -251,18 +315,41 @@
                 } else {
                     playTone('beepError');
                     const isPayment = result.message.includes("ชำระเงิน");
-                    Swal.fire({ icon: isPayment ? 'warning' : 'error', title: isPayment ? 'ติดปัญหาการชำระเงิน' : 'ล้มเหลว', text: result.message });
+                    Swal.fire({ 
+                        icon: isPayment ? 'warning' : 'error', 
+                        title: isPayment ? 'ติดปัญหาการชำระเงิน' : 'ล้มเหลว', 
+                        text: result.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
                 }
-            } catch (err) { console.error(err); }
-            setTimeout(() => { isProcessing = false; }, 2500);
+            } catch (err) {
+                Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error');
+            } finally {
+                showProcessing(false); // ซ่อนสถานะกำลังทำงาน
+                // หน่วงเวลาเล็กน้อยก่อนให้สแกนคนต่อไปได้ เพื่อป้องกันข้อมูลซ้อน
+                setTimeout(() => { isProcessing = false; }, 2000);
+            }
         }
 
         async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
+
+            showProcessing(true); // แสดงสถานะขณะกำลังอ่านไฟล์
+
             const scanner = new Html5Qrcode("reader");
-            try { const decodedText = await scanner.scanFile(file, true); onScanSuccess(decodedText); }
-            catch (err) { Swal.fire('Error', 'ไม่พบ QR Code', 'error'); }
+            try {
+                const decodedText = await scanner.scanFile(file, true);
+                // เมื่ออ่าน QR จากรูปได้แล้ว ให้ส่งไปเข้าฟังก์ชันบันทึกข้อมูล
+                // หมายเหตุ: onScanSuccess จะสั่ง showProcessing(false) ให้เองเมื่อเสร็จ
+                isProcessing = false; // ปลดล็อคเพื่อให้ onScanSuccess ทำงานได้
+                onScanSuccess(decodedText);
+            } catch (err) {
+                showProcessing(false);
+                Swal.fire('Error', 'ไม่พบ QR Code ในรูปภาพนี้', 'error');
+            }
+            // Reset file input เพื่อให้เลือกไฟล์เดิมซ้ำได้ถ้าจำเป็น
+            event.target.value = '';
         }
 
         function showUserData(user) {
