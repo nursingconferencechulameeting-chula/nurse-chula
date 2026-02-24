@@ -18,36 +18,59 @@
         .day-tab:disabled { cursor: not-allowed; opacity: 0.8; }
 
         /* บังคับให้พื้นที่แสดงกล้องเป็นจตุรัสและเต็มกรอบ */
-        #reader { 
-            border: none !important; 
-            border-radius: 2rem !important; 
-            overflow: hidden !important; 
+        #reader {
+            width: 100% !important;
+            aspect-ratio: 1 / 1 !important; /* บังคับสัดส่วน 1:1 */
+            border: none !important;
+            background: #000 !important;
+            position: relative !important;
+            overflow: hidden !important; /* ตัดส่วนเกินออก */
+            border-radius: 1.5rem !important;
         }
 
-        #reader video { 
-            object-fit: cover !important; /* ทำให้กล้องเต็มกรอบจตุรัส ไม่เห็นขอบดำ */
+        /* บังคับตัววิดีโอข้างในให้ขยายเต็มช่องจตุรัส */
+        #reader video {
             width: 100% !important;
             height: 100% !important;
+            object-fit: cover !important; /* สำคัญ: ทำให้ภาพเต็มจตุรัสโดยไม่สนสัดส่วนกล้อง */
         }
 
-        /* ปรับตำแหน่งเส้นสแกนให้อยู่ในกรอบจตุรัส */
+        /* ซ่อนข้อความที่ไม่จำเป็นของ Library */
+        #reader__dashboard, #reader__status_span {
+            display: none !important;
+        }
+
+        /* ปรับแต่งเส้นสแกนใหม่ให้ดูแพง */
         .scan-line {
-            position: absolute; 
-            top: 10%; 
-            left: 10%; 
-            width: 80%; 
-            height: 4px;
-            background: linear-gradient(to right, transparent, #fbbf24, transparent); /* เปลี่ยนเป็นสีเหลืองทองให้ตัดกับพื้นหลัง */
+            position: absolute;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background: linear-gradient(to right, transparent, #fbbf24, transparent);
             box-shadow: 0 0 15px #fbbf24;
-            animation: scanMove 2s linear infinite; 
-            z-index: 20;
+            z-index: 30;
+            animation: scanMove 2.5s ease-in-out infinite;
         }
 
-        @keyframes scanMove { 
-            0% { top: 15%; opacity: 0; } 
+        @keyframes scanMove {
+            0% { top: 20%; opacity: 0; }
             50% { opacity: 1; }
-            100% { top: 85%; opacity: 0; } 
+            100% { top: 80%; opacity: 0; }
         }
+
+        /* สร้างกรอบมุม 4 ด้านเอง (Custom Corners) */
+        .custom-corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #fbbf24;
+            z-index: 40;
+            border-radius: 10px;
+        }
+        .corner-tl { top: 15%; left: 15%; border-right: 0; border-bottom: 0; }
+        .corner-tr { top: 15%; right: 15%; border-left: 0; border-bottom: 0; }
+        .corner-bl { bottom: 15%; left: 15%; border-right: 0; border-top: 0; }
+        .corner-br { bottom: 15%; right: 15%; border-left: 0; border-top: 0; }
         
         /* Spinner หมุน */
         .spinner { animation: spin 1s linear infinite; }
@@ -97,13 +120,25 @@
                 </div>
 
                 <!-- พื้นที่แสดงกล้อง (ปรับเป็น aspect-square เสมอ) -->
-                <div class="relative bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl aspect-square flex items-center justify-center border-4 border-white mx-auto w-full max-w-[500px]">
-                    <div id="reader" class="w-full h-full"></div>
+                <div class="relative bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl aspect-square flex items-center justify-center border-4 border-white mx-auto w-full max-w-[450px]">
+                    <!-- ตัว Scanner -->
+                    <div id="reader"></div>
+
+                    <!-- UI Overlay ที่เราสร้างเอง -->
+                    <div id="scan-ui" class="absolute inset-0 pointer-events-none hidden">
+                        <div class="scan-line"></div>
+                        <div class="custom-corner corner-tl"></div>
+                        <div class="custom-scroll corner-tr"></div> <!-- แก้ class เป็น corner-tr -->
+                        <div class="custom-corner corner-tr"></div>
+                        <div class="custom-corner corner-bl"></div>
+                        <div class="custom-corner corner-br"></div>
+                    </div>
+
+                    <!-- Placeholder ตอนปิดกล้อง -->
                     <div id="scan-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
                         <svg class="w-16 h-16 mb-2 opacity-10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path></svg>
-                        <p class="font-medium text-sm text-slate-400">รอเปิดกล้อง...</p>
+                        <p class="font-medium text-sm">พร้อมสำหรับการสแกน</p>
                     </div>
-                    <div id="scan-line-ui" class="scan-line hidden"></div>
                 </div>
 
                 <div id="resultContainer" class="hidden">
@@ -171,44 +206,34 @@
 
         async function toggleScanner() {
             const btn = document.getElementById('toggleScannerBtn');
-            const text = document.getElementById('text-scan');
-            const icon = document.getElementById('icon-scan');
+            const scanUI = document.getElementById('scan-ui');
             const placeholder = document.getElementById('scan-placeholder');
-            const scanLine = document.getElementById('scan-line-ui');
 
             if (isScannerOpen) {
                 if (html5QrCode) await html5QrCode.stop();
-                btn.className = "flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95";
-                text.innerText = "เปิดกล้องสแกน";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>`;
+                btn.className = "flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full";
+                btn.innerHTML = `<span>เปิดกล้องสแกน</span>`;
                 placeholder.classList.remove('hidden');
-                scanLine.classList.add('hidden');
+                scanUI.classList.add('hidden');
                 isScannerOpen = false;
             } else {
                 html5QrCode = new Html5Qrcode("reader");
-                
-                // ตั้งค่า Config ให้เป็นจตุรัส
                 const config = { 
                     fps: 25, 
-                    qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        // คำนวณให้ช่องสแกนเป็นจตุรัสขนาด 70% ของพื้นที่ที่เล็กที่สุด
-                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                        const edgeSize = Math.floor(minEdge * 0.7);
-                        return { width: edgeSize, height: edgeSize };
-                    },
-                    aspectRatio: 1.0 // บังคับวิดีโอเป็น 1:1
+                    // กำหนด qrbox ให้เป็นจตุรัส 250px หรือคำนวณตามหน้าจอ
+                    qrbox: { width: 250, height: 250 }, 
+                    aspectRatio: 1.0 
                 };
                 
                 try {
                     await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                    btn.className = "flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95";
-                    text.innerText = "ปิดการสแกน";
-                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>`;
+                    btn.className = "flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full";
+                    btn.innerHTML = `<span>ปิดการสแกน</span>`;
                     placeholder.classList.add('hidden');
-                    scanLine.classList.remove('hidden');
+                    scanUI.classList.remove('hidden');
                     isScannerOpen = true;
                 } catch (e) {
-                    Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้ (โปรดเช็คการอนุญาต)', 'error');
+                    Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error');
                 }
             }
         }
