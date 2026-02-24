@@ -9,116 +9,103 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; height: 100vh; display: flex; flex-direction: column; }
-        .header-navy { background-color: #002D57; flex-shrink: 0; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; }
         
-        /* Layout สำหรับ Mobile */
-        @media (max-width: 1023px) {
-            .main-content { 
-                flex: 1; 
-                overflow-y: auto; /* ให้ส่วนกลางเลื่อนได้ */
-                padding: 1rem;
-                padding-bottom: 180px; /* เว้นที่ว่างให้ปุ่มที่ลอยอยู่ด้านล่าง */
-            }
-            .mobile-controls {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: white;
-                padding: 1rem;
-                border-top: 2px solid #e2e8f0;
-                z-index: 40;
-                box-shadow: 0 -10px 15px -3px rgba(0, 0, 0, 0.1);
-            }
-            #reader { aspect-ratio: 1/1; margin-bottom: 1rem; }
-        }
+        /* สไตล์หลักตามรูปภาพ */
+        .header-navy { background-color: #002D57; }
+        .card-result { border: 4px solid #22c55e; border-radius: 2rem; background: #fff; }
+        .btn-purple { background-color: #6D28D9; color: white; }
+        .btn-off { background-color: #fff; color: #64748b; border: 1px solid #e2e8f0; }
 
-        /* Layout สำหรับ PC */
+        /* --- การจัดการหน้าจอ (สำคัญ) --- */
+        
+        /* สำหรับหน้าจอใหญ่ (PC) */
         @media (min-width: 1024px) {
-            .app-grid {
+            .app-container {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr 1fr; /* แบ่งครึ่งซ้ายขวาเป๊ะๆ */
                 gap: 2rem;
                 padding: 2rem;
-                max-width: 1200px;
-                margin: 0 auto;
             }
+            #reader { aspect-ratio: 16/9; }
+        }
+
+        /* สำหรับหน้าจอมือถือ (Mobile) */
+        @media (max-width: 1023px) {
+            .app-container {
+                display: flex;
+                flex-direction: column; /* เรียงต่อกันลงมา */
+                gap: 1rem;
+                padding: 1rem;
+            }
+            #reader { aspect-ratio: 1/1; } /* จัตุรัสเพื่อให้ประหยัดพื้นที่แนวตั้ง */
+            .nav-title { font-size: 0.9rem; }
         }
 
         #reader { border-radius: 1.5rem; overflow: hidden; border: 4px solid #fff; background: #000; }
-        .card-result { border: 4px solid #22c55e; border-radius: 2rem; background: #fff; }
-        .btn-purple { background-color: #6D28D9; color: white; }
-        .btn-off { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
 
-    <nav class="header-navy text-white p-4 shadow-md flex justify-between items-center">
+    <nav class="header-navy text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md">
         <div class="flex items-center gap-2">
             <span class="text-yellow-400 font-bold">⚡</span>
-            <span class="text-sm md:text-base font-semibold uppercase">ระบบเช็คชื่อ 2569</span>
+            <span class="nav-title font-semibold uppercase">ระบบเช็คชื่อเข้าประชุม 2569</span>
         </div>
-        <div id="clock" class="text-xs font-mono">00:00:00</div>
+        <div id="clock" class="text-xs font-mono opacity-80">00:00:00</div>
     </nav>
 
-    <div class="main-content app-grid">
+    <div class="max-w-7xl mx-auto app-container">
         
         <div class="space-y-4">
             <div id="reader" class="shadow-xl"></div>
             
-            <div id="display" class="card-result p-6 min-h-[250px] flex flex-col items-center justify-center text-center relative shadow-lg">
-                <div id="wait" class="space-y-2">
-                    <div class="text-4xl">☀️</div>
-                    <p class="text-slate-400 font-bold">พร้อมสแกนข้อมูล</p>
+            <div class="bg-white p-4 rounded-[2rem] shadow-sm space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="setDay(1)" id="d1" class="btn-purple py-4 rounded-2xl font-bold flex flex-col items-center shadow-lg">
+                        <span class="text-[10px] opacity-70">วันที่ 1</span>
+                        <span class="text-sm">25 ก.พ. 69</span>
+                    </button>
+                    <button onclick="setDay(2)" id="d2" class="btn-off py-4 rounded-2xl font-bold flex flex-col items-center">
+                        <span class="text-[10px] opacity-70">วันที่ 2</span>
+                        <span class="text-sm">26 ก.พ. 69</span>
+                    </button>
                 </div>
                 
-                <div id="info" class="hidden space-y-3 slide-up">
+                <label class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer">
+                    <span class="text-sm text-slate-500 font-medium">🖼️ เลือกจากรูปภาพ</span>
+                    <input type="file" id="file-input" accept="image/*" class="hidden">
+                </label>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div id="display" class="card-result p-6 min-h-[300px] flex flex-col items-center justify-center text-center shadow-lg relative">
+                <div id="wait" class="space-y-3">
+                    <div class="text-5xl">☀️</div>
+                    <p class="text-slate-400 font-bold">รอการสแกน...</p>
+                </div>
+                
+                <div id="info" class="hidden space-y-4">
                     <img id="uImg" src="" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-slate-50 shadow-md">
                     <div>
                         <h2 id="uName" class="text-xl font-bold text-slate-800">-</h2>
                         <p id="uId" class="text-indigo-600 font-bold text-xs">-</p>
                     </div>
-                    <div class="bg-green-500 text-white px-6 py-1 rounded-full text-xs font-bold">✓ เช็คอินสำเร็จ</div>
+                    <div class="bg-green-500 text-white px-6 py-1.5 rounded-full text-sm font-bold">✓ เช็คอินแล้ว</div>
                 </div>
 
-                <div id="loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-[1.8rem]">
+                <div id="loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-[2rem]">
                     <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
             </div>
-        </div>
 
-        <div class="space-y-4">
-            <div class="bg-white/50 p-4 rounded-2xl border border-white">
-                <h4 class="text-xs font-bold text-slate-500 mb-3 italic flex justify-between">
-                    <span>⏱ ประวัติล่าสุดวันนี้</span>
-                    <span id="logCount" class="bg-slate-200 px-2 rounded">0</span>
-                </h4>
-                <div id="logs" class="space-y-2">
-                    </div>
+            <div class="bg-white/50 p-4 rounded-2xl">
+                <h4 class="text-xs font-bold text-slate-500 mb-3 italic">⏱ ประวัติล่าสุด</h4>
+                <div id="logs" class="space-y-2"></div>
             </div>
         </div>
-    </div>
 
-    <div class="mobile-controls">
-        <div class="max-w-md mx-auto space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="setDay(1)" id="d1" class="btn-purple py-3 rounded-xl font-bold flex flex-col items-center shadow-md transition-all active:scale-95">
-                    <span class="text-[9px] opacity-70">DAY 1</span>
-                    <span class="text-xs">25 ก.พ. 69</span>
-                </button>
-                <button onclick="setDay(2)" id="d2" class="btn-off py-3 rounded-xl font-bold flex flex-col items-center transition-all active:scale-95">
-                    <span class="text-[9px] opacity-70">DAY 2</span>
-                    <span class="text-xs">26 ก.พ. 69</span>
-                </button>
-            </div>
-            
-            <label class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer active:bg-slate-100 transition-colors">
-                <span class="text-lg">🖼️</span>
-                <span class="text-xs text-slate-500 font-bold uppercase">อัพโหลดรูป QR Code</span>
-                <input type="file" id="file-input" accept="image/*" class="hidden">
-            </label>
-        </div>
     </div>
 
     <script>
@@ -147,9 +134,9 @@
                     updateLogs();
                     new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3').play();
                 } else {
-                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: r.message, toast: true, position: 'top' });
+                    Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: r.message, toast: true, position: 'top' });
                 }
-            } catch (e) { Swal.fire('Error', 'Contact Admin', 'error'); }
+            } catch (e) { console.error(e); }
             finally { document.getElementById('loader').classList.add('hidden'); }
         }
 
@@ -158,7 +145,7 @@
                 try {
                     const t = await scanner.scanFile(e.target.files[0], true);
                     send(t);
-                } catch (err) { Swal.fire('ไม่พบ QR', 'กรุณาลองใหม่', 'error'); }
+                } catch (err) { Swal.fire('ไม่พบ QR', '', 'error'); }
             }
         });
 
@@ -166,10 +153,9 @@
             try {
                 const res = await fetch(URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
                 const r = await res.json();
-                document.getElementById('logCount').innerText = r.records.length;
                 document.getElementById('logs').innerHTML = r.records.map(i => `
-                    <div class="bg-white p-3 rounded-xl flex justify-between items-center shadow-sm text-[11px] border-l-4 border-indigo-500">
-                        <div><b class="text-slate-700">${i.name}</b><br><span class="text-[9px] text-slate-400">${i.time}</span></div>
+                    <div class="bg-white p-2 rounded-xl flex justify-between items-center shadow-sm text-xs">
+                        <div><b>${i.name}</b><br><span class="text-[9px] text-slate-400">${i.time}</span></div>
                         <div class="text-green-500 font-bold">✓</div>
                     </div>
                 `).join('');
@@ -178,8 +164,8 @@
 
         function setDay(d) {
             day = d;
-            document.getElementById('d1').className = d === 1 ? 'btn-purple py-3 rounded-xl font-bold flex flex-col items-center shadow-md' : 'btn-off py-3 rounded-xl font-bold flex flex-col items-center';
-            document.getElementById('d2').className = d === 2 ? 'btn-purple py-3 rounded-xl font-bold flex flex-col items-center shadow-md' : 'btn-off py-3 rounded-xl font-bold flex flex-col items-center';
+            document.getElementById('d1').className = d === 1 ? 'btn-purple py-4 rounded-2xl font-bold flex flex-col items-center shadow-lg' : 'btn-off py-4 rounded-2xl font-bold flex flex-col items-center';
+            document.getElementById('d2').className = d === 2 ? 'btn-purple py-4 rounded-2xl font-bold flex flex-col items-center shadow-lg' : 'btn-off py-4 rounded-2xl font-bold flex flex-col items-center';
             updateLogs();
         }
     </script>
