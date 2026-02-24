@@ -3886,11 +3886,11 @@
 <script>
   const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
 
-  // 🛑 1. ใส่ URL Web App ของคุณที่นี่ (ต้อง Deploy ใน GAS เป็น "Anyone")
+  // 🛑 1. ตรวจสอบ URL Web App ของคุณให้ถูกต้อง (Deploy ใน GAS เป็น "Anyone")
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
 
   /**
-   * ฟังก์ชันสื่อสารกับ GAS API (Fetch) สำหรับใช้งานบน GitHub Pages
+   * ฟังก์ชันหลักสื่อสารกับ GAS API (Fetch)
    */
   async function callGAS(action, data = {}) {
     try {
@@ -3908,7 +3908,7 @@
 
   createApp({
     setup() {
-      // --- 🟢 2. ประกาศตัวแปรและค่าเริ่มต้น (จบปัญหา undefined ทุกจุด) ---
+      // --- 🟢 2. ค่าเริ่มต้นตัวแปร (ป้องกัน Error Undefined) ---
       const COL = ref({
         ID: "ID", TIMESTAMP: "Timestamp", EMAIL: "Email", TITLE: "คำนำหน้า", FNAME: "ชื่อ", LNAME: "นามสกุล",
         PHONE: "เบอร์โทรศัพท์", LICENSE: "เลขที่ใบประกอบวิชาชีพ", REG_TYPE: "ประเภทการลงทะเบียน",
@@ -3919,13 +3919,9 @@
         ATTEND_1_TIME: "Timestamp Day1", ATTEND_2_TIME: "Timestamp Day2", 
         CERT_URL: "URL ประกาศนียบัตร", DOWNLOAD: "จำนวนดาวน์โหลด"
       });
+      const REG_STATUS = ref({ INTERNAL: 'พยาบาลในฝ่ายการพยาบาล รพ.จุฬาลงกรณ์', QUOTA: 'สำหรับผู้ที่ได้รับโควต้าตามจดหมายเชิญ', EXTERNAL: 'สำหรับผู้ลงทะเบียนภายนอก' });
 
-      const REG_STATUS = ref({
-        INTERNAL: 'พยาบาลในฝ่ายการพยาบาล รพ.จุฬาลงกรณ์',
-        QUOTA: 'สำหรับผู้ที่ได้รับโควต้าตามจดหมายเชิญ',
-        EXTERNAL: 'สำหรับผู้ลงทะเบียนภายนอก'
-      });
-
+      // ตัวแปรระบบ
       const currentView = ref('form');
       const step = ref(1);
       const loading = ref(false);
@@ -3936,64 +3932,118 @@
       const isEditMode = ref(false);
       const errors = ref({});
 
-      // ข้อมูลตารางแอดมิน (จบปัญหา adminSearch)
+      // ข้อมูลตารางแอดมิน & Dashboard
       const adminData = ref([]);
-      const searchAdminQuery = ref(''); 
+      const searchAdminQuery = ref('');
       const filterRegType = ref('');
       const savingRows = ref({});
       const currentPage = ref(1);
+      let typeChart = null;
+      let statusChart = null;
 
-      // แบบฟอร์มแก้ไข (จบปัญหา reading id/profileImageUrl of undefined)
-      const editForm = ref({ 
-        id: '', rowNumber: null, profileImageUrl: '', firstName: '', lastName: '', 
-        status_Register: '', foodType: 'อาหารทั่วไป', email: '', phoneNumber: '', 
-        proLicense: '', internalPosition: '', workGroup: '', department: '',
-        address_main: '', address_subdistrict: '', address_district: '', 
-        address_province: '', address_postcode: '', taxpayer_ID: ''
-      });
-
-      // ข้อมูลกำหนดการ (จบปัญหา reading day1)
-      const scheduleData = ref({ day1: [], day2: [] });
-      const loadingSchedule = ref(false);
-      const downloadCount = ref(0);
-      const adminSheetUrl = ref('');
-
-      // แบบประเมินและสรุป (จบปัญหา reading date)
-      const evalDay = ref(1);
+      // ข้อมูลสรุปความพึงพอใจ
+      const summaryData = ref({ totalResponses: 0, results: {}, comments: [] });
+      const summaryFilter = ref({ date: '', origin: '' });
+      const assessmentTimer = ref({ day1Open: null, day1Close: null, day2Open: null, day2Close: null });
       const day1Questions = ref([]);
       const day2Questions = ref([]);
-      const evalForm = ref({ origin: '', gift: '', overallRating: '', nextTopic: '', feedback: '' });
-      const summaryFilter = ref({ date: '', origin: '' });
-      const summaryData = ref({ totalResponses: 0, results: {}, comments: [] });
-      const assessmentTimer = ref({ day1Open: null, day1Close: null, day2Open: null, day2Close: null });
+      const currentPageSummary = ref(1);
 
-      // อื่นๆ
+      // ฟอร์มลงทะเบียน
       const form = ref({ title_Name: 'นางสาว', foodType: 'อาหารทั่วไป', status_Register: '' });
+      const editForm = ref({ id: '', rowNumber: null, profileImageUrl: '', firstName: '', lastName: '', status_Register: '', foodType: 'อาหารทั่วไป' });
+      const searchQuery = ref('');
+      const searchResult = ref(null);
       const workGroupData = ref({});
+      const currentDepts = ref([]);
       const prefixOptions = ref([]);
       const affiliationOptions = ref([]);
       const professionOptions = ref([]);
-      const currentDepts = ref([]);
-      const searchQuery = ref('');
-      const searchResult = ref(null);
+
+      // กล้อง & สแกนเนอร์
       const profilePreview = ref(null);
+      const isCameraActive = ref(false);
+      const cameraZoom = ref(1.0);
+      let webcam = null;
       const isScanning = ref(false);
       const scanDay = ref('1');
       const scannedUser = ref(null);
       let html5QrCode = null;
 
-      // 🔵 3. ฟังก์ชันการนำทาง (Navigation) - จบปัญหา navToAdmin/Schedule is not a function
+      // กำหนดการ
+      const scheduleData = ref({ day1: [], day2: [] });
+      const loadingSchedule = ref(false);
+
+      // 🔵 3. ฟังก์ชันระบบ (Logic หลัก) ---
+
       const selectMenu = (v) => {
         currentView.value = v;
         const navbar = document.getElementById('navbarNav');
         if (navbar?.classList.contains('show')) bootstrap.Collapse.getInstance(navbar).hide();
       };
 
-      const navToAdmin = () => {
-        selectMenu('dashboard');
-        if (isAdminLoggedIn.value) loadAdminTable();
+      // --- รายการที่ 1: Logic Dashboard (Chart.js) ---
+      const renderCharts = () => {
+        const ctx1 = document.getElementById('typeChart');
+        const ctx2 = document.getElementById('statusChart');
+        if (!ctx1 || !ctx2) return;
+
+        const types = { internal: 0, quota: 0, external: 0 };
+        const stats = { attend1: 0, attend2: 0, paid: 0 };
+
+        adminData.value.forEach(item => {
+          if (item[COL.value.REG_TYPE] === REG_STATUS.value.INTERNAL) types.internal++;
+          else if (item[COL.value.REG_TYPE] === REG_STATUS.value.QUOTA) types.quota++;
+          else if (item[COL.value.REG_TYPE] === REG_STATUS.value.EXTERNAL) types.external++;
+
+          if (item[COL.value.ATTEND_1] === 'เข้าประชุม') stats.attend1++;
+          if (item[COL.value.ATTEND_2] === 'เข้าประชุม') stats.attend2++;
+          if (item[COL.value.PAYMENT_STATUS] === 'ชำระเงินเรียบร้อย') stats.paid++;
+        });
+
+        if (typeChart) typeChart.destroy();
+        if (statusChart) statusChart.destroy();
+
+        typeChart = new Chart(ctx1, {
+          type: 'doughnut',
+          data: { labels: ['ภายใน', 'โควต้า', 'ภายนอก'], datasets: [{ data: [types.internal, types.quota, types.external], backgroundColor: ['#004085', '#6610f2', '#0d6efd'] }] },
+          options: { plugins: { legend: { position: 'bottom' } } }
+        });
+
+        statusChart = new Chart(ctx2, {
+          type: 'bar',
+          data: { labels: ['วันที่ 25', 'วันที่ 26', 'จ่ายเงินแล้ว'], datasets: [{ label: 'จำนวน (ท่าน)', data: [stats.attend1, stats.attend2, stats.paid], backgroundColor: '#28a745' }] }
+        });
       };
 
+      // --- รายการที่ 2: Logic สรุปความพึงพอใจ ---
+      const loadSummary = async () => {
+        loading.value = true;
+        const res = await callGAS('getAssessmentSummary', { filter: summaryFilter.value });
+        if (res) summaryData.value = res;
+        loading.value = false;
+      };
+
+      // --- รายการที่ 3: Logic กล้อง (Webcam-Easy) ---
+      const startWebcam = async () => {
+        isCameraActive.value = true;
+        profilePreview.value = null;
+        await nextTick();
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('canvas');
+        webcam = new Webcam(videoElement, 'user', canvasElement);
+        try { await webcam.start(); } catch (err) { Swal.fire("Error", "ไม่สามารถเปิดกล้องได้", "error"); isCameraActive.value = false; }
+      };
+
+      const capturePhoto = () => {
+        if (!webcam) return;
+        profilePreview.value = webcam.snap();
+        webcam.stop();
+        isCameraActive.value = false;
+      };
+
+      // --- ฟังก์ชันนำทาง ---
+      const navToAdmin = () => { selectMenu('dashboard'); if (isAdminLoggedIn.value) loadAdminTable(); };
       const navToSchedule = async () => {
         selectMenu('schedule');
         if (scheduleData.value.day1.length === 0) {
@@ -4003,16 +4053,9 @@
           loadingSchedule.value = false;
         }
       };
+      const navToSummary = () => { selectMenu('summary'); loadSummary(); };
 
-      const navToSummary = async () => {
-        selectMenu('summary');
-        loading.value = true;
-        const res = await callGAS('getAssessmentSummary', { filter: summaryFilter.value });
-        if (res) summaryData.value = res;
-        loading.value = false;
-      };
-
-      // 🔵 4. ฟังก์ชันจัดการข้อมูล (Admin & User)
+      // 🔵 4. ฟังก์ชันจัดการข้อมูล (Admin/User) ---
       const handleAdminLogin = async () => {
         if (!login.value.pass) return;
         loading.value = true;
@@ -4032,6 +4075,7 @@
         const res = await callGAS('getAdminAllData');
         adminData.value = res || [];
         loading.value = false;
+        nextTick(() => renderCharts());
       };
 
       const saveAdminUpdate = async (item) => {
@@ -4039,6 +4083,14 @@
         const res = await callGAS('updateAdminStatus', { rowNumber: item.rowNumber, item: item });
         savingRows.value[item.rowNumber] = false;
         if (res.success) Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 800, showConfirmButton: false });
+      };
+
+      const submitForm = async () => {
+        loading.value = true;
+        const action = form.value.rowNumber ? 'updateForm' : 'processForm';
+        const res = await callGAS(action, { ...form.value, profilePreview: profilePreview.value });
+        loading.value = false;
+        if (res.success) { Swal.fire("สำเร็จ", res.message, "success"); resetForm(); }
       };
 
       const handleSearch = async () => {
@@ -4052,58 +4104,34 @@
         }
       };
 
-      const confirmDelete = async (rowNum) => {
-        const result = await Swal.fire({ title: 'ลบข้อมูล?', icon: 'warning', showCancelButton: true });
-        if (result.isConfirmed) {
-          await callGAS('deleteRegistration', { rowNumber: rowNum });
-          loadAdminTable();
-        }
-      };
-
-      // 🔵 5. ฟังก์ชันรูปภาพและสแกนเนอร์ (จบปัญหา openSpeakerModal is not a function)
-      const openSpeakerModal = (speaker, title) => {
-        if (!speaker) return;
-        document.getElementById("modalImageExpanded").src = speaker.img || '';
-        document.getElementById("modalSpeakerNameExpanded").textContent = title || "รายละเอียด";
-        document.getElementById("modalSpeakerAffiliationExpanded").textContent = speaker.name || '';
-        document.getElementById("speakerDetailModal").style.display = "flex";
-      };
-
+      // 🔵 5. สแกนเนอร์ ---
       const startScanner = () => {
         isScanning.value = true;
         setTimeout(() => {
           html5QrCode = new Html5Qrcode("reader");
           html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (text) => {
             const res = await callGAS('recordAttendance', { text, day: scanDay.value });
-            if (res.success) {
-              scannedUser.value = res.userData;
-              Swal.fire("สำเร็จ", `คุณ ${res.userData[COL.value.FNAME]}`, "success");
-            }
+            if (res.success) { scannedUser.value = res.userData; Swal.fire("สำเร็จ", `คุณ ${res.userData[COL.value.FNAME]}`, "success"); }
             stopScanner();
           });
         }, 300);
       };
 
-      const stopScanner = () => {
-        if (html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); isScanning.value = false; });
-        else isScanning.value = false;
-      };
+      const stopScanner = () => { if (html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); isScanning.value = false; }); else isScanning.value = false; };
 
-      // 🔵 6. Lifecycle & Helpers
+      // 🔵 6. Lifecycle & Computed ---
       onMounted(async () => {
         const res = await callGAS('loadInitialData');
         if (res) {
-          workGroupData.value = res.workGroups || {};
-          prefixOptions.value = res.prefixes || [];
-          affiliationOptions.value = res.affiliations || [];
-          professionOptions.value = res.professions || [];
+          workGroupData.value = res.workGroups || {}; prefixOptions.value = res.prefixes || [];
+          affiliationOptions.value = res.affiliations || []; professionOptions.value = res.professions || [];
+          const evalRes = await callGAS('getAssessmentConfig');
+          if (evalRes) { day1Questions.value = evalRes.day1; day2Questions.value = evalRes.day2; }
         }
         const saved = localStorage.getItem('nursing_admin_session');
         if (saved) {
-          const data = JSON.parse(saved);
-          isAdminLoggedIn.value = true;
-          login.value.user = data.username;
-          userRole.value = data.role;
+          const data = JSON.parse(saved); isAdminLoggedIn.value = true;
+          login.value.user = data.username; userRole.value = data.role;
         }
       });
 
@@ -4116,33 +4144,38 @@
         });
       });
 
+      const resetForm = () => { step.value = 1; isEditMode.value = false; profilePreview.value = null; form.value = { title_Name: 'นางสาว', foodType: 'อาหารทั่วไป', status_Register: '' }; };
+
       return {
         COL, REG_STATUS, currentView, step, loading, isAdminLoggedIn, userRole, login, showPassword,
-        summaryFilter, summaryData, assessmentTimer, editForm, form, adminData, searchAdminQuery, filterRegType, 
-        filteredAdminData, paginatedAdminData: computed(() => filteredAdminData.value.slice((currentPage.value - 1) * 15, currentPage.value * 15)),
+        adminData, searchAdminQuery, filterRegType, filteredAdminData, paginatedAdminData: computed(() => filteredAdminData.value.slice((currentPage.value - 1) * 15, currentPage.value * 15)),
         currentPage, totalPages: computed(() => Math.ceil(filteredAdminData.value.length / 15)),
-        scheduleData, loadingSchedule, downloadCount, adminSheetUrl,
-        navToAdmin, navToSchedule, navToSummary, selectMenu, openSpeakerModal,
-        handleSearch, handleAdminLogin, loadAdminTable, saveAdminUpdate, confirmDelete,
+        summaryFilter, summaryData, loadSummary, scheduleData, loadingSchedule, navToAdmin, navToSchedule, navToSummary, selectMenu,
+        handleSearch, handleAdminLogin, loadAdminTable, saveAdminUpdate, submitForm, resetForm,
+        startWebcam, capturePhoto, isCameraActive, cameraZoom, profilePreview, retakePhoto: () => { profilePreview.value = null; startWebcam(); },
         startScanner, stopScanner, isScanning, scanDay, scannedUser,
         formatThaiDate: (d) => d || '-', hasImage: (u) => (u && u !== '-' && u !== ''),
         canDownload: (item) => item[COL.value.ATTEND_1] === 'เข้าประชุม' && item[COL.value.ATTEND_2] === 'เข้าประชุม',
-        isRowChanged: (item) => true,
-        resetForm: () => { step.value = 1; isEditMode.value = false; searchResult.value = null; },
-        logoutAdmin: () => { localStorage.removeItem('nursing_admin_session'); isAdminLoggedIn.value = false; currentView.value = 'form'; },
+        openSpeakerModal: (s, t) => { document.getElementById("modalImageExpanded").src = s.img; document.getElementById("modalSpeakerNameExpanded").textContent = t; document.getElementById("speakerDetailModal").style.display = "flex"; },
+        closeSpeakerModal: () => { document.getElementById("speakerDetailModal").style.display = "none"; },
         onWorkGroupChange: () => currentDepts.value = workGroupData.value[form.value.workGroup] || [],
         copyName: () => form.value.name_Receipt = `${form.value.title_Name}${form.value.firstName} ${form.value.lastName}`,
         formatPassword: () => { login.value.pass = login.value.pass.replace(/[ก-๙]/g, ""); },
-        closeSpeakerModal: () => { document.getElementById("speakerDetailModal").style.display = "none"; },
+        getPercent: (c, t) => t > 0 ? ((c / t) * 100).toFixed(1) + '%' : '0%',
+        filteredQuestionsForSummary: computed(() => summaryFilter.value.date.includes('1') ? day1Questions.value : day2Questions.value),
+        paginatedComments: computed(() => summaryData.value.comments || []),
+        subItems: [{id: 1, text: 'หัวข้อเรื่องน่าสนใจ'}, {id: 2, text: 'ความเหมาะสมของเนื้อหา'}, {id: 3, text: 'ประโยชน์ที่ได้รับ'}, {id: 4, text: 'ความเหมาะสมของสื่อ'}, {id: 5, text: 'ระยะเวลา'}],
         scrollToTop: () => window.scrollTo({top: 0, behavior: 'smooth'}),
         scrollToBottom: () => window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'}),
-        // --- ส่วนที่เหลือประกาศว่างไว้กัน Error ---
-        submitForm: async () => {}, goToSummary: () => { step.value = 2; }, 
-        day1Questions, day2Questions, evalDay, evalForm, changeDay: (d) => evalDay.value = d,
-        canUserEdit: ref(true), canAccessAssessment: ref(true), isTimerLoaded: ref(true), isAssessmentTimerLoaded: ref(true), 
-        isDay1Active: ref(true), isDay2Active: ref(true), isCertTimeOpen: ref(true),
-        OPTIONAL_POSITIONS, profilePreview: ref(null), searchQuery, searchResult,
-        openAdminEditModal: (item) => { editForm.value = JSON.parse(JSON.stringify(item)); editForm.value.profileImageUrl = item[COL.value.IMAGE] || ''; bootstrap.Modal.getOrCreateInstance(document.getElementById('adminEditModal')).show(); },
+        // --- ส่วนที่เหลือป้องกัน Error ---
+        isTimerLoaded: ref(true), isAssessmentTimerLoaded: ref(true), isDay1Active: ref(true), isDay2Active: ref(true), isCertTimeOpen: ref(true), canUserEdit: ref(true), canAccessAssessment: ref(true),
+        editForm, savingRows, searchQuery, searchResult, downloadCount: ref(0), adminSheetUrl: ref(''), OPTIONAL_POSITIONS: [], prefixOptions, affiliationOptions, professionOptions, currentDepts,
+        logoutAdmin: () => { isAdminLoggedIn.value = false; localStorage.removeItem('nursing_admin_session'); currentView.value = 'form'; },
+        confirmDelete: (r) => callGAS('deleteRegistration', {rowNumber: r}).then(loadAdminTable),
+        onScheduleDownload: (i) => callGAS('trackDownload', {rowNum: i.rowNumber}),
+        handleDownload: () => window.open('https://drive.google.com/file/d/1I3d1gsZPbyteUlV0D_yPfWwUNyn6JJrU/view', '_blank'),
+        runBatchCert: () => {}, stopWebcam: () => { if(webcam) webcam.stop(); isCameraActive.value = false; },
+        changeDay: (d) => {}, submitEvaluation: () => {}, changePageSummary: () => {}, currentPageSummary, totalPagesSummary: ref(1), itemsPerPageSummary: 15
       };
     }
   }).mount('#app');
