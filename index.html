@@ -4129,15 +4129,32 @@
       // QR Scanner
       const startScanner = () => { isScanning.value = true; scannedUser.value = null; setTimeout(() => { html5QrCode = new Html5Qrcode("reader"); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => { processAttendance(text); }); }, 300); };
       const stopScanner = () => { if (html5QrCode) html5QrCode.stop().then(() => { isScanning.value = false; }); else isScanning.value = false; };
-
       // กราฟ
-      const filteredAdminData = computed(() => { if (!adminSearch.value) return adminData.value; const q = adminSearch.value.toLowerCase(); return adminData.value.filter(i => String(i[COL.value.FNAME]).toLowerCase().includes(q) || String(i[COL.value.ID]).includes(q)); });
+      const filteredAdminData = computed(() => {
+          let data = adminData.value;
+          if (filterRegType.value) {
+              data = data.filter(i => i[COL.value.REG_TYPE] === filterRegType.value);
+          }
+          if (searchAdminQuery.value) {
+              const q = searchAdminQuery.value.toLowerCase();
+              data = data.filter(i =>
+                  String(i[COL.value?.FNAME] ?? '').toLowerCase().includes(q) ||
+                  String(i[COL.value?.LNAME] ?? '').toLowerCase().includes(q) ||
+                  String(i[COL.value?.ID] ?? '').toLowerCase().includes(q) ||
+                  String(i[COL.value?.EMAIL] ?? '').toLowerCase().includes(q) ||
+                  String(i[COL.value?.LICENSE] ?? '').toLowerCase().includes(q) ||
+                  String(i[COL.value?.WORKPLACE] ?? '').toLowerCase().includes(q) ||
+                  String(i[COL.value?.DEPARTMENT] ?? '').toLowerCase().includes(q)
+              );
+          }
+          return data;
+      });
       const paginatedAdminData = computed(() => { const s = (currentPage.value - 1) * itemsPerPage; return filteredAdminData.value.slice(s, s + itemsPerPage); });
       const totalPages = computed(() => Math.ceil(filteredAdminData.value.length / itemsPerPage));
 
       return {
           GAS_WEB_APP_URL, callApi, COL, REG_STATUS, step, loading, form, currentView, isEditMode, isAdminLoggedIn, userRole, login,
-          searchQuery, searchResult, adminData, adminSearch, filteredAdminData, paginatedAdminData, currentPage, totalPages,
+          searchQuery, searchResult, adminData, filteredAdminData, filteredAdminData, paginatedAdminData, currentPage, totalPages,
           prefixOptions, affiliationOptions, professionOptions, workGroupData, currentDepts, onWorkGroupChange,
           handleSearch, submitForm, handleAdminLogin, logoutAdmin, loadAdminTable, saveAdminUpdate, prepareEdit, resetForm,
           isCameraActive, profilePreview, startWebcam, stopWebcam, capturePhoto, retakePhoto, applyCrop,
