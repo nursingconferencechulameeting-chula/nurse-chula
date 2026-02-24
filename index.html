@@ -79,26 +79,30 @@
         /* หน้าจอสถานะขณะโหลดข้อมูล */
         #loading-overlay {
             position: absolute;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(4px);
-            display: flex;
-            flex-direction: column;
-            items-center;
-            justify-content: center;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9); /* สีพื้นหลังขาวนวล */
+            backdrop-filter: blur(5px);
+            display: flex; /* ใช้ Flexbox */
+            flex-direction: column; /* จัดวางแนวตั้ง */
+            align-items: center; /* จัดกึ่งกลางแนวนอน - แก้ไขจากที่สะกดผิด */
+            justify-content: center; /* จัดกึ่งกลางแนวตั้ง */
             z-index: 100;
-            transition: all 0.3s ease;
+            border-radius: 2rem;
+            text-align: center; /* บังคับตัวอักษรกึ่งกลาง */
         }
 
+        /* ตัวหมุน Spinner */
         .loader-ring {
-            width: 48px;
-            height: 48px;
-            border: 5px solid #4f46e5;
-            border-bottom-color: transparent;
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e2e8f0;
+            border-top: 5px solid #4f46e5; /* สีม่วง */
             border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
             animation: rotation 1s linear infinite;
+            margin-bottom: 1rem;
         }
 
         @keyframes rotation {
@@ -170,12 +174,13 @@
 
                 <!-- พื้นที่แสดงกล้อง (ปรับเป็น aspect-square เสมอ) -->
                 <div class="relative bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl aspect-square flex items-center justify-center border-4 border-white mx-auto w-full max-w-[450px]">
-                    <div id="reader"></div>
+                    <div id="reader" class="w-full h-full"></div>
 
-                    <!-- Overlay แสดงสถานะกำลังทำงาน (ซ่อนไว้ก่อน) -->
-                    <div id="loading-overlay" class="hidden">
-                        <span class="loader-ring"></span>
-                        <p class="mt-4 font-bold text-indigo-600 animate-pulse">กำลังตรวจสอบข้อมูล...</p>
+                    <!-- Overlay แก้ไขใหม่ -->
+                    <div id="loading-overlay" class="hidden absolute inset-0 flex flex-col items-center justify-center">
+                        <div class="loader-ring"></div>
+                        <p class="text-indigo-600 font-bold text-lg animate-pulse">กำลังตรวจสอบข้อมูล...</p>
+                        <p class="text-slate-400 text-xs mt-1">กรุณารอสักครู่</p>
                     </div>
 
                     <!-- UI Overlay กรอบมุม -->
@@ -186,7 +191,8 @@
                         <div class="custom-corner corner-bl"></div>
                         <div class="custom-corner corner-br"></div>
                     </div>
-
+                    
+                    <!-- Placeholder -->
                     <div id="scan-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
                         <svg class="w-16 h-16 mb-2 opacity-10" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path></svg>
                         <p class="font-medium text-sm">พร้อมสำหรับการสแกน</p>
@@ -239,35 +245,21 @@
             if (isProcessing) return;
             selectedDay = day;
 
-            // เลือกปุ่มทั้งหมด
+            // UI: แสดงสถานะโหลด
             const btn1 = document.getElementById('btn-day-1');
             const btn2 = document.getElementById('btn-day-2');
             const loader = document.getElementById(`loader-day-${day}`);
-
-            // ล็อคปุ่มขณะโหลด
-            btn1.disabled = true;
-            btn2.disabled = true;
+            
+            btn1.disabled = true; btn2.disabled = true;
             loader.classList.remove('hidden');
 
-            // จัดการ Class Active
-            document.querySelectorAll('.day-tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // ใส่ Active ให้ปุ่มที่ถูกเลือก
-            const activeBtn = document.getElementById(`btn-day-${day}`);
-            activeBtn.classList.add('active');
+            document.querySelectorAll('.day-tab').forEach(btn => btn.classList.remove('active', 'text-white'));
+            document.getElementById(`btn-day-${day}`).classList.add('active');
 
-            try {
-                await updateHistory(); // เรียกฟังก์ชันดึงข้อมูลจาก GAS
-            } catch (e) {
-                console.error("Update history failed", e);
-            } finally {
-                // ปลดล็อคปุ่มและซ่อน loader
-                btn1.disabled = false;
-                btn2.disabled = false;
-                loader.classList.add('hidden');
-            }
+            await updateHistory(); // รอจนโหลดเสร็จ
+
+            btn1.disabled = false; btn2.disabled = false;
+            loader.classList.add('hidden');
         }
 
         async function toggleScanner() {
@@ -312,10 +304,12 @@
 
             if (isWorking) {
                 overlay.classList.remove('hidden');
+                overlay.style.display = 'flex'; // บังคับให้เป็น Flex เพื่อจัดกึ่งกลางเป๊ะ
                 scanBtn.classList.add('opacity-50', 'pointer-events-none');
                 uploadBtn.classList.add('opacity-50', 'pointer-events-none');
             } else {
                 overlay.classList.add('hidden');
+                overlay.style.display = 'none'; // ซ่อน
                 scanBtn.classList.remove('opacity-50', 'pointer-events-none');
                 uploadBtn.classList.remove('opacity-50', 'pointer-events-none');
             }
