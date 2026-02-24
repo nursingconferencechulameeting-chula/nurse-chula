@@ -2,8 +2,8 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบสแกนเข้าประชุมวิชาการพยาบาล 2569</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>QR Scanner Pro 2026</title>
 
   <!-- CSS Libs -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -15,79 +15,124 @@
     :root {
       --primary-color: #004085;
       --secondary-color: #6610f2;
-      --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f8f9fa 100%);
+      --scan-color: #00ff00;
     }
 
     body {
       font-family: 'Sarabun', sans-serif;
-      background: var(--bg-gradient);
-      background-attachment: fixed;
-      min-height: 100vh;
-      padding-top: 80px;
+      background-color: #1a1a1a; /* พื้นหลังเข้มเน้นตัวกล้อง */
+      color: #fff;
+      overflow-x: hidden;
     }
 
+    /* Navbar เน้นความโปร่งใส */
     .navbar {
-      background: rgba(255, 255, 255, 0.9) !important;
+      background: rgba(0, 0, 0, 0.8) !important;
       backdrop-filter: blur(10px);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
+    .navbar-brand { font-weight: 800; color: #fff !important; }
 
-    .navbar-brand { font-weight: 800; color: var(--primary-color) !important; }
-
-    .scanner-card {
-      border: none;
-      border-radius: 25px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-      background: #fff;
-    }
-
-    .scanner-header {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .scanner-container {
+    /* Container กล้องแบบเต็มจอส่วนหนึ่ง */
+    .scanner-wrapper {
       position: relative;
       width: 100%;
-      min-height: 400px;
+      height: 60vh; /* สูง 60% ของหน้าจอ */
       background: #000;
-      border-radius: 15px;
       overflow: hidden;
+      border-radius: 0 0 30px 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    /* บังคับ Video ให้เต็มพื้นที่ */
+    #reader {
+      width: 100% !important;
+      height: 100% !important;
+      border: none !important;
+    }
+    #reader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important; /* สำคัญ: ทำให้กล้องเต็มพื้นที่ */
+    }
+
+    /* ตกแต่งกรอบเล็ง (Overlay) */
+    .scan-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 5;
+    }
+    .viewfinder {
+      width: 250px;
+      height: 250px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      position: relative;
+      box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5); /* ทำพื้นหลังมืดรอบนอก */
+    }
+    /* มุมกรอบเล็ง */
+    .viewfinder::before {
+      content: "";
+      position: absolute;
+      top: -2px; left: -2px; width: 40px; height: 40px;
+      border-top: 5px solid var(--scan-color);
+      border-left: 5px solid var(--scan-color);
+      border-radius: 15px 0 0 0;
+    }
+    .viewfinder::after {
+      content: "";
+      position: absolute;
+      bottom: -2px; right: -2px; width: 40px; height: 40px;
+      border-bottom: 5px solid var(--scan-color);
+      border-right: 5px solid var(--scan-color);
+      border-radius: 0 0 15px 0;
     }
 
-    #reader {
-      width: 100% !important;
-      border: none !important;
+    /* เส้นวิ่งตอนแสกน */
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(to right, transparent, var(--scan-color), transparent);
+      top: 0;
+      animation: scanMove 2s infinite linear;
     }
 
-    #reader video {
-      object-fit: cover !important;
-      width: 100% !important;
+    @keyframes scanMove {
+      0% { top: 0; }
+      100% { top: 100%; }
     }
 
-    .status-btn-group .btn {
-      border-radius: 50px;
-      padding: 10px 25px;
-      font-weight: 600;
+    /* แผงควบคุมด้านล่าง */
+    .control-panel {
+      padding: 30px 20px;
+      background: #1a1a1a;
+    }
+
+    .btn-day {
+      border-radius: 15px;
+      padding: 15px;
+      font-weight: 800;
+      font-size: 1.1rem;
       transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    .btn-day.active {
+      background: var(--secondary-color) !important;
+      color: #fff !important;
+      border-color: #fff;
+      transform: scale(1.05);
     }
 
-    .result-card {
-      border-left: 5px solid #198754;
-      background-color: #f8fffb;
-    }
-
-    .tiny-label {
-      font-size: 0.75rem;
-      color: #888;
-      text-transform: uppercase;
+    .btn-action {
+      border-radius: 50px;
+      padding: 15px 30px;
       font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     [v-cloak] { display: none; }
@@ -98,108 +143,91 @@
   <div id="app" v-cloak>
     
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg fixed-top">
-      <div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top shadow">
+      <div class="container justify-content-center">
         <a class="navbar-brand" href="#">
-          <i class="fa-solid fa-qrcode me-2"></i>ระบบเช็คชื่อเข้าประชุม 2569
+          <i class="fa-solid fa-qrcode text-info me-2"></i>ระบบเช็คชื่อ 2569
         </a>
       </div>
     </nav>
 
-    <div class="container pb-5">
-      <div class="row justify-content-center">
-        <div class="col-md-7 col-lg-6">
-          
-          <div class="scanner-card animate__animated animate__fadeIn">
-            <div class="scanner-header">
-              <h4 class="mb-1 fw-bold">สแกน QR Code</h4>
-              <p class="mb-0 small opacity-75">ฝ่ายการพยาบาล โรงพยาบาลจุฬาลงกรณ์</p>
-            </div>
-
-            <div class="card-body p-4">
-              
-              <!-- เลือกวันที่ -->
-              <div class="mb-4 text-center">
-                <label class="form-label d-block fw-bold text-muted mb-3">
-                  <i class="fa-solid fa-calendar-day me-1"></i> เลือกวันที่บันทึกข้อมูล
-                </label>
-                <div class="btn-group w-100 status-btn-group bg-light p-1 rounded-pill" role="group">
-                  <button type="button" class="btn w-50" 
-                          :class="scanDay === '1' ? 'btn-primary shadow' : 'btn-light text-muted'" 
-                          @click="scanDay = '1'">
-                    วันที่ 1 (25 ส.ค.)
-                  </button>
-                  <button type="button" class="btn w-50" 
-                          :class="scanDay === '2' ? 'btn-primary shadow' : 'btn-light text-muted'" 
-                          @click="scanDay = '2'">
-                    วันที่ 2 (26 ส.ค.)
-                  </button>
-                </div>
-              </div>
-
-              <!-- ปุ่มควบคุม -->
-              <div class="row g-2 mb-4">
-                <div class="col-6">
-                  <button v-if="!isScanning" class="btn btn-outline-primary w-100 py-3 rounded-4 shadow-sm" 
-                          @click="startScanner" :disabled="loading">
-                    <i class="fa-solid fa-camera mb-1 d-block fs-4"></i>
-                    <span>เปิดกล้องสแกน</span>
-                  </button>
-                  <button v-else class="btn btn-danger w-100 py-3 rounded-4 shadow-sm" 
-                          @click="stopScanner">
-                    <i class="fa-solid fa-video-slash mb-1 d-block fs-4"></i>
-                    <span>ปิดกล้อง</span>
-                  </button>
-                </div>
-                <div class="col-6">
-                  <button class="btn btn-outline-secondary w-100 py-3 rounded-4 shadow-sm" 
-                          @click="$refs.qrFileInput.click()" :disabled="loading">
-                    <i class="fa-solid fa-image mb-1 d-block fs-4"></i>
-                    <span>อัปโหลดรูป</span>
-                  </button>
-                  <input type="file" ref="qrFileInput" class="d-none" accept="image/*" @change="handleQrUpload">
-                </div>
-              </div>
-
-              <!-- พื้นที่สแกน -->
-              <div v-show="isScanning" class="scanner-container mb-4 shadow-inner">
-                <div id="reader"></div>
-              </div>
-
-              <!-- ผลการสแกน -->
-              <div v-if="scannedUser" class="mt-4 animate__animated animate__zoomIn">
-                <div class="card result-card border-0 shadow-sm p-3">
-                  <div class="d-flex align-items-center gap-3">
-                    <div class="flex-shrink-0">
-                      <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                        <i class="fa-solid fa-check fs-4"></i>
-                      </div>
-                    </div>
-                    <div class="flex-grow-1">
-                      <h5 class="fw-bold mb-0 text-success">{{ scannedUser.message }}</h5>
-                      <p class="text-muted small mb-0">บันทึกสำเร็จ (วันที่ {{ scanDay }})</p>
-                    </div>
-                    <button class="btn-close" @click="scannedUser = null"></button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Loading Indicator -->
-              <div v-if="loading" class="text-center py-4">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted">กำลังประมวลผล...</p>
-              </div>
-
-            </div>
-          </div>
-
-          <footer class="text-center text-muted small mt-5">
-            <p>© 2026 ฝ่ายการพยาบาล โรงพยาบาลจุฬาลงกรณ์</p>
-          </footer>
-
+    <!-- ส่วนกล้อง -->
+    <div class="scanner-wrapper">
+      <div id="reader"></div>
+      
+      <!-- Overlay กรอบเล็ง จะแสดงเมื่อกำลังแสกน -->
+      <div v-show="isScanning" class="scan-overlay">
+        <div class="viewfinder">
+          <div class="scan-line"></div>
         </div>
       </div>
+
+      <!-- ข้อความแจ้งเตือนตอนหยุดแสกน -->
+      <div v-if="!isScanning" class="h-100 d-flex align-items-center justify-content-center flex-column p-4 text-center">
+        <i class="fa-solid fa-camera fa-4x mb-3 opacity-20"></i>
+        <h4>พร้อมสำหรับการสแกน</h4>
+        <p class="text-muted">กดปุ่ม "เริ่มสแกน" ด้านล่างเพื่อเปิดกล้อง</p>
+      </div>
     </div>
+
+    <!-- ส่วนควบคุม -->
+    <div class="control-panel">
+      <div class="container">
+        
+        <!-- เลือกวันที่ -->
+        <div class="row g-3 mb-4">
+          <div class="col-6">
+            <button class="btn btn-dark btn-day w-100" :class="{active: scanDay === '1'}" @click="scanDay = '1'">
+              <small class="d-block opacity-50 fw-normal">วันที่ 1</small>
+              25 ส.ค. 69
+            </button>
+          </div>
+          <div class="col-6">
+            <button class="btn btn-dark btn-day w-100" :class="{active: scanDay === '2'}" @click="scanDay = '2'">
+              <small class="d-block opacity-50 fw-normal">วันที่ 2</small>
+              26 ส.ค. 69
+            </button>
+          </div>
+        </div>
+
+        <!-- ปุ่มหลัก -->
+        <div class="d-grid gap-3">
+          <button v-if="!isScanning" class="btn btn-primary btn-action shadow-lg" @click="startScanner" :disabled="loading">
+            <i class="fa-solid fa-play me-2"></i> เริ่มสแกน QR Code
+          </button>
+          <button v-else class="btn btn-danger btn-action" @click="stopScanner">
+            <i class="fa-solid fa-stop me-2"></i> ปิดกล้อง
+          </button>
+          
+          <button class="btn btn-outline-light border-0 opacity-75" @click="$refs.qrFileInput.click()" :disabled="loading">
+            <i class="fa-solid fa-image me-2"></i> เลือกจากรูปภาพในมือถือ
+          </button>
+          <input type="file" ref="qrFileInput" class="d-none" accept="image/*" @change="handleQrUpload">
+        </div>
+
+        <!-- แสดงผลลัพธ์ล่าสุด -->
+        <div v-if="scannedUser" class="mt-4 animate__animated animate__fadeInUp">
+          <div class="alert alert-success border-0 shadow bg-success text-white rounded-4 p-3">
+            <div class="d-flex align-items-center">
+              <i class="fa-solid fa-circle-check fs-2 me-3"></i>
+              <div>
+                <div class="fw-bold">บันทึกสำเร็จ!</div>
+                <div class="small">{{ scannedUser.message }}</div>
+              </div>
+              <button class="btn-close btn-close-white ms-auto" @click="scannedUser = null"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="loading" class="text-center mt-3">
+          <div class="spinner-border text-info" role="status"></div>
+          <p class="small mt-2 text-info">กำลังบันทึกข้อมูล...</p>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 
   <!-- Scripts -->
@@ -208,9 +236,9 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 
   <script>
-    const { createApp, ref, onMounted } = Vue;
+    const { createApp, ref } = Vue;
 
-    // 🛑 ระบุ URL Web App จาก Google Apps Script ของคุณ
+    // 🛑 ระบุ URL Web App ของคุณ
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
 
     createApp({
@@ -226,20 +254,28 @@
           isScanning.value = true;
           
           html5QrScanner = new Html5Qrcode("reader");
-          const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+          
+          // การตั้งค่าให้เหมาะสมกับมือถือ
+          const config = { 
+            fps: 15, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 // ใช้สัดส่วน 1:1 เพื่อความง่ายในการกะระยะ
+          };
 
           html5QrScanner.start(
-            { facingMode: "environment" },
+            { facingMode: "environment" }, // บังคับใช้กล้องหลัง
             config,
             (decodedText) => {
-              // เมื่อเจอ QR Code
+              // สำเร็จ!
+              const audio = new Audio('https://www.soundjay.com/buttons/beep-07a.mp3');
+              audio.play();
               processAttendance(decodedText);
               stopScanner();
             }
           ).catch(err => {
             console.error(err);
-            Swal.fire("ผิดพลาด", "ไม่สามารถเข้าถึงกล้องได้", "error");
             isScanning.value = false;
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดกล้องได้ โปรดอนุญาตสิทธิ์การใช้กล้อง", "error");
           });
         };
 
@@ -263,7 +299,7 @@
               loading.value = false;
             })
             .catch(err => {
-              Swal.fire("ไม่พบ QR Code", "ไม่สามารถอ่านข้อมูลจากรูปนี้ได้", "warning");
+              Swal.fire("ผิดพลาด", "ไม่พบ QR Code ในรูปภาพ", "warning");
               loading.value = false;
             });
         };
@@ -285,15 +321,12 @@
 
             if (result.success) {
               scannedUser.value = { message: result.message };
-              // เล่นเสียง Beep (ถ้าต้องการ)
-              const audio = new Audio('https://www.soundjay.com/buttons/beep-07a.mp3');
-              audio.play();
             } else {
               Swal.fire("แจ้งเตือน", result.message, "warning");
             }
           } catch (error) {
             loading.value = false;
-            Swal.fire("ผิดพลาด", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
+            Swal.fire("ผิดพลาด", "เชื่อมต่อฐานข้อมูลไม่ได้", "error");
           }
         };
 
