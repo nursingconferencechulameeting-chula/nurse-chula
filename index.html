@@ -1,270 +1,314 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Meeting Scanner</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QR Scanner Meeting 2026</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root { --primary: #002d5f; --accent: #6610f2; --success: #00c853; --bg: #f4f7f9; }
+    body { font-family: 'Sarabun', sans-serif; background-color: var(--bg); color: #333; }
+    
+    .navbar-custom { background: var(--primary); color: white; padding: 12px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    
+    /* ปรับแต่งกล้องให้ดูเป็นมืออาชีพ */
+    .scanner-window {
+      position: relative; width: 100%; height: 420px; background: #111; border-radius: 24px; 
+      overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.2); border: 4px solid #fff;
+    }
+    #reader { width: 100% !important; height: 100% !important; }
+    #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
+
+    /* กรอบสแกน */
+    .scan-overlay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 260px; height: 260px; border: 2px solid rgba(255,255,255,0.2); border-radius: 35px;
+      z-index: 5; pointer-events: none; box-shadow: 0 0 0 4000px rgba(0,0,0,0.6);
+    }
+    .scan-line {
+      position: absolute; width: 90%; height: 4px; background: #00ff00; left: 5%;
+      top: 0; animation: scanAnimation 2s infinite linear; box-shadow: 0 0 20px #00ff00;
+    }
+    @keyframes scanAnimation { 0% { top: 5%; } 100% { top: 95%; } }
+
+    /* Card ข้อมูลผู้สแกน */
+    .data-card {
+      background: #fff; border-radius: 24px; padding: 25px; min-height: 420px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05); border-left: 10px solid var(--success);
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .profile-img { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+
+    /* รายการประวัติ */
+    .history-item {
+      background: #fff; border-radius: 16px; padding: 12px 20px; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-left: 5px solid var(--success); box-shadow: 0 3px 6px rgba(0,0,0,0.03);
+      animation: fadeInRight 0.5s ease-out;
+    }
+
+    /* ปุ่มควบคุม */
+    .btn-control { border-radius: 15px; font-weight: 700; padding: 12px; transition: 0.3s; border: 2px solid #eee; }
+    .btn-control.active { background: var(--accent) !important; color: #fff !important; border-color: var(--accent); }
+    .btn-upload { border-radius: 50px; border: 2px dashed #ccc; background: #fff; color: #555; padding: 10px; }
+
+    .progress-timer { height: 5px; background: var(--success); width: 0%; transition: width 3s linear; border-radius: 5px; }
+    .timer-run { width: 100%; }
+
+    [v-cloak] { display: none; }
+    
+    /* สำหรับหน้าจอมือถือ */
+    @media (max-width: 768px) {
+      .scanner-window { height: 350px; border-radius: 0 0 24px 24px; border: none; }
+      .data-card { min-height: auto; margin-top: -20px; z-index: 10; border-radius: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" v-cloak>
+  <nav class="navbar-custom">
+    <div class="container d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-800"><i class="fa-solid fa-bolt me-2 text-warning"></i>ระบบเช็คชื่อประชุม 2569</h5>
+      <span class="badge bg-white text-primary rounded-pill shadow-sm px-3 py-2">{{ currentTime }}</span>
+    </div>
+  </nav>
+
+  <div class="container mt-md-4 pb-5">
+    <div class="row g-4">
+      
+      <!-- ส่วนที่ 1: กล้อง -->
+      <div class="col-lg-6">
+        <div class="scanner-window mb-3">
+          <div id="reader"></div>
+          <div v-show="isScanning" class="scan-overlay"><div class="scan-line"></div></div>
+          
+          <!-- สถานะเมื่อปิดกล้อง -->
+          <div v-if="!isScanning && !scannedUser.id" class="h-100 d-flex flex-column align-items-center justify-content-center text-white p-4">
+            <i class="fa-solid fa-camera fa-4x opacity-25 mb-4"></i>
+            <h4 class="fw-bold">กล้องพร้อมใช้งาน</h4>
+            <p class="opacity-50 mb-4">กรุณาเลือกวันที่ด้านล่างและเริ่มสแกน</p>
+            <button class="btn btn-primary btn-lg rounded-pill px-5 shadow-lg" @click="startScanner">
+              <i class="fa-solid fa-play me-2"></i> เปิดกล้องสแกน
+            </button>
+          </div>
+        </div>
+
+        <!-- ปุ่มควบคุม -->
+        <div class="card p-3 border-0 shadow-sm rounded-4">
+          <div class="row g-2">
+            <div class="col-6">
+              <button class="btn btn-light btn-control w-100" :class="{active: scanDay === '1'}" @click="changeDay('1')">
+                <small class="d-block opacity-75 fw-normal">วันที่ 1</small> 25 ส.ค. 69
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-light btn-control w-100" :class="{active: scanDay === '2'}" @click="changeDay('2')">
+                <small class="d-block opacity-75 fw-normal">วันที่ 2</small> 26 ส.ค. 69
+              </button>
+            </div>
+            <div class="col-12 mt-2">
+              <button class="btn btn-upload w-100 fw-bold" @click="$refs.fileInput.click()" :disabled="loading">
+                <i class="fa-solid fa-image me-2 text-primary"></i> เลือกจากรูปภาพ QR Code
+              </button>
+              <input type="file" ref="fileInput" class="d-none" accept="image/*" @change="handleFileUpload">
+            </div>
+            <div class="col-12" v-if="isScanning">
+              <button class="btn btn-danger w-100 rounded-pill py-2 fw-bold mt-2 shadow-sm" @click="stopScanner">ยกเลิก / ปิดกล้อง</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ส่วนที่ 2: ข้อมูลและประวัติ -->
+      <div class="col-lg-6">
+        
+        <!-- ข้อมูลปัจจุบัน -->
+        <div class="data-card mb-4 animate__animated animate__fadeIn" v-if="scannedUser.id">
+          <div class="text-center mb-4">
+            <img :src="scannedUser.img || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'" class="profile-img mb-3">
+            <h2 class="fw-800 text-primary mb-1">{{ scannedUser.name }}</h2>
+            <div class="badge bg-success-subtle text-success border border-success px-4 py-2 rounded-pill mt-2">
+              <i class="fa-solid fa-check-circle me-1"></i> บันทึกสำเร็จ: {{ scannedUser.time }}
+            </div>
+          </div>
+          
+          <div class="row g-3 border-top pt-4">
+            <div class="col-6">
+              <div class="small text-muted mb-1">รหัสประจำตัว (ID)</div>
+              <div class="h5 fw-bold">{{ scannedUser.id }}</div>
+            </div>
+            <div class="col-6">
+              <div class="small text-muted mb-1">หน่วยงาน / สังกัด</div>
+              <div class="h5 fw-bold text-truncate" :title="scannedUser.dept">{{ scannedUser.dept }}</div>
+            </div>
+          </div>
+
+          <!-- Auto-Resume Progress -->
+          <div class="mt-4" v-if="isAutoWaiting">
+            <div class="d-flex justify-content-between small text-muted mb-2">
+              <span>กำลังเตรียมสแกนคนถัดไป...</span>
+              <span>3 วินาที</span>
+            </div>
+            <div class="progress-timer" :class="{'timer-run': isAutoWaiting}"></div>
+          </div>
+        </div>
+
+        <!-- เมื่อยังไม่มีการสแกน -->
+        <div class="data-card mb-4 text-center text-muted" v-else>
+           <i class="fa-solid fa-user-clock fa-5x mb-4 opacity-10"></i>
+           <h5 class="fw-bold">รอรับข้อมูลจากการสแกน</h5>
+           <p class="small">รายการที่สแกนสำเร็จจะปรากฏที่นี่</p>
+        </div>
+
+        <!-- รายการประวัติ -->
+        <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+          <h6 class="fw-800 mb-0 text-secondary"><i class="fa-solid fa-clock-rotate-left me-2"></i>ประวัติล่าสุดวันนี้</h6>
+          <span class="badge bg-secondary rounded-pill">{{ recentHistory.length }} รายการ</span>
+        </div>
+        
+        <div class="history-list px-1">
+          <div v-for="(rec, idx) in recentHistory" :key="rec.id + idx" class="history-item">
+             <div>
+               <strong class="d-block text-dark">{{ rec.name }}</strong>
+               <small class="text-muted">ID: {{ rec.id }} | เวลา: {{ rec.time }}</small>
+             </div>
+             <div class="text-success"><i class="fa-solid fa-circle-check fs-4"></i></div>
+          </div>
+          <div v-if="recentHistory.length === 0" class="text-center py-4 bg-white rounded-4 border border-dashed opacity-50">
+            <small>ยังไม่มีรายการสแกนในวันนี้</small>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Screen Loading -->
+  <div v-if="loading" class="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-white bg-opacity-90" style="z-index: 9999;">
+    <div class="spinner-grow text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+    <div class="h5 fw-bold text-primary">กำลังตรวจสอบข้อมูล...</div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-:root{
-  --bg:#0f172a;
-  --card:rgba(255,255,255,.1);
-  --primary:#2563eb;
-  --success:#22c55e;
-  --danger:#ef4444;
-  --text:#fff;
-}
-
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:system-ui;
-  background:var(--bg);
-  color:var(--text);
-}
-
-header{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 20px;
-  background:#020617;
-}
-
-main{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  height:calc(100vh - 120px);
-}
-
-.camera{
-  position:relative;
-}
-
-#reader video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.scan-frame{
-  position:absolute;
-  inset:20%;
-  border:3px solid var(--success);
-  border-radius:20px;
-  box-shadow:0 0 0 999px rgba(0,0,0,.6);
-}
-
-.info{
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  gap:20px;
-}
-
-.card{
-  background:var(--card);
-  backdrop-filter:blur(10px);
-  border-radius:20px;
-  padding:20px;
-}
-
-.user{
-  display:flex;
-  gap:15px;
-  align-items:center;
-}
-
-.user img{
-  width:80px;
-  height:80px;
-  border-radius:50%;
-  object-fit:cover;
-}
-
-.history{
-  max-height:300px;
-  overflow:auto;
-}
-
-.history li{
-  padding:10px;
-  border-bottom:1px solid rgba(255,255,255,.1);
-}
-
-footer{
-  display:flex;
-  gap:10px;
-  padding:10px;
-  background:#020617;
-}
-
-button{
-  flex:1;
-  padding:15px;
-  border:none;
-  border-radius:14px;
-  font-size:18px;
-  background:var(--primary);
-  color:white;
-}
-
-select{
-  padding:10px;
-  border-radius:10px;
-}
-
-@media(max-width:768px){
-  main{
-    grid-template-columns:1fr;
-  }
-  .info{
-    position:absolute;
-    bottom:80px;
-    width:100%;
-  }
-}
-</style>
-</head>
-
-<body>
-<div id="app">
-<header>
-  <div>📷 QR Meeting Scanner</div>
-  <div>{{ currentTime }}</div>
-</header>
-
-<main>
-  <div class="camera">
-    <div id="reader"></div>
-    <div class="scan-frame" v-if="isScanning"></div>
-  </div>
-
-  <div class="info">
-    <div class="card">
-      <select v-model="scanDay">
-        <option value="1">Day 1</option>
-        <option value="2">Day 2</option>
-      </select>
-
-      <div class="user" v-if="scannedUser">
-        <img :src="scannedUser.img || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'">
-        <div>
-          <h2>{{ scannedUser.name }}</h2>
-          <p>{{ scannedUser.dept }}</p>
-          <span style="color:var(--success)">✅ {{ scannedUser.time }}</span>
-        </div>
-      </div>
-
-      <div v-else>รอการสแกน...</div>
-    </div>
-
-    <div class="card history">
-      <h3>Recent</h3>
-      <ul>
-        <li v-for="r in recentHistory">{{ r.name }} - {{ r.time }}</li>
-      </ul>
-    </div>
-  </div>
-</main>
-
-<footer>
-  <button @click="startScanner">Start Scan</button>
-  <button @click="stopScanner" style="background:var(--danger)">Stop</button>
-</footer>
-</div>
-
 <script>
-const {createApp,ref,onMounted} = Vue;
-
-// 🔴 เปลี่ยน URL ของคุณตรงนี้
+const { createApp, ref, onMounted } = Vue;
 const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
 
 createApp({
-setup(){
-  const isScanning = ref(false);
-  const scanDay = ref("1");
-  const scannedUser = ref(null);
-  const recentHistory = ref([]);
-  const currentTime = ref("");
-  let html5Qr = null;
-  let busy = false;
+  setup() {
+    const isScanning = ref(false);
+    const scanDay = ref('1');
+    const scannedUser = ref({ id: null, name: null, dept: null, img: null, time: null }); // กำหนดโครงสร้างรอไว้เลย
+    const recentHistory = ref([]);
+    const currentTime = ref('');
+    const loading = ref(false);
+    const isAutoWaiting = ref(false);
+    let html5Qr = null;
 
-  setInterval(()=>{
-    currentTime.value = new Date().toLocaleTimeString("th-TH");
-  },1000);
+    // อัปเดตเวลาจริง
+    setInterval(() => { currentTime.value = new Date().toLocaleTimeString('th-TH'); }, 1000);
 
-  const startScanner = async()=>{
-    if(busy) return;
-    if(!html5Qr) html5Qr = new Html5Qrcode("reader");
-    isScanning.value = true;
-    await html5Qr.start(
-      {facingMode:"environment"},
-      {fps:10,qrbox:250},
-      onScanSuccess
-    );
-  };
+    const startScanner = async () => {
+      if (!html5Qr) html5Qr = new Html5Qrcode("reader");
+      if (html5Qr.isScanning) return;
+      
+      isScanning.value = true;
+      // ไม่ต้องล้าง scannedUser เพื่อให้เจ้าหน้าที่ดูข้อมูลคนเก่าได้จนกว่าจะสแกนคนใหม่ติด
+      
+      try {
+        await html5Qr.start({ facingMode: "environment" }, { fps: 20, qrbox: 260 }, (text) => {
+          new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3').play().catch(e => {});
+          handleScanSuccess(text);
+        });
+      } catch (err) { isScanning.value = false; }
+    };
 
-  const stopScanner = async()=>{
-    if(html5Qr && html5Qr.isScanning){
-      await html5Qr.stop();
-      isScanning.value=false;
-    }
-  };
-
-  const onScanSuccess = async(text)=>{
-    if(busy) return;
-    busy = true;
-    await stopScanner();
-
-    try{
-      const res = await fetch(GAS_URL,{
-        method:"POST",
-        body:JSON.stringify({
-          action:"recordAttendance",
-          data:{text,day:scanDay.value}
-        })
-      });
-      const result = await res.json();
-
-      if(result.success){
-        scannedUser.value = result.user;
-        recentHistory.value.unshift(result.user);
-        if(recentHistory.value.length>10) recentHistory.value.pop();
-        navigator.vibrate(200);
-      }else{
-        Swal.fire("แจ้งเตือน",result.message,"warning");
+    const stopScanner = async () => {
+      if (html5Qr && html5Qr.isScanning) {
+        await html5Qr.stop();
+        isScanning.value = false;
       }
-    }catch{
-      Swal.fire("Error","เชื่อมต่อ Server ไม่ได้","error");
-    }
+    };
 
-    setTimeout(()=>{
-      busy=false;
-      startScanner();
-    },3000);
-  };
+    const handleFileUpload = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      loading.value = true;
+      try {
+        const scanner = new Html5Qrcode("reader");
+        const decodedText = await scanner.scanFile(file, true);
+        await handleScanSuccess(decodedText);
+      } catch (err) {
+        Swal.fire("ไม่พบ QR Code", "รูปภาพไม่ชัดเจนหรือไม่มีรหัสที่ถูกต้อง", "error");
+      }
+      loading.value = false;
+      e.target.value = '';
+    };
 
-  const fetchHistory = async()=>{
-    const res = await fetch(GAS_URL,{
-      method:"POST",
-      body:JSON.stringify({action:"getRecentRecords",data:{day:scanDay.value}})
-    });
-    const data = await res.json();
-    if(data.success) recentHistory.value=data.records;
-  };
+    const handleScanSuccess = async (text) => {
+      if (html5Qr && html5Qr.isScanning) await html5Qr.stop();
+      isScanning.value = false;
+      loading.value = true;
 
-  onMounted(fetchHistory);
+      try {
+        const res = await fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: 'recordAttendance', data: { text, day: scanDay.value } })
+        });
+        const result = await res.json();
+        loading.value = false;
 
-  return{
-    isScanning,scanDay,scannedUser,recentHistory,currentTime,
-    startScanner,stopScanner
-  };
-}
-}).mount("#app");
+        if (result.success && result.user) {
+          scannedUser.value = result.user;
+          recentHistory.value.unshift(result.user);
+          if (recentHistory.value.length > 10) recentHistory.value.pop();
+
+          // Auto Start Next Scan
+          isAutoWaiting.value = true;
+          setTimeout(() => {
+            isAutoWaiting.value = false;
+            startScanner();
+          }, 3000);
+        } else {
+          Swal.fire("แจ้งเตือน", result.message || "เกิดข้อผิดพลาด", "warning").then(() => startScanner());
+        }
+      } catch (e) {
+        loading.value = false;
+        Swal.fire("Error", "เชื่อมต่อฐานข้อมูลไม่ได้", "error").then(() => startScanner());
+      }
+    };
+
+    const changeDay = (day) => {
+      scanDay.value = day;
+      fetchHistory();
+    };
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(GAS_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: 'getRecentRecords', data: { day: scanDay.value } })
+        });
+        const data = await res.json();
+        if (data.success && data.records) recentHistory.value = data.records;
+      } catch (e) {}
+    };
+
+    onMounted(() => fetchHistory());
+
+    return { isScanning, scanDay, scannedUser, recentHistory, currentTime, loading, isAutoWaiting, startScanner, stopScanner, handleFileUpload, changeDay };
+  }
+}).mount('#app');
 </script>
 </body>
 </html>
