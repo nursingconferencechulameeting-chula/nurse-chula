@@ -13,15 +13,13 @@
         body { font-family: 'Prompt', sans-serif; background: #f8fafc; color: #1e293b; }
         .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; }
         
-        /* Tab วันที่ */
         .day-tab { transition: all 0.2s ease-in-out; }
         .day-tab.active { background: #4f46e5; color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2); }
+        .day-tab:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        /* Scanner */
         #reader { border: none !important; border-radius: 1.5rem; overflow: hidden; background: #000; }
         #reader video { object-fit: cover !important; }
 
-        /* Animation เส้นสแกน */
         .scan-line {
             position: absolute; top: 0; width: 100%; height: 4px;
             background: linear-gradient(to right, transparent, #4f46e5, transparent);
@@ -32,6 +30,10 @@
 
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* สไตล์หมุนโหลด */
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="min-h-screen">
@@ -46,10 +48,14 @@
                 <span class="text-xl font-bold text-indigo-900 tracking-tight">ระบบเช็คอิน QR Code</span>
             </div>
             
-            <!-- ปุ่มสลับวันที่แบบคลิกเลือก -->
-            <div class="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner w-full md:w-auto">
-                <button onclick="selectDay(1)" id="btn-day-1" class="day-tab active flex-1 md:flex-none px-8 py-2 rounded-xl text-sm font-bold">วันที่ 1</button>
-                <button onclick="selectDay(2)" id="btn-day-2" class="day-tab flex-1 md:flex-none px-8 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-indigo-600">วันที่ 2</button>
+            <!-- ปุ่มสลับวันที่แบบคลิกเลือก (พร้อมสถานะโหลด) -->
+            <div id="dayButtonGroup" class="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner w-full md:w-auto">
+                <button onclick="selectDay(1)" id="btn-day-1" class="day-tab active flex-1 md:flex-none px-8 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                    <span>วันที่ 1</span>
+                </button>
+                <button onclick="selectDay(2)" id="btn-day-2" class="day-tab flex-1 md:flex-none px-8 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-indigo-600 flex items-center justify-center gap-2">
+                    <span>วันที่ 2</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -57,14 +63,13 @@
     <main class="max-w-7xl mx-auto p-4 md:p-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            <!-- ฝั่งซ้าย: กล้องสแกน และ การแสดงผล (หลัก) -->
             <div class="lg:col-span-7 space-y-6">
                 
                 <!-- ปุ่มสแกน และ อัพโหลด -->
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="startScanner()" class="flex flex-col sm:flex-row items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
-                        สแกนด้วยกล้อง
+                    <button id="scanBtn" onclick="toggleScanner()" class="flex flex-col sm:flex-row items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95">
+                        <svg id="scanIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                        <span id="scanBtnText">สแกนด้วยกล้อง</span>
                     </button>
                     <button onclick="document.getElementById('file-input').click()" class="flex flex-col sm:flex-row items-center justify-center gap-2 bg-white hover:bg-slate-50 text-indigo-600 border-2 border-indigo-600 py-4 px-6 rounded-3xl font-bold shadow-sm transition-all active:scale-95">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
@@ -73,7 +78,6 @@
                     <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
                 </div>
 
-                <!-- พื้นที่แสดงกล้อง/QR -->
                 <div class="relative bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl aspect-square md:aspect-video flex items-center justify-center border-4 border-white">
                     <div id="reader" class="w-full h-full"></div>
                     <div id="scan-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
@@ -83,7 +87,6 @@
                     <div id="scan-line-ui" class="scan-line hidden"></div>
                 </div>
 
-                <!-- การแสดงผลข้อมูลผู้ใช้ที่สแกนสำเร็จ -->
                 <div id="resultContainer" class="hidden animate-in fade-in slide-in-from-bottom-5 duration-500">
                     <div class="bg-white rounded-[2.5rem] p-6 shadow-2xl border-2 border-indigo-50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
                         <div id="regBadge" class="absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm"></div>
@@ -100,7 +103,7 @@
                                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                                     <span id="resDept" class="text-sm font-medium text-slate-600">--</span>
                                 </div>
-                                <div id="resTimeLabel" class="bg-green-50 text-green-700 px-4 py-2 rounded-2xl text-sm font-bold border border-green-100">
+                                <div class="bg-green-50 text-green-700 px-4 py-2 rounded-2xl text-sm font-bold border border-green-100">
                                     สำเร็จ: <span id="resTime">--</span>
                                 </div>
                             </div>
@@ -109,7 +112,6 @@
                 </div>
             </div>
 
-            <!-- ฝั่งขวา: รายการประวัติล่าสุด (สำหรับ PC อยู่ข้าง / มือถืออยู่ล่าง) -->
             <div class="lg:col-span-5">
                 <div class="bg-white rounded-[2.5rem] shadow-xl border border-white h-full flex flex-col overflow-hidden max-h-[600px] lg:max-h-[800px]">
                     <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
@@ -120,7 +122,6 @@
                         <span id="recordCount" class="bg-indigo-600 text-white px-3 py-1 rounded-xl text-xs font-bold">0 คน</span>
                     </div>
                     <div id="historyList" class="p-4 space-y-4 overflow-y-auto custom-scrollbar flex-grow">
-                        <!-- รายชื่อผู้เช็คอินล่าสุดจะแสดงที่นี่ -->
                         <div class="text-center py-20 text-slate-300 italic flex flex-col items-center">
                             <svg class="w-12 h-12 mb-2 opacity-10" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path></svg>
                             <p>ไม่มีข้อมูล</p>
@@ -140,32 +141,76 @@
         let html5QrCode;
         let selectedDay = 1;
         let isProcessing = false;
+        let isScannerRunning = false;
 
-        function selectDay(day) {
-            selectedDay = day;
-            document.querySelectorAll('.day-tab').forEach(btn => btn.classList.remove('active', 'text-white'));
-            document.querySelectorAll('.day-tab').forEach(btn => btn.classList.add('text-slate-500'));
-            const activeBtn = document.getElementById(`btn-day-${day}`);
-            activeBtn.classList.add('active');
-            activeBtn.classList.remove('text-slate-500');
-            updateHistory();
+        // 1. ปรับปรุง: ปุ่มเปิด-ปิดสแกน
+        async function toggleScanner() {
+            const btn = document.getElementById('scanBtn');
+            const btnText = document.getElementById('scanBtnText');
+            const placeholder = document.getElementById('scan-placeholder');
+            const scanLine = document.getElementById('scan-line-ui');
+
+            if (isScannerRunning) {
+                // คำสั่งปิดสแกน
+                if (html5QrCode) {
+                    await html5QrCode.stop();
+                    html5QrCode = null;
+                }
+                isScannerRunning = false;
+                btnText.innerText = "สแกนด้วยกล้อง";
+                btn.className = btn.className.replace("bg-red-500 hover:bg-red-600", "bg-indigo-600 hover:bg-indigo-700");
+                placeholder.classList.remove('hidden');
+                scanLine.classList.add('hidden');
+            } else {
+                // คำสั่งเปิดสแกน
+                placeholder.classList.add('hidden');
+                scanLine.classList.remove('hidden');
+                
+                html5QrCode = new Html5Qrcode("reader");
+                const config = { fps: 20, qrbox: (w, h) => { const s = Math.min(w, h) * 0.8; return { width: s, height: s }; } };
+                
+                try {
+                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                    isScannerRunning = true;
+                    btnText.innerText = "ปิดกล้องสแกน";
+                    btn.className = btn.className.replace("bg-indigo-600 hover:bg-indigo-700", "bg-red-500 hover:bg-red-600");
+                } catch (err) {
+                    Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error');
+                    placeholder.classList.remove('hidden');
+                    scanLine.classList.add('hidden');
+                }
+            }
         }
 
-        function startScanner() {
-            if (html5QrCode) html5QrCode.stop();
-            document.getElementById('scan-placeholder').classList.add('hidden');
-            document.getElementById('scan-line-ui').classList.remove('hidden');
+        // 2. ปรับปรุง: เลือกวันที่พร้อม Loading Spinner
+        async function selectDay(day) {
+            if (selectedDay === day && document.getElementById(`btn-day-${day}`).disabled) return;
             
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { 
-                fps: 20, 
-                qrbox: (w, h) => {
-                    const s = Math.min(w, h) * 0.8;
-                    return { width: s, height: s };
-                }
-            };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-                .catch(err => Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'));
+            const btn1 = document.getElementById('btn-day-1');
+            const btn2 = document.getElementById('btn-day-2');
+            const activeBtn = document.getElementById(`btn-day-${day}`);
+            
+            // แสดงสถานะ Loading
+            const originalContent = activeBtn.innerHTML;
+            activeBtn.disabled = true;
+            activeBtn.innerHTML = `<svg class="spinner w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M12 4V2m0 20v-2m8-8h2M2 12h2m15.364-7.364l-1.414 1.414M6.05 17.95l-1.414 1.414M17.95 17.95l1.414 1.414M6.05 6.05L4.636 4.636"></path></svg> <span>โหลด...</span>`;
+
+            selectedDay = day;
+            
+            // อัปเดต UI ปุ่ม
+            [btn1, btn2].forEach(btn => {
+                btn.classList.remove('active', 'text-white');
+                btn.classList.add('text-slate-500');
+            });
+            activeBtn.classList.add('active');
+            activeBtn.classList.remove('text-slate-500');
+
+            // โหลดข้อมูล
+            await updateHistory();
+
+            // คืนค่าปุ่ม
+            activeBtn.disabled = false;
+            activeBtn.innerHTML = `<span>วันที่ ${day}</span>`;
         }
 
         async function handleFileUpload(event) {
@@ -197,13 +242,8 @@
                     updateHistory();
                 } else {
                     playTone('beepError');
-                    const isPaymentIssue = result.message.includes("ชำระเงิน");
-                    Swal.fire({
-                        icon: isPaymentIssue ? 'warning' : 'error',
-                        title: isPaymentIssue ? 'ติดปัญหาการชำระเงิน' : 'เช็คอินไม่สำเร็จ',
-                        text: result.message,
-                        confirmButtonColor: '#4f46e5'
-                    });
+                    const isPayment = result.message.includes("ชำระเงิน");
+                    Swal.fire({ icon: isPayment ? 'warning' : 'error', title: isPayment ? 'ติดปัญหาการชำระเงิน' : 'ล้มเหลว', text: result.message, confirmButtonColor: '#4f46e5' });
                 }
             } catch (err) {
                 Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error');
@@ -215,7 +255,6 @@
         function showUserData(user) {
             const container = document.getElementById('resultContainer');
             container.classList.remove('hidden');
-            
             document.getElementById('resName').innerText = user.name;
             document.getElementById('resId').innerText = "ID: " + user.id;
             document.getElementById('resDept').innerText = user.dept;
@@ -234,34 +273,22 @@
 
         async function updateHistory() {
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } })
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } }) });
                 const result = await res.json();
                 const list = document.getElementById('historyList');
-                
                 if (result.success && result.records.length > 0) {
                     list.innerHTML = result.records.map((rec, i) => `
-                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-200 transition-all animate-in slide-in-from-right duration-300" style="animation-delay: ${i*50}ms">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-600 shrink-0">
-                                ${rec.id.toString().slice(-3)}
-                            </div>
-                            <div class="flex-grow">
-                                <p class="text-sm font-bold text-slate-800">${rec.name}</p>
-                                <p class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">${rec.time}</p>
-                            </div>
-                            <div class="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                        </div>
-                    `).join('');
+                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-200 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-600 shrink-0">${rec.id.toString().slice(-3)}</div>
+                            <div class="flex-grow"><p class="text-sm font-bold text-slate-800">${rec.name}</p><p class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">${rec.time}</p></div>
+                            <div class="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                        </div>`).join('');
                     document.getElementById('recordCount').innerText = result.records.length;
                 } else {
                     list.innerHTML = `<div class="text-center py-20 text-slate-300 italic"><p>ไม่มีข้อมูลการสแกน</p></div>`;
                     document.getElementById('recordCount').innerText = `0`;
                 }
-            } catch (e) { console.log("History Sync Error"); }
+            } catch (e) { console.log("History Error"); }
         }
 
         function playTone(id) {
@@ -270,10 +297,7 @@
             audio.play().catch(e => {});
         }
 
-        window.onload = () => { 
-            updateHistory(); 
-            setInterval(updateHistory, 30000); 
-        };
+        window.onload = () => { updateHistory(); setInterval(updateHistory, 30000); };
     </script>
 </body>
 </html>
