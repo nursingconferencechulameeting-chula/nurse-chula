@@ -2,149 +2,150 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>ระบบสแกนเข้าประชุม (PC & Mobile)</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QR Scanner Meeting 2026</title>
+  
   <!-- Libs -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.11.0/dist/sweetalert2.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap">
 
   <style>
     :root { --primary: #004085; --secondary: #6610f2; --success: #198754; --scan-line: #00ff00; }
-    body { font-family: 'Sarabun', sans-serif; background: #f4f7f9; color: #333; margin: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: #f4f7f9; color: #333; }
 
-    /* Layout สำหรับ PC & Mobile */
-    .main-container { max-width: 900px; margin: 0 auto; min-height: 100vh; background: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-    
-    /* กล้อง */
-    .scanner-section { position: relative; width: 100%; background: #000; overflow: hidden; }
-    
-    /* ปรับความสูงกล้องตามอุปกรณ์ */
-    @media (min-width: 768px) { .scanner-section { height: 450px; border-radius: 0 0 20px 20px; } }
-    @media (max-width: 767px) { .scanner-section { height: 50vh; } }
+    /* Scanner UI */
+    .scanner-section {
+      position: relative;
+      background: #000;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      /* ปรับความสูงอัตโนมัติ: PC จะเล็กลง มือถือจะสูงขึ้น */
+      height: 400px; 
+    }
+    @media (max-width: 768px) { .scanner-section { height: 60vh; border-radius: 0 0 25px 25px; } }
 
     #reader { width: 100% !important; height: 100% !important; border: none !important; }
-    #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
+    #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
 
-    /* กรอบเล็งสแกน */
+    /* Viewfinder */
     .viewfinder {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 240px; height: 240px; border: 2px solid rgba(255,255,255,0.2); border-radius: 20px;
-      box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.5); z-index: 5; pointer-events: none;
+      width: 250px; height: 250px; border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 20px; pointer-events: none; z-index: 5;
+      box-shadow: 0 0 0 4000px rgba(0,0,0,0.5);
     }
-    .scan-line {
-      position: absolute; width: 100%; height: 2px; background: var(--scan-line);
-      top: 0; animation: scanMove 2s infinite linear; box-shadow: 0 0 8px var(--scan-line);
+    .viewfinder::after {
+      content: ""; position: absolute; width: 100%; height: 3px; background: var(--scan-line);
+      top: 0; animation: scanAnim 2s infinite linear; box-shadow: 0 0 10px var(--scan-line);
     }
-    @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
+    @keyframes scanAnim { 0% { top: 0; } 100% { top: 100%; } }
 
-    /* ข้อมูลผู้ใช้ */
+    /* Result Card */
     .user-card {
-      background: #fff; border-radius: 20px; padding: 25px;
-      margin-top: -30px; position: relative; z-index: 10; box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
-      border-top: 5px solid var(--success);
+      background: #fff; border-radius: 15px; border-left: 8px solid var(--success);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 20px;
     }
-    .user-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #f8f9fa; }
+    .user-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #eee; }
 
-    /* ปุ่มกด */
-    .btn-custom { border-radius: 15px; padding: 12px; font-weight: 700; transition: all 0.2s; }
-    .btn-day { background: #e9ecef; color: #495057; border: none; }
-    .btn-day.active { background: var(--secondary); color: #fff; box-shadow: 0 4px 12px rgba(102, 16, 242, 0.3); }
+    .btn-day { border-radius: 10px; font-weight: bold; padding: 12px; transition: 0.3s; }
+    .btn-day.active { background: var(--primary) !important; color: white !important; }
 
     [v-cloak] { display: none; }
   </style>
 </head>
 <body>
 
-<div id="app" v-cloak class="main-container">
-  
-  <!-- Header ส่วนหัว (ซ่อนบนมือถือเพื่อเพิ่มพื้นที่กล้อง) -->
-  <div class="p-3 bg-white d-none d-md-block border-bottom">
-    <h4 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-qrcode me-2"></i>ระบบเช็คชื่อเข้าประชุม 2569</h4>
-  </div>
-
-  <!-- ส่วนของกล้อง -->
-  <div class="scanner-section">
-    <div id="reader"></div>
-    <div v-show="isScanning" class="viewfinder"><div class="scan-line"></div></div>
-    
-    <!-- หน้าจอ Standby -->
-    <div v-if="!isScanning && !scannedUser" class="h-100 d-flex flex-column align-items-center justify-content-center text-white p-4">
-      <i class="fa-solid fa-camera fa-4x mb-3 opacity-25"></i>
-      <h5 class="fw-bold">ระบบพร้อมสแกน</h5>
-      <p class="small opacity-75">เลือกวันที่และกดปุ่มเริ่มทำงานด้านล่าง</p>
+<div id="app" v-cloak>
+  <!-- Navbar -->
+  <nav class="navbar navbar-dark bg-primary shadow-sm mb-4">
+    <div class="container justify-content-center">
+      <span class="navbar-brand mb-0 h1"><i class="fa-solid fa-qrcode me-2"></i>ระบบเช็คชื่อ 2569</span>
     </div>
-  </div>
+  </nav>
 
-  <!-- ส่วนควบคุมและแสดงข้อมูล -->
-  <div class="p-4">
-    
-    <!-- ปุ่มเลือกวัน (แสดงเมื่อไม่ได้สแกนติด) -->
-    <div class="row g-2 mb-4" v-if="!scannedUser">
-      <div class="col-6">
-        <button class="btn btn-custom btn-day w-100" :class="{active: scanDay === '1'}" @click="scanDay = '1'">วันที่ 1 (25 ส.ค.)</button>
-      </div>
-      <div class="col-6">
-        <button class="btn btn-custom btn-day w-100" :class="{active: scanDay === '2'}" @click="scanDay = '2'">วันที่ 2 (26 ส.ค.)</button>
-      </div>
-    </div>
-
-    <!-- เมื่อสแกนติด แสดงบัตรข้อมูลผู้เข้าประชุม -->
-    <div v-if="scannedUser" class="user-card animate__animated animate__fadeInUp">
-      <div class="row align-items-center">
-        <div class="col-12 col-md-4 text-center mb-3 mb-md-0">
-          <img :src="scannedUser.img || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'" class="user-avatar shadow-sm">
-        </div>
-        <div class="col-12 col-md-8">
-          <h3 class="fw-800 text-dark mb-1">{{ scannedUser.name }}</h3>
-          <span class="badge bg-primary px-3 rounded-pill mb-3">ID: {{ scannedUser.id }}</span>
-          <div class="row">
-            <div class="col-6">
-              <div class="small text-muted">หน่วยงาน:</div>
-              <div class="fw-600 text-truncate">{{ scannedUser.dept }}</div>
-            </div>
-            <div class="col-6">
-              <div class="small text-muted">สถานะ:</div>
-              <div class="fw-600 text-success"><i class="fa-solid fa-circle-check me-1"></i>ลงชื่อแล้ว</div>
-            </div>
+  <div class="container">
+    <div class="row g-4 justify-content-center">
+      
+      <!-- ฝั่งซ้าย: กล้องสแกน -->
+      <div class="col-lg-6">
+        <div class="scanner-section">
+          <div id="reader"></div>
+          <div v-show="isScanning" class="viewfinder"></div>
+          
+          <div v-if="!isScanning && !scannedUser" class="h-100 d-flex flex-column align-items-center justify-content-center text-white p-4">
+            <i class="fa-solid fa-video-slash fa-4x opacity-25 mb-3"></i>
+            <h5>กล้องปิดอยู่</h5>
+            <p class="small opacity-50">กรุณากดปุ่มเริ่มสแกนด้านล่าง</p>
           </div>
         </div>
       </div>
-      <div class="d-grid mt-4">
-        <button class="btn btn-success btn-custom py-3" @click="resetScanner">
-          <i class="fa-solid fa-qrcode me-2"></i> สแกนรายการถัดไป
-        </button>
+
+      <!-- ฝั่งขวา: การควบคุมและผลลัพธ์ -->
+      <div class="col-lg-5">
+        
+        <!-- ส่วนเลือกวัน (จะซ่อนเมื่อสแกนติด) -->
+        <div v-if="!scannedUser" class="card card-body border-0 shadow-sm mb-3">
+          <label class="fw-bold mb-2 text-muted">เลือกวันที่บันทึก:</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <button class="btn btn-light btn-day w-100 shadow-sm" :class="{active: scanDay === '1'}" @click="scanDay = '1'">วันที่ 1 (25 ส.ค.)</button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-light btn-day w-100 shadow-sm" :class="{active: scanDay === '2'}" @click="scanDay = '2'">วันที่ 2 (26 ส.ค.)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ปุ่มเริ่ม/หยุด -->
+        <div v-if="!scannedUser" class="d-grid gap-2 mb-4">
+          <button v-if="!isScanning" class="btn btn-primary btn-lg rounded-pill shadow" @click="startScanner" :disabled="loading">
+            <i class="fa-solid fa-camera me-2"></i> เริ่มสแกน QR Code
+          </button>
+          <button v-else class="btn btn-danger btn-lg rounded-pill" @click="stopScanner">
+            <i class="fa-solid fa-stop me-2"></i> ปิดกล้อง
+          </button>
+        </div>
+
+        <!-- บัตรข้อมูลผู้ใช้ -->
+        <div v-if="scannedUser" class="user-card animate__animated animate__fadeInUp">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <img :src="scannedUser.img || 'https://cdn-icons-png.flaticon.com/512/147/147144.png'" class="user-avatar shadow-sm">
+            <div>
+              <h4 class="fw-bold mb-0">{{ scannedUser.name }}</h4>
+              <span class="badge bg-primary">ID: {{ scannedUser.id }}</span>
+            </div>
+          </div>
+          <div class="row small mb-3">
+            <div class="col-6 text-muted">หน่วยงาน:</div>
+            <div class="col-6 fw-bold">{{ scannedUser.dept }}</div>
+            <div class="col-6 text-muted">ประเภท:</div>
+            <div class="col-6 fw-bold">{{ scannedUser.type }}</div>
+          </div>
+          <button class="btn btn-success w-100 btn-lg rounded-pill fw-bold shadow" @click="resetAndStart">
+            <i class="fa-solid fa-sync me-2"></i> สแกนคนถัดไป
+          </button>
+        </div>
+
+        <div v-if="loading" class="text-center mt-3">
+          <div class="spinner-border text-primary"></div>
+          <p class="small text-muted mt-2">กำลังส่งข้อมูลไปที่ Google Sheets...</p>
+        </div>
+
       </div>
     </div>
-
-    <!-- ปุ่มเริ่มสแกนหลัก -->
-    <div v-if="!isScanning && !scannedUser" class="d-grid">
-      <button class="btn btn-primary btn-custom py-3 shadow-lg" @click="startScanner" :disabled="loading">
-        <i class="fa-solid fa-play-circle me-2"></i> เริ่มต้นสแกน QR Code
-      </button>
-      <button class="btn btn-link text-muted mt-3 text-decoration-none small" @click="$refs.qrFile.click()">
-        <i class="fa-solid fa-image me-1"></i> หรืออัปโหลดจากรูปภาพ
-      </button>
-      <input type="file" ref="qrFile" class="d-none" accept="image/*" @change="handleFileUpload">
-    </div>
-
-    <!-- แสดงตอนกำลังประมวลผล -->
-    <div v-if="loading" class="text-center mt-3">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2 fw-600 text-primary">กำลังสื่อสารกับฐานข้อมูล...</p>
-    </div>
-
   </div>
 </div>
 
+<!-- Scripts -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.11.0/dist/sweetalert2.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 
 <script>
-  const { createApp, ref, nextTick } = Vue;
+  const { createApp, ref } = Vue;
   const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
 
   createApp({
@@ -156,62 +157,44 @@
       let html5Qr = null;
 
       const startScanner = async () => {
-        scannedUser.value = null;
-        const readerEl = document.getElementById("reader");
-        if (readerEl) readerEl.innerHTML = "";
-
-        isScanning.value = true;
-        await nextTick();
-
-        html5Qr = new Html5Qrcode("reader");
+        // เคลียร์ค่าเก่าป้องกัน Error removeChild
+        if (html5Qr && html5Qr.isScanning) { await html5Qr.stop(); }
         
-        // ตรวจสอบว่าเป็นมือถือหรือ PC
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const cameraConfig = isMobile ? { facingMode: "environment" } : { facingMode: "user" };
+        scannedUser.value = null;
+        isScanning.value = true;
+        
+        if (!html5Qr) html5Qr = new Html5Qrcode("reader");
 
-        html5Qr.start(
-          cameraConfig, 
-          { fps: 20, qrbox: 250, aspectRatio: 1.0 }, 
-          (text) => {
-            new Audio('https://www.soundjay.com/buttons/beep-07a.mp3').play();
-            stopScanner().then(() => sendToGas(text));
-          }
-        ).catch(err => {
-          console.error(err);
+        try {
+          await html5Qr.start(
+            { facingMode: "environment" }, 
+            { fps: 20, qrbox: 250 }, 
+            (text) => {
+              new Audio('https://www.soundjay.com/buttons/beep-07a.mp3').play();
+              stopScanner();
+              sendToGas(text);
+            }
+          );
+        } catch (e) {
           isScanning.value = false;
-          Swal.fire("กล้องขัดข้อง", "ไม่สามารถเข้าถึงกล้องได้ โปรดอนุญาตสิทธิ์", "error");
-        });
-      };
-
-      const stopScanner = async () => {
-        if (html5Qr) {
-          try {
-            if (html5Qr.isScanning) await html5Qr.stop();
-          } catch (e) {
-            console.warn(e);
-          } finally {
-            const readerEl = document.getElementById("reader");
-            if (readerEl) readerEl.innerHTML = "";
-            isScanning.value = false;
-            html5Qr = null;
-          }
+          Swal.fire("ข้อผิดพลาด", "ไม่สามารถเปิดกล้องได้", "error");
         }
       };
 
-      const resetScanner = () => {
-        scannedUser.value = null;
-        startScanner();
+      const stopScanner = async () => {
+        if (html5Qr && html5Qr.isScanning) {
+          try {
+            await html5Qr.stop();
+            isScanning.value = false;
+          } catch (e) { console.warn(e); isScanning.value = false; }
+        } else {
+          isScanning.value = false;
+        }
       };
 
-      const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        loading.value = true;
-        const tempScanner = new Html5Qrcode("reader");
-        tempScanner.scanFile(file, true)
-          .then(text => sendToGas(text))
-          .catch(() => Swal.fire("ล้มเหลว", "ไม่พบ QR Code ในรูปภาพ", "warning"))
-          .finally(() => loading.value = false);
+      const resetAndStart = () => {
+        scannedUser.value = null;
+        setTimeout(startScanner, 200); // ดีเลย์นิดนึงให้ UI เคลียร์
       };
 
       const sendToGas = async (text) => {
@@ -225,16 +208,16 @@
           if (result.success) {
             scannedUser.value = result.user;
           } else {
-            Swal.fire("ขออภัย", result.message, "warning").then(() => startScanner());
+            Swal.fire("แจ้งเตือน", result.message, "warning");
+            startScanner();
           }
         } catch (e) {
-          Swal.fire("Error", "ไม่สามารถติดต่อฐานข้อมูลได้", "error");
-        } finally {
-          loading.value = false;
+          Swal.fire("Error", "เชื่อมต่อฐานข้อมูลไม่ได้", "error");
         }
+        loading.value = false;
       };
 
-      return { isScanning, scanDay, scannedUser, loading, startScanner, stopScanner, resetScanner, handleFileUpload };
+      return { isScanning, scanDay, scannedUser, loading, startScanner, stopScanner, resetAndStart };
     }
   }).mount('#app');
 </script>
