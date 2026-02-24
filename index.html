@@ -1186,7 +1186,6 @@
 </head>
 
 <body>
-
   <div id="app" v-cloak>
     
     <!-- Navbar -->
@@ -2318,7 +2317,7 @@
                         <div class="camera-card border rounded-4 p-4 shadow-sm text-center">
                             <!-- วงกลมพรีวิว -->
                             <div class="camera-circle-wrapper mb-3">
-                                <video v-show="isCameraActive" 
+                                <video v-if="isCameraActive" 
                                       id="webcam" 
                                       autoplay 
                                       playsinline 
