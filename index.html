@@ -3899,13 +3899,13 @@
       return await response.json();
     } catch (error) {
       console.error("GAS Error:", error);
-      return { success: false, message: "เชื่อมต่อไม่สำเร็จ: " + error.toString() };
+      return { success: false, message: "เชื่อมต่อไม่สำเร็จ" };
     }
   }
 
   createApp({
     setup() {
-      // --- 1. Constants ---
+      // --- 1. Constants (Mapping) ---
       const COL = ref({
         ID: "ID", TIMESTAMP: "Timestamp", EMAIL: "Email", TITLE: "คำนำหน้า", FNAME: "ชื่อ", LNAME: "นามสกุล",
         PHONE: "เบอร์โทรศัพท์", LICENSE: "เลขที่ใบประกอบวิชาชีพ", REG_TYPE: "ประเภทการลงทะเบียน",
@@ -3940,78 +3940,93 @@
       const currentView = ref('form');
       const step = ref(1);
       const loading = ref(false);
+      const isEditMode = ref(false);
       const isAdminLoggedIn = ref(false);
       const userRole = ref('');
       const login = ref({ user: '', pass: '' });
       const showPassword = ref(false);
-      const isEditMode = ref(false);
       const form = ref(createEmptyForm());
       const editForm = ref(createEmptyForm());
-
       const adminData = ref([]);
       const searchAdminQuery = ref('');
       const filterRegType = ref('');
       const savingRows = ref({});
       const currentPage = ref(1);
       const itemsPerPage = 15;
-
       const workGroupData = ref({});
       const prefixOptions = ref(['นางสาว', 'นาง', 'นาย']);
       const affiliationOptions = ref([]);
       const professionOptions = ref([]);
       const searchQuery = ref('');
       const searchResult = ref(null);
-
       const isCameraActive = ref(false);
       const profilePreview = ref(null);
       const cameraZoom = ref(1.0);
       const scanDay = ref('1');
+      const scannedUser = ref(null);
       const isScanning = ref(false);
       
       let webcamObj = null;
       let html5QrScanner = null;
-      let cropperInstance = null;
+      let cropper = null;
+      let typeChart = null;
+      let statusChart = null;
 
-      // --- 4. Navigation ---
+      // --- 4. Navigation & Charts Control ---
       const selectMenu = (v) => {
         currentView.value = v;
+        if (v === 'dashboard' && isAdminLoggedIn.value) {
+            loadAdminTable();
+        }
         const navbar = document.getElementById('navbarNav');
         if (navbar?.classList.contains('show')) bootstrap.Collapse.getInstance(navbar).hide();
       };
 
-      // --- 5. Data Mapping ---
-      const mapRowToForm = (item) => {
-        const f = createEmptyForm();
-        f.rowNumber = item.rowNumber;
-        f.id = item[COL.value.ID];
-        f.timestamp = item[COL.value.TIMESTAMP];
-        f.email = item[COL.value.EMAIL];
-        f.title_Name = item[COL.value.TITLE];
-        f.firstName = item[COL.value.FNAME];
-        f.lastName = item[COL.value.LNAME];
-        f.phoneNumber = item[COL.value.PHONE];
-        f.proLicense = item[COL.value.LICENSE];
-        f.status_Register = item[COL.value.REG_TYPE];
-        f.foodType = item[COL.value.FOOD];
-        f.slipImage = item[COL.value.SLIP] === '-' ? null : item[COL.value.SLIP];
-        f.profilePreview = item[COL.value.IMAGE] === '-' ? null : item[COL.value.IMAGE];
+      // ฟังก์ชันวาดกราฟ (Charts)
+      const renderCharts = () => {
+        const ctxType = document.getElementById('typeChart');
+        const ctxStatus = document.getElementById('statusChart');
+        if (!ctxType || adminData.value.length === 0) return;
 
-        if (f.status_Register === REG_STATUS.INTERNAL) {
-          f.internalPosition = item[COL.value.POSITION];
-          f.workGroup = item[COL.value.WORK_GROUP];
-          f.department = item[COL.value.DEPARTMENT];
-        } else if (f.status_Register === REG_STATUS.QUOTA) {
-          f.affiliation = item[COL.value.WORKPLACE];
-        } else {
-          f.workPlace = item[COL.value.WORKPLACE];
-          f.name_Receipt = item[COL.value.RECEIPT_NAME];
-          f.address = item[COL.value.ADDRESS];
-          f.taxpayer_ID = item[COL.value.TAX_ID];
-        }
-        return f;
+        // ทำลายกราฟเก่าก่อนสร้างใหม่
+        if (typeChart) typeChart.destroy();
+        if (statusChart) statusChart.destroy();
+
+        // คำนวณข้อมูลประเภทการลงทะเบียน
+        const counts = adminData.value.reduce((acc, curr) => {
+          const type = curr[COL.value.REG_TYPE] || 'อื่นๆ';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {});
+
+        typeChart = new Chart(ctxType, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(counts).map(k => k.split(' ')[0]),
+            datasets: [{ data: Object.values(counts), backgroundColor: ['#004085', '#6610f2', '#0d6efd'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // คำนวณข้อมูลการเข้าประชุม (วันที่ 1 และ 2)
+        const attend1 = adminData.value.filter(d => d[COL.value.ATTEND_1] === 'เข้าประชุม').length;
+        const attend2 = adminData.value.filter(d => d[COL.value.ATTEND_2] === 'เข้าประชุม').length;
+
+        statusChart = new Chart(ctxStatus, {
+          type: 'bar',
+          data: {
+            labels: ['วันที่ 25 ส.ค.', 'วันที่ 26 ส.ค.'],
+            datasets: [{
+              label: 'จำนวนผู้เข้าประชุม (คน)',
+              data: [attend1, attend2],
+              backgroundColor: '#157347'
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
       };
 
-      // --- 6. กล้องถ่ายรูป & การจัดการไฟล์รูป (Cropper) ---
+      // --- 5. กล้องถ่ายรูป & การจัดการไฟล์รูป (Cropper) ---
       const startWebcam = async () => {
         isCameraActive.value = true;
         await nextTick();
@@ -4019,17 +4034,15 @@
         const canvas = document.getElementById('canvas');
         webcamObj = new Webcam(video, 'user', canvas);
         webcamObj.start()
-          .then(() => console.log("Camera Ready"))
           .catch(err => {
             isCameraActive.value = false;
-            Swal.fire("Error", "ไม่สามารถเข้าถึงกล้องได้: " + err, "error");
+            Swal.fire("Error", "ไม่สามารถเข้าถึงกล้องได้", "error");
           });
       };
 
       const capturePhoto = () => {
         const rawPhoto = webcamObj.snap();
-        // เมื่อถ่ายรูปเสร็จ ส่งไปที่ระบบ Cropper ทันที
-        initCropper(rawPhoto);
+        initCropper(rawPhoto); // ส่งไปครอบรูปทันที
         if (webcamObj) webcamObj.stop();
         isCameraActive.value = false;
       };
@@ -4048,57 +4061,91 @@
         const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
         cropModal.show();
 
-        // รอให้ Modal แสดงผลก่อนค่อยเริ่ม Cropper
         setTimeout(() => {
-          if (cropperInstance) cropperInstance.destroy();
-          cropperInstance = new Cropper(imgEl, {
+          if (cropper) cropper.destroy();
+          cropper = new Cropper(imgEl, {
             aspectRatio: 1,
             viewMode: 1,
-            dragMode: 'move',
-            autoCropArea: 1,
-            restore: false,
             guides: true,
             center: true,
             highlight: false,
             cropBoxMovable: true,
             cropBoxResizable: true,
-            toggleDragModeOnDblclick: false,
           });
         }, 500);
       };
 
       const applyCrop = () => {
-        if (!cropperInstance) return;
-        const canvas = cropperInstance.getCroppedCanvas({ width: 400, height: 400 });
+        const canvas = cropper.getCroppedCanvas({ width: 400, height: 400 });
         profilePreview.value = canvas.toDataURL('image/jpeg', 0.8);
         bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-        cropperInstance.destroy();
-        cropperInstance = null;
+        cropper.destroy();
       };
 
       const cancelCrop = () => {
         bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-        if (cropperInstance) cropperInstance.destroy();
-        cropperInstance = null;
+        if (cropper) cropper.destroy();
       };
 
-      // --- 7. Main Logic (Search, Submit, Auth) ---
+      // --- 6. Data Management ---
+      const mapRowToForm = (item) => {
+        const f = createEmptyForm();
+        f.rowNumber = item.rowNumber;
+        f.id = item[COL.value.ID];
+        f.timestamp = item[COL.value.TIMESTAMP];
+        f.email = item[COL.value.EMAIL];
+        f.title_Name = item[COL.value.TITLE];
+        f.firstName = item[COL.value.FNAME];
+        f.lastName = item[COL.value.LNAME];
+        f.phoneNumber = item[COL.value.PHONE];
+        f.proLicense = item[COL.value.LICENSE];
+        f.status_Register = item[COL.value.REG_TYPE];
+        f.foodType = item[COL.value.FOOD];
+        f.profilePreview = item[COL.value.IMAGE] === '-' ? null : item[COL.value.IMAGE];
+        f.slipImage = item[COL.value.SLIP] === '-' ? null : item[COL.value.SLIP];
+
+        if (f.status_Register === REG_STATUS.INTERNAL) {
+          f.internalPosition = item[COL.value.POSITION];
+          f.workGroup = item[COL.value.WORK_GROUP];
+          f.department = item[COL.value.DEPARTMENT];
+        } else if (f.status_Register === REG_STATUS.QUOTA) {
+          f.affiliation = item[COL.value.WORKPLACE];
+        } else {
+          f.workPlace = item[COL.value.WORKPLACE];
+          f.name_Receipt = item[COL.value.RECEIPT_NAME];
+          f.address = item[COL.value.ADDRESS];
+          f.taxpayer_ID = item[COL.value.TAX_ID];
+        }
+        return f;
+      };
+
+      const loadAdminTable = async () => {
+        loading.value = true;
+        const res = await callGAS('getAdminAllData');
+        adminData.value = res || [];
+        loading.value = false;
+        nextTick(() => renderCharts()); // วาดกราฟหลังจากโหลดข้อมูลเสร็จ
+      };
+
       const handleSearch = async () => {
         if (!searchQuery.value) return;
         loading.value = true;
         const res = await callGAS('searchUser', { query: searchQuery.value });
         searchResult.value = res.success ? res.data : [];
         loading.value = false;
-        if (searchResult.value.length === 0) Swal.fire("ไม่พบข้อมูล", "โปรดตรวจสอบอีกครั้ง", "info");
+        if (!res.data.length) Swal.fire("ไม่พบข้อมูล", "กรุณาตรวจสอบ ID หรือ อีเมล", "info");
       };
 
       const submitForm = async () => {
         loading.value = true;
-        const action = isEditMode.value ? 'updateForm' : 'processForm';
         const payload = { ...form.value, profilePreview: profilePreview.value };
+        const action = isEditMode.value ? 'updateForm' : 'processForm';
         const res = await callGAS(action, payload);
         loading.value = false;
-        if (res.success) { Swal.fire("สำเร็จ", res.message, "success"); resetForm(); }
+        if (res.success) {
+          Swal.fire("สำเร็จ", res.message, "success");
+          resetForm();
+        }
       };
 
       const resetForm = () => {
@@ -4107,6 +4154,7 @@
         isEditMode.value = false;
         step.value = 1;
         searchResult.value = null;
+        searchQuery.value = '';
       };
 
       const handleAdminLogin = async () => {
@@ -4120,17 +4168,12 @@
           login.value.user = res.username;
           localStorage.setItem('nurse_token', JSON.stringify({ pass: login.value.pass }));
           loadAdminTable();
-        } else { Swal.fire("Error", "รหัสผ่านไม่ถูกต้อง", "error"); }
+        } else {
+          Swal.fire("Error", "รหัสผ่านไม่ถูกต้อง", "error");
+        }
       };
 
-      const loadAdminTable = async () => {
-        loading.value = true;
-        const res = await callGAS('getAdminAllData');
-        adminData.value = res || [];
-        loading.value = false;
-      };
-
-      // --- 8. สแกน QR Code ---
+      // --- 7. Scanner ---
       const startScanner = () => {
         isScanning.value = true;
         html5QrScanner = new Html5Qrcode("reader");
@@ -4139,18 +4182,18 @@
           isScanning.value = false;
           callGAS('recordAttendance', { text, day: scanDay.value }).then(res => {
             if(res.success) Swal.fire("สำเร็จ", res.message, "success");
-            else Swal.fire("ล้มเหลว", res.message, "warning");
+            else Swal.fire("ผิดพลาด", res.message, "warning");
           });
         });
       };
 
-      // --- 9. Helpers & LifeCycle ---
+      // --- 8. Helpers ---
       const formatThaiDate = (d, t) => {
         if (!d || d === '-') return '-';
         const date = new Date(d);
         const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
         const res = `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
-        return t ? `${res} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}` : res;
+        return t ? `${res} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} น.` : res;
       };
 
       onMounted(async () => {
@@ -4165,14 +4208,16 @@
         if (auth) { login.value.pass = JSON.parse(auth).pass; handleAdminLogin(); }
       });
 
-      // --- 10. Return ทั้งหมดเพื่อให้ HTML ใช้งานได้ ---
+      // --- 9. Return ทั้งหมดเพื่อให้ HTML ใช้งานได้ ---
       return {
         form, editForm, step, currentView, loading, isAdminLoggedIn, userRole, login, showPassword, isEditMode,
         COL, REG_STATUS, OPTIONAL_POSITIONS, adminData, savingRows: ref({}),
         workGroupData, prefixOptions, affiliationOptions, professionOptions,
-        searchQuery, searchResult, isScanning, scanDay, isCameraActive, profilePreview, cameraZoom,
+        searchQuery, searchResult, isScanning, scanDay, scannedUser, isCameraActive, profilePreview, cameraZoom,
         
-        selectMenu, handleSearch, submitForm, resetForm, handleAdminLogin,
+        selectMenu, handleSearch, prepareEdit: (item) => { form.value = mapRowToForm(item); profilePreview.value = form.value.profilePreview; isEditMode.value = true; step.value = 1; window.scrollTo({top: 400, behavior:'smooth'}); },
+        goToSummary: () => { if(!form.value.status_Register) return Swal.fire("เตือน", "กรุณาเลือกประเภทสิทธิ์", "warning"); step.value = 2; },
+        submitForm, resetForm, handleAdminLogin, loadAdminTable,
         startWebcam, capturePhoto, handleFileUpload, applyCrop, cancelCrop,
         startScanner, formatThaiDate,
         
@@ -4190,23 +4235,26 @@
         currentPage, changePage: (p) => currentPage.value = p,
         
         copyName: () => form.value.name_Receipt = `${form.value.title_Name}${form.value.firstName} ${form.value.lastName}`,
-        confirmDelete: (r) => { if(confirm('ยืนยันการลบ?')) callGAS('deleteRegistration', { rowNumber: r }).then(loadAdminTable); },
+        confirmDelete: (r) => { if(confirm('ลบข้อมูล?')) callGAS('deleteRegistration', { rowNumber: r }).then(loadAdminTable); },
         logoutAdmin: () => { isAdminLoggedIn.value = false; localStorage.removeItem('nurse_token'); selectMenu('form'); },
         scrollToTop: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
         scrollToBottom: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }),
         
-        // --- Stubs อื่นๆ ---
-        prepareEdit, goToSummary, navToAdmin: () => selectMenu('dashboard'), navToSummary: () => selectMenu('summary'),
-        navToSchedule: async () => { selectMenu('schedule'); }, 
-        openAdminEditModal: (item) => { editForm.value = mapRowToForm(item); new bootstrap.Modal(document.getElementById('adminEditModal')).show(); },
-        saveAdminUpdate: async (item) => { await callGAS('updateAdminStatus', { rowNumber: item.rowNumber, item }); Swal.fire("บันทึกแล้ว","","success"); },
+        // ฟังก์ชันเสริมกันพัง
+        isRowChanged: (item) => true, hasImage: (u) => u && u !== '-', 
         canDownload: (item) => item[COL.value.ATTEND_1] === 'เข้าประชุม' && item[COL.value.ATTEND_2] === 'เข้าประชุม',
-        hasImage: (u) => u && u !== '-', 
-        retakePhoto: () => profilePreview.value = null, stopWebcam: () => { if(webcamObj) webcamObj.stop(); isCameraActive.value = false; },
+        openAdminEditModal: (item) => { editForm.value = mapRowToForm(item); editForm.value.profileImageUrl = item[COL.value.IMAGE]; new bootstrap.Modal(document.getElementById('adminEditModal')).show(); },
+        saveAdminUpdate: async (item) => { savingRows.value[item.rowNumber] = true; await callGAS('updateAdminStatus', { rowNumber: item.rowNumber, item }); savingRows.value[item.rowNumber] = false; Swal.fire({icon:'success', title:'บันทึกแล้ว', timer:800}); },
         openSpeakerModal: (s, t) => { document.getElementById("modalImageExpanded").src = s.img; document.getElementById("speakerDetailModal").style.display = "flex"; },
         closeSpeakerModal: () => document.getElementById("speakerDetailModal").style.display = "none",
-        isTimerLoaded: ref(true), canUserEdit: ref(true), canAccessAssessment: ref(true),
-        isAssessmentTimerLoaded: ref(true), isDay1Active: ref(true), isDay2Active: ref(true), isCertTimeOpen: ref(true)
+        isTimerLoaded: ref(true), canUserEdit: ref(true), canAccessAssessment: ref(true), isAssessmentTimerLoaded: ref(true),
+        evalDay: ref(1), evalForm: ref({}), changeDay: (d) => evalDay.value = d,
+        handleSlipUpload: (e) => { const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = (f) => form.value.slipImage = f.target.result; reader.readAsDataURL(file); } },
+        handleQrUpload: () => {}, stopScanner: () => { if(html5QrScanner) html5QrScanner.stop(); isScanning.value = false; },
+        loadingScanner: ref(false), loadingUpload: ref(false), scheduleData: ref({day1:[], day2:[]}), navToAdmin: () => selectMenu('dashboard'),
+        navToSchedule: () => selectMenu('schedule'), navToSummary: () => selectMenu('summary'),
+        submitEvaluation: (e) => { e.preventDefault(); }, getPercent: (v, t) => '0%', totalPagesSummary: ref(1), currentPageSummary: ref(1), changePageSummary: () => {}, paginatedComments: computed(() => []),
+        summaryFilter: ref({}), summaryData: ref({totalResponses:0}), downloadCount: ref(0), adminSheetUrl: ref('#')
       };
     }
   }).mount('#app');
