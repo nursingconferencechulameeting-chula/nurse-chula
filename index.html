@@ -3886,7 +3886,7 @@
 <script>
   const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
 
-  // 🛑 เปลี่ยน URL นี้เป็น Web App URL ของคุณที่ได้จากการ Deploy ใน GAS
+  // 🛑 ระบุ URL ของ Web App ที่ได้จาก Google Apps Script ของคุณ
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
 
   async function callGAS(action, data = {}) {
@@ -3899,13 +3899,13 @@
       return await response.json();
     } catch (error) {
       console.error("GAS Error:", error);
-      return { success: false, message: "เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ" };
+      return { success: false, message: "เชื่อมต่อไม่สำเร็จ" };
     }
   }
 
   createApp({
     setup() {
-      // --- 1. การกำหนดโครงสร้างข้อมูลพื้นฐาน (Mapping) ---
+      // --- 1. Constants (Mapping หัวตารางจาก Sheet เป็นชื่อตัวแปรภาษาอังกฤษ) ---
       const COL = ref({
         ID: "ID", TIMESTAMP: "Timestamp", EMAIL: "Email", TITLE: "คำนำหน้า", FNAME: "ชื่อ", LNAME: "นามสกุล",
         PHONE: "เบอร์โทรศัพท์", LICENSE: "เลขที่ใบประกอบวิชาชีพ", REG_TYPE: "ประเภทการลงทะเบียน",
@@ -3925,18 +3925,19 @@
 
       const OPTIONAL_POSITIONS = ['วิทยากร', 'คณะกรรมการฯ', 'พิธีกร', 'อื่นๆ'];
 
-      // ฟังก์ชันจองพื้นที่ Object ป้องกัน Error Undefined (เช่น editForm.id)
+      // --- 2. ฟังก์ชันจองพื้นที่ Object (ป้องกัน Error: Cannot read properties of undefined) ---
       const createEmptyForm = () => ({
         rowNumber: null, id: '', timestamp: '', email: '', title_Name: 'นางสาว', firstName: '', lastName: '',
         phoneNumber: '', proLicense: '', foodType: 'อาหารทั่วไป', status_Register: '',
         internalPosition: 'พยาบาล', internalPosition_OtherText: '', workGroup: '', workGroup_OtherText: '',
         department: '', department_OtherText: '', affiliation: '', affiliation_otherText: '',
-        workPlace: '', name_Receipt: '', address: '', address_subdistrict: '', address_district: '',
-        address_province: '', address_postcode: '', taxpayer_ID: '', slipImage: null, profilePreview: null,
-        profileImageUrl: '', address_main: ''
+        workPlace: '', externalPosition: 'พยาบาล', externalPosition_OtherText: '', name_Receipt: '',
+        address: '', address_subdistrict: '', address_district: '', address_province: '',
+        address_postcode: '', taxpayer_ID: '', slipImage: null, profilePreview: null,
+        address_main: '', profileImageUrl: ''
       });
 
-      // --- 2. ตัวแปรสถานะระบบ (State) ---
+      // --- 3. ตัวแปรสถานะระบบ (Reactive State) ---
       const currentView = ref('form');
       const step = ref(1);
       const loading = ref(false);
@@ -3947,7 +3948,7 @@
       const showPassword = ref(false);
 
       const form = ref(createEmptyForm());
-      const editForm = ref(createEmptyForm()); // จองพื้นที่ให้ id ตั้งแต่ต้น
+      const editForm = ref(createEmptyForm()); // 🟢 จองพื้นที่ 'id' เรียบร้อย
 
       const adminData = ref([]);
       const searchAdminQuery = ref('');
@@ -3957,19 +3958,19 @@
       const itemsPerPage = 15;
 
       const workGroupData = ref({});
-      const prefixOptions = ref(['นางสาว', 'นาง', 'นาย', 'ดร.']);
+      const prefixOptions = ref(['นางสาว', 'นาง', 'นาย', 'พยาบาล']);
       const affiliationOptions = ref([]);
       const professionOptions = ref([]);
       const searchQuery = ref('');
       const searchResult = ref(null);
 
-      // --- 3. ระบบ Multimedia (Camera, Cropper, Scanner) ---
+      // สำหรับสแกน QR และกล้อง
+      const scanDay = ref('1');
+      const scannedUser = ref(null);
+      const isScanning = ref(false); 
       const isCameraActive = ref(false);
       const profilePreview = ref(null);
       const cameraZoom = ref(1.0);
-      const isScanning = ref(false);
-      const scanDay = ref('1');
-      const scannedUser = ref(null);
       const loadingScanner = ref(false);
       const loadingUpload = ref(false);
       
@@ -3979,24 +3980,24 @@
       let typeChart = null;
       let statusChart = null;
 
-      // --- 4. แบบประเมินผล (Assessment) ---
+      // สำหรับแบบประเมิน
       const evalDay = ref(1);
       const evalForm = ref({ origin: '', gift: '', overallRating: '', nextTopic: '', feedback: '' });
       const day1Questions = ref([]);
       const day2Questions = ref([]);
       const subItems = [
-        {id: 1, text: 'ความชัดเจนของวัตถุประสงค์'},
-        {id: 2, text: 'ความครบถ้วนของเนื้อหา'},
-        {id: 3, text: 'ความสามารถของวิทยากร'},
-        {id: 4, text: 'ความเหมาะสมของเอกสาร'},
-        {id: 5, text: 'การนำไปใช้ประโยชน์'}
+        {id: 1, text: 'ความชัดเจนของวัตถุประสงค์ของการบรรยาย'},
+        {id: 2, text: 'ความครบถ้วนของเนื้อหาที่ได้รับ'},
+        {id: 3, text: 'ความสามารถในการบรรยายของวิทยากร'},
+        {id: 4, text: 'เอกสารประกอบการบรรยายมีความเหมาะสม'},
+        {id: 5, text: 'การนำความรู้ที่ได้รับไปใช้ประโยชน์ในงาน'}
       ];
       const summaryData = ref({ totalResponses: 0, results: {}, comments: [] });
       const summaryFilter = ref({ date: '', origin: '' });
       const currentPageSummary = ref(1);
       const itemsPerPageSummary = 10;
 
-      // --- 5. ฟังก์ชันการนำทาง (Navigation) ---
+      // --- 4. ฟังก์ชันจัดการการนำทาง (Navigation) ---
       const selectMenu = (v) => {
         currentView.value = v;
         if (v === 'dashboard' && isAdminLoggedIn.value) loadAdminTable();
@@ -4008,105 +4009,164 @@
       const navToSummary = () => { selectMenu('summary'); loadSummary(); };
       const navToSchedule = async () => {
         selectMenu('schedule');
-        if (scheduleData.value.day1.length === 0) {
-          loading.value = true;
-          const res = await callGAS('getSchedule');
-          if (res.success) scheduleData.value = res.data;
-          loading.value = false;
+        loading.value = true;
+        const res = await callGAS('getSchedule');
+        if (res.success) scheduleData.value = res.data;
+        loading.value = false;
+      };
+      const scheduleData = ref({ day1: [], day2: [] });
+
+      // --- 5. การ Mapping ข้อมูล (ภาษาไทยจาก Sheet -> ภาษาอังกฤษใน Vue) ---
+      const mapRowToForm = (item) => {
+        const f = createEmptyForm();
+        f.rowNumber = item.rowNumber;
+        f.id = item[COL.value.ID] || '';
+        f.timestamp = item[COL.value.TIMESTAMP] || '';
+        f.email = item[COL.value.EMAIL] || '';
+        f.title_Name = item[COL.value.TITLE] || 'นางสาว';
+        f.firstName = item[COL.value.FNAME] || '';
+        f.lastName = item[COL.value.LNAME] || '';
+        f.phoneNumber = item[COL.value.PHONE] || '';
+        f.proLicense = item[COL.value.LICENSE] || '';
+        f.status_Register = item[COL.value.REG_TYPE] || '';
+        f.foodType = item[COL.value.FOOD] || 'อาหารทั่วไป';
+        f.profilePreview = item[COL.value.IMAGE] === '-' ? null : item[COL.value.IMAGE];
+        f.slipImage = item[COL.value.SLIP] === '-' ? null : item[COL.value.SLIP];
+
+        if (f.status_Register === REG_STATUS.INTERNAL) {
+          f.internalPosition = item[COL.value.POSITION] || 'พยาบาล';
+          f.workGroup = item[COL.value.WORK_GROUP] || '';
+          f.department = item[COL.value.DEPARTMENT] || '';
+        } else if (f.status_Register === REG_STATUS.QUOTA) {
+          f.affiliation = item[COL.value.WORKPLACE] || '';
+        } else {
+          f.workPlace = item[COL.value.WORKPLACE] || '';
+          f.name_Receipt = item[COL.value.RECEIPT_NAME] || '';
+          f.address = item[COL.value.ADDRESS] || '';
+          f.taxpayer_ID = item[COL.value.TAX_ID] || '';
+        }
+        return f;
+      };
+
+      // --- 6. ฟังก์ชัน handleSearch (ละเอียดพิเศษ) ---
+      const handleSearch = async () => {
+        if (!searchQuery.value) {
+            Swal.fire("เตือน", "กรุณาระบุรหัส ID, อีเมล หรือเลขใบประกอบฯ เพื่อค้นหา", "warning");
+            return;
+        }
+        loading.value = true;
+        searchResult.value = null; // ล้างค่าเก่าออกก่อน
+        
+        try {
+            const res = await callGAS('searchUser', { query: searchQuery.value });
+            if (res.success && res.data && res.data.length > 0) {
+                searchResult.value = res.data;
+                // เลื่อนหน้าจอไปที่ส่วนแสดงผลหลังจาก Vue วาด DOM เสร็จ
+                nextTick(() => {
+                    const el = document.getElementById('search-result-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                });
+            } else {
+                Swal.fire("ไม่พบข้อมูล", "ไม่พบข้อมูลการลงทะเบียนที่ตรงกับเงื่อนไข", "info");
+            }
+        } catch (err) {
+            Swal.fire("Error", "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
+        } finally {
+            loading.value = false;
         }
       };
 
-      // --- 6. กล้องและการครอบรูป (Camera & Cropper) ---
+      // --- 7. กล้องถ่ายรูป & Cropper (สมบูรณ์) ---
       const startWebcam = async () => {
         isCameraActive.value = true;
-        await nextTick();
+        await nextTick(); // 🟢 รอให้ Vue สร้าง Tag <video> ให้เสร็จก่อนเปิดกล้อง
         const video = document.getElementById('webcam');
         const canvas = document.getElementById('canvas');
+        if (!video) return;
         webcamObj = new Webcam(video, 'user', canvas);
-        webcamObj.start().catch(err => {
-          isCameraActive.value = false;
-          Swal.fire("Error", "ไม่สามารถเปิดกล้องได้", "error");
-        });
-      };
-
-      const initCropper = (source) => {
-        const imgEl = document.getElementById('imageToCrop');
-        imgEl.src = source;
-        new bootstrap.Modal(document.getElementById('cropModal')).show();
-        setTimeout(() => {
-          if (cropperInstance) cropperInstance.destroy();
-          cropperInstance = new Cropper(imgEl, { aspectRatio: 1, viewMode: 1 });
-        }, 500);
+        webcamObj.start()
+          .then(() => console.log("Camera Ready"))
+          .catch(err => {
+            isCameraActive.value = false;
+            Swal.fire("Error", "ไม่สามารถเข้าถึงกล้องได้", "error");
+          });
       };
 
       const capturePhoto = () => {
-        const raw = webcamObj.snap();
-        initCropper(raw);
+        const rawPhoto = webcamObj.snap();
+        initCropper(rawPhoto);
         webcamObj.stop();
         isCameraActive.value = false;
+      };
+
+      const initCropper = (imageSource) => {
+        const imgEl = document.getElementById('imageToCrop');
+        imgEl.src = imageSource;
+        const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+        cropModal.show();
+        setTimeout(() => {
+          if (cropperInstance) cropperInstance.destroy();
+          cropperInstance = new Cropper(imgEl, {
+            aspectRatio: 1,
+            viewMode: 1,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+          });
+        }, 500);
       };
 
       const applyCrop = () => {
         profilePreview.value = cropperInstance.getCroppedCanvas({ width: 400, height: 400 }).toDataURL('image/jpeg', 0.8);
         bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-      };
-
-      const cancelCrop = () => { // 🟢 แก้ Error: cancelCrop is not defined
-        const modalEl = document.getElementById('cropModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
         if (cropperInstance) cropperInstance.destroy();
-        cropperInstance = null;
       };
 
-      // --- 7. ฟังก์ชันหลัก (Form, Search, Login) ---
-      const mapRowToForm = (item) => {
-        const f = createEmptyForm();
-        f.rowNumber = item.rowNumber;
-        f.id = item[COL.value.ID];
-        f.timestamp = item[COL.value.TIMESTAMP];
-        f.email = item[COL.value.EMAIL];
-        f.title_Name = item[COL.value.TITLE];
-        f.firstName = item[COL.value.FNAME];
-        f.lastName = item[COL.value.LNAME];
-        f.phoneNumber = item[COL.value.PHONE];
-        f.proLicense = item[COL.value.LICENSE];
-        f.status_Register = item[COL.value.REG_TYPE];
-        f.foodType = item[COL.value.FOOD];
-        f.profilePreview = item[COL.value.IMAGE] === '-' ? null : item[COL.value.IMAGE];
-        f.slipImage = item[COL.value.SLIP] === '-' ? null : item[COL.value.SLIP];
-        
-        if (f.status_Register === REG_STATUS.INTERNAL) {
-          f.internalPosition = item[COL.value.POSITION];
-          f.workGroup = item[COL.value.WORK_GROUP];
-          f.department = item[COL.value.DEPARTMENT];
-        } else if (f.status_Register === REG_STATUS.QUOTA) {
-          f.affiliation = item[COL.value.WORKPLACE];
-        } else {
-          f.workPlace = item[COL.value.WORKPLACE];
-          f.name_Receipt = item[COL.value.RECEIPT_NAME];
-          f.address = item[COL.value.ADDRESS];
-          f.taxpayer_ID = item[COL.value.TAX_ID];
-        }
-        return f;
+      const cancelCrop = () => {
+        bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+        if (cropperInstance) cropperInstance.destroy();
       };
 
-      const handleSearch = async () => {
-        if (!searchQuery.value) return;
-        loading.value = true;
-        const res = await callGAS('searchUser', { query: searchQuery.value });
-        searchResult.value = res.success ? res.data : [];
-        loading.value = false;
-        if (!res.data.length) Swal.fire("ไม่พบข้อมูล", "ตรวจสอบข้อมูลใหม่อีกครั้ง", "info");
+      // --- 8. ระบบวาดกราฟ (Dashboard Charts) ---
+      const renderCharts = () => {
+        const ctxType = document.getElementById('typeChart');
+        const ctxStatus = document.getElementById('statusChart');
+        if (!ctxType || adminData.value.length === 0) return;
+
+        if (typeChart) typeChart.destroy();
+        if (statusChart) statusChart.destroy();
+
+        const counts = adminData.value.reduce((acc, curr) => {
+          const type = curr[COL.value.REG_TYPE] || 'อื่นๆ';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {});
+
+        typeChart = new Chart(ctxType, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(counts).map(k => k.split(' ')[0]),
+            datasets: [{ data: Object.values(counts), backgroundColor: ['#004085', '#6610f2', '#0d6efd'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        const attend1 = adminData.value.filter(d => d[COL.value.ATTEND_1] === 'เข้าประชุม').length;
+        const attend2 = adminData.value.filter(d => d[COL.value.ATTEND_2] === 'เข้าประชุม').length;
+
+        statusChart = new Chart(ctxStatus, {
+          type: 'bar',
+          data: {
+            labels: ['วันที่ 1 (25 ส.ค.)', 'วันที่ 2 (26 ส.ค.)'],
+            datasets: [{ label: 'จำนวนผู้เข้างาน (คน)', data: [attend1, attend2], backgroundColor: '#157347' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
       };
 
-      const prepareEdit = (item) => {
-        form.value = mapRowToForm(item);
-        profilePreview.value = form.value.profilePreview;
-        isEditMode.value = true;
-        step.value = 1;
-      };
-
+      // --- 9. ฟังก์ชันเสริมอื่นๆ ---
       const handleAdminLogin = async () => {
         if (!login.value.pass) return;
         loading.value = true;
@@ -4118,7 +4178,7 @@
           login.value.user = res.username;
           localStorage.setItem('nurse_token', JSON.stringify({ pass: login.value.pass }));
           loadAdminTable();
-        } else { Swal.fire("Error", "รหัสผ่านไม่ถูกต้อง", "error"); }
+        } else { Swal.fire("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error"); }
       };
 
       const loadAdminTable = async () => {
@@ -4129,30 +4189,6 @@
         nextTick(() => renderCharts());
       };
 
-      const renderCharts = () => {
-        const ctxT = document.getElementById('typeChart');
-        const ctxS = document.getElementById('statusChart');
-        if (!ctxT || adminData.value.length === 0) return;
-        if (typeChart) typeChart.destroy();
-        if (statusChart) statusChart.destroy();
-
-        const counts = adminData.value.reduce((acc, curr) => {
-          const t = curr[COL.value.REG_TYPE] || 'อื่นๆ';
-          acc[t] = (acc[t] || 0) + 1;
-          return acc;
-        }, {});
-
-        typeChart = new Chart(ctxT, {
-          type: 'doughnut',
-          data: {
-            labels: Object.keys(counts).map(l => l.split(' ')[0]),
-            datasets: [{ data: Object.values(counts), backgroundColor: ['#004085', '#6610f2', '#0d6efd'] }]
-          },
-          options: { responsive: true, maintainAspectRatio: false }
-        });
-      };
-
-      // --- 8. สแกน QR Code ---
       const startScanner = () => {
         isScanning.value = true;
         html5QrScanner = new Html5Qrcode("reader");
@@ -4173,18 +4209,17 @@
         loading.value = false;
       };
 
-      // --- 9. Helpers & Lifecycle ---
+      // --- 10. Lifecycle ---
       onMounted(async () => {
         const res = await callGAS('loadInitialData');
         if (res) {
           workGroupData.value = res.workGroups || {};
-          prefixOptions.value = res.prefixes || prefixOptions.value;
+          prefixOptions.value = res.prefixes || ['นางสาว', 'นาง', 'นาย'];
           affiliationOptions.value = res.affiliations || [];
           professionOptions.value = res.professions || [];
         }
         const evalConfig = await callGAS('getAssessmentConfig');
         if (evalConfig.success) { day1Questions.value = evalConfig.day1; day2Questions.value = evalConfig.day2; }
-        
         const auth = localStorage.getItem('nurse_token');
         if (auth) { login.value.pass = JSON.parse(auth).pass; handleAdminLogin(); }
 
@@ -4199,50 +4234,52 @@
         });
       });
 
-      // --- 10. Return (ครบทุกตัวแปรและฟังก์ชันที่ HTML เรียกใช้) ---
+      // --- 11. Return (ทุกอย่างที่ HTML เรียกใช้ ต้องรวมที่นี่) ---
       return {
         form, editForm, step, currentView, loading, isAdminLoggedIn, userRole, login, showPassword, isEditMode,
         COL, REG_STATUS, OPTIONAL_POSITIONS, adminData, savingRows: ref({}),
         workGroupData, prefixOptions, affiliationOptions, professionOptions,
         searchQuery, searchResult, isScanning, scanDay, scannedUser, isCameraActive, profilePreview, cameraZoom,
+        scheduleData, loadingSchedule, summaryData, summaryFilter, currentPageSummary, evalDay, evalForm, day1Questions, day2Questions, subItems,
         
-        selectMenu, navToAdmin, navToSummary, navToSchedule: () => selectMenu('schedule'),
-        handleSearch, prepareEdit, goToSummary: () => { if(!form.value.status_Register) return Swal.fire("เตือน", "กรุณาเลือกประเภทสิทธิ์", "warning"); step.value = 2; },
-        submitForm: async () => { loading.value = true; const action = isEditMode.value ? 'updateForm' : 'processForm'; const res = await callGAS(action, {...form.value, profilePreview: profilePreview.value}); loading.value = false; if(res.success){ Swal.fire("สำเร็จ", res.message, "success"); resetForm(); } },
-        resetForm: () => { form.value = createEmptyForm(); profilePreview.value = null; isEditMode.value = false; step.value = 1; searchResult.value = null; },
+        selectMenu, navToAdmin, navToSchedule, navToSummary, handleSearch, submitForm: async () => { loading.value = true; const action = isEditMode.value ? 'updateForm' : 'processForm'; const res = await callGAS(action, {...form.value, profilePreview: profilePreview.value}); loading.value = false; if(res.success){ Swal.fire("สำเร็จ", res.message, "success"); resetForm(); } },
+        resetForm, handleAdminLogin, startWebcam, capturePhoto, applyCrop, cancelCrop, startScanner, 
         
-        handleAdminLogin, startWebcam, capturePhoto, applyCrop, cancelCrop, startScanner, 
-        formatThaiDate: (d, t) => { if (!d || d === '-') return '-'; const date = new Date(d); const str = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()+543}`; return t ? str + ` ${date.getHours()}:${date.getMinutes()}` : str; },
-        onWorkGroupChange: () => form.value.department = '',
+        prepareEdit: (item) => { form.value = mapRowToForm(item); profilePreview.value = form.value.profilePreview; isEditMode.value = true; step.value = 1; window.scrollTo({top: 400, behavior: 'smooth'}); },
+        goToSummary: () => { if(!form.value.status_Register) return Swal.fire("แจ้งเตือน", "กรุณาเลือกประเภทสิทธิ์", "warning"); step.value = 2; },
+        
         currentDepts: computed(() => workGroupData.value[form.value.workGroup] || []),
+        onWorkGroupChange: () => form.value.department = '',
         filteredAdminData: computed(() => { const q = searchAdminQuery.value.toLowerCase().trim(); return adminData.value.filter(item => String(item[COL.value.ID]).includes(q) || String(item[COL.value.FNAME]).includes(q)); }),
         paginatedAdminData: computed(() => adminData.value.slice((currentPage.value - 1) * itemsPerPage, currentPage.value * itemsPerPage)),
         totalPages: computed(() => Math.ceil(adminData.value.length / itemsPerPage)),
         currentPage, changePage: (p) => currentPage.value = p,
         
+        formatThaiDate: (d, t) => { if (!d || d === '-') return '-'; const date = new Date(d); const str = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()+543}`; return t ? str + ` ${date.getHours()}:${date.getMinutes()}` : str; },
         copyName: () => form.value.name_Receipt = `${form.value.title_Name}${form.value.firstName} ${form.value.lastName}`,
-        confirmDelete: (r) => { if(confirm('ยืนยัน?')) callGAS('deleteRegistration', { rowNumber: r }).then(loadAdminTable); },
+        confirmDelete: (r) => { if(confirm('ต้องการลบข้อมูล?')) callGAS('deleteRegistration', { rowNumber: r }).then(loadAdminTable); },
         logoutAdmin: () => { isAdminLoggedIn.value = false; localStorage.removeItem('nurse_token'); selectMenu('form'); },
-        saveAdminUpdate: async (item) => { await callGAS('updateAdminStatus', {rowNumber: item.rowNumber, item}); Swal.fire("บันทึกแล้ว","","success"); },
-        openAdminEditModal: (item) => { editForm.value = mapRowToForm(item); new bootstrap.Modal(document.getElementById('adminEditModal')).show(); },
+        saveAdminUpdate: async (item) => { await callGAS('updateAdminStatus', {rowNumber: item.rowNumber, item}); Swal.fire({icon:'success', title:'บันทึกแล้ว', timer:800}); },
+        openAdminEditModal: (item) => { editForm.value = mapRowToForm(item); editForm.value.profileImageUrl = item[COL.value.IMAGE]; new bootstrap.Modal(document.getElementById('adminEditModal')).show(); },
         submitAdminEdit: async () => { loading.value = true; const res = await callGAS('updateForm', editForm.value); loading.value = false; if(res.success){ bootstrap.Modal.getInstance(document.getElementById('adminEditModal')).hide(); loadAdminTable(); } },
         
         openSpeakerModal: (s, t) => { document.getElementById("modalImageExpanded").src = s.img; document.getElementById("modalSpeakerNameExpanded").textContent = s.name || t; document.getElementById("speakerDetailModal").style.display = "flex"; },
         closeSpeakerModal: () => document.getElementById("speakerDetailModal").style.display = "none",
-        canDownload: (item) => item[COL.value.ATTEND_1] === 'เข้าประชุม' && item[COL.value.ATTEND_2] === 'เข้าประชุม',
+        
         hasImage: (u) => u && u !== '-', isRowChanged: () => true, scrollToTop: () => window.scrollTo({top:0, behavior:'smooth'}), scrollToBottom: () => window.scrollTo({top:9999, behavior:'smooth'}),
-        handleFileUpload: (e) => { const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = (f) => initCropper(f.target.result); reader.readAsDataURL(file); } },
+        canDownload: (item) => item[COL.value.ATTEND_1] === 'เข้าประชุม' && item[COL.value.ATTEND_2] === 'เข้าประชุม',
         handleSlipUpload: (e) => { const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = (f) => form.value.slipImage = f.target.result; reader.readAsDataURL(file); } },
-        evalDay, evalForm, day1Questions, day2Questions, subItems, summaryData, summaryFilter, loadSummary,
-        canAccessAssessment: ref(true), isAssessmentTimerLoaded: ref(true), isDay1Active: ref(true), isDay2Active: ref(true), isCertTimeOpen: ref(true), canUserEdit: ref(true), isTimerLoaded: ref(true),
-        changeDay: (d) => evalDay.value = d, submitEvaluation: (e) => { e.preventDefault(); Swal.fire("สำเร็จ", "บันทึกเรียบร้อย", "success"); },
-        getPercent: (v, t) => t > 0 ? ((v / t) * 100).toFixed(1) + '%' : '0%',
-        totalPagesSummary: ref(1), currentPageSummary: ref(1), changePageSummary: (p) => currentPageSummary.value = p,
+        handleFileUpload,
+        isTimerLoaded: ref(true), canUserEdit: ref(true), canAccessAssessment: ref(true), isAssessmentTimerLoaded: ref(true),
+        isDay1Active: ref(true), isDay2Active: ref(true), isCertTimeOpen: ref(true),
+        changeDay: (d) => evalDay.value = d, submitEvaluation: (e) => { e.preventDefault(); Swal.fire("สำเร็จ", "บันทึกประเมินแล้ว", "success"); },
+        getPercent: (v, t) => t > 0 ? ((v / t) * 100).toFixed(1) + '%' : '0%', loadSummary,
+        totalPagesSummary: ref(1), currentPageSummary: ref(1), changePageSummary: () => {}, paginatedComments: computed(() => []),
         filteredQuestionsForSummary: computed(() => summaryFilter.value.date === 'วันที่ 1' ? day1Questions.value : (summaryFilter.value.date === 'วันที่ 2' ? day2Questions.value : [...day1Questions.value, ...day2Questions.value])),
-        paginatedComments: computed(() => summaryData.value.comments.slice((currentPageSummary.value - 1) * itemsPerPageSummary, currentPageSummary.value * itemsPerPageSummary)),
-        formatName:()=>{}, formatPhone:()=>{}, formatEmail:()=>{}, formatLicense:()=>{}, formatTaxID:()=>{}, stopWebcam:()=>{}, retakePhoto:()=>profilePreview.value=null,
+        
         runBatchCert:()=>{}, onDownloadClick:()=>{}, downloadQr:()=>{}, onScheduleDownload:()=>{}, handleDownload:()=>{},
-        scheduleData: ref({day1:[], day2:[]}), downloadCount: ref(0), adminSheetUrl: ref('#'), loadingScanner: ref(false), loadingUpload: ref(false), searchAdminQuery
+        formatName:()=>{}, formatPhone:()=>{}, formatEmail:()=>{}, formatLicense:()=>{}, formatTaxID:()=>{}, stopWebcam:()=>{}, retakePhoto:()=>profilePreview.value=null,
+        searchAdminQuery, filterRegType, loadingScanner, loadingUpload, itemsPerPage, downloadCount: ref(0), adminSheetUrl: ref('#')
       };
     }
   }).mount('#app');
