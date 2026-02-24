@@ -2,6 +2,7 @@
 <html lang="th">
 
 <head>
+  <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ลงทะเบียนประชุมวิชาการพยาบาล 2569</title>
@@ -3888,248 +3889,367 @@
 
 
 <script>
-  /** 
-   * 🛑 สำคัญมาก: เปลี่ยน URL ด้านล่างนี้เป็น URL ของ Web App ที่ได้จาก Google Apps Script 
-   * (ต้องลงท้ายด้วย /exec)
-   */
-  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
+    // 🛑 1. เปลี่ยน URL ตรงนี้เป็น URL ของ Web App ที่คุณ Deploy จาก Google Apps Script (ลงท้ายด้วย /exec)
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
 
-  const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
+    const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
 
-  createApp({
-    setup() {
-      // --- 🟢 ส่วนที่ 2: ประกาศตัวแปร และค่าเริ่มต้น (ป้องกัน Error undefined) ---
-      const loading = ref(true);
-      const currentView = ref('form');
-      const step = ref(1);
-      
-      // 🚩 ตั้งค่าเริ่มต้นเป็น Array ว่างเสมอ
-      const day1Questions = ref([]);
-      const day2Questions = ref([]);
-      const scheduleData = ref({ day1: [], day2: [] });
-      const subItems = ref([
-        { id: 1, text: 'หัวข้อเรื่องน่าสนใจ' },
-        { id: 2, text: 'ความเหมาะสมของเนื้อหา' },
-        { id: 3, text: 'ความรู้ที่ได้รับเป็นประโยชน์' },
-        { id: 4, text: 'ความเหมาะสมของสื่อการบรรยาย' },
-        { id: 5, text: 'ระยะเวลาเหมาะสม' }
-      ]);
+    createApp({
+      setup() {
+        // --- 🟢 ส่วนที่ 1: ประกาศตัวแปรทั้งหมด (Refs) ---
+        const isReady = ref(false);
+        const loading = ref(false);
+        const loadingScanner = ref(false);
+        const loadingUpload = ref(false);
+        const loadingEval = ref(false);
+        const loadingSchedule = ref(false);
+        const currentView = ref('form');
+        const step = ref(1);
+        const isEditMode = ref(false);
+        const isAdminLoggedIn = ref(false);
+        const userRole = ref('');
+        const showPassword = ref(false);
+        
+        // ข้อมูลจาก Sheet
+        const COL = ref({});
+        const REG_STATUS = ref({});
+        const adminData = ref([]);
+        const originalAdminData = ref([]);
+        const workGroupData = ref({});
+        const currentDepts = ref([]);
+        const prefixOptions = ref([]);
+        const affiliationOptions = ref([]);
+        const professionOptions = ref([]);
+        
+        // ฟอร์ม
+        const login = ref({ user: '', pass: '' });
+        const searchQuery = ref('');
+        const searchResult = ref(null);
+        const adminSearch = ref('');
+        const searchAdminQuery = ref('');
+        const filterRegType = ref('');
+        const currentPage = ref(1);
+        const itemsPerPage = 15;
+        const savingRows = ref({});
 
-      const adminSearch = ref(''); 
-      const adminData = ref([]);
-      const filterRegType = ref('');
-      const searchQuery = ref('');
-      const searchResult = ref(null);
-      const COL = ref({ ID: "ID", FNAME: "ชื่อ", LNAME: "นามสกุล", IMAGE: "รูปภาพ" });
-      const REG_STATUS = ref({});
-      
-      const isAdminLoggedIn = ref(false);
-      const userRole = ref('');
-      const login = ref({ user: '', pass: '' });
-      const showPassword = ref(false);
-      const currentPage = ref(1);
-      const itemsPerPage = 15;
-      const savingRows = ref({});
-      const scannedUser = ref(null);
-      const scanDay = ref('1');
-      const isScanning = ref(false);
-      let html5QrCode = null;
+        const form = ref({
+          rowNumber: null, timestamp: '', email: '', title_Name: 'นางสาว',
+          firstName: '', lastName: '', phoneNumber: '', proLicense: '',
+          foodType: 'อาหารทั่วไป', status_Register: '', internalPosition: 'พยาบาล',
+          workGroup: '', department: '', affiliation: '', workPlace: '',
+          name_Receipt: '', taxpayer_ID: '', address: '',
+          address_subdistrict: '', address_district: '', address_province: '', address_postcode: ''
+        });
 
-      // แบบฟอร์มลงทะเบียน
-      const form = ref({
-        rowNumber: null, timestamp: '', email: '', title_Name: 'นางสาว',
-        firstName: '', lastName: '', phoneNumber: '', proLicense: '',
-        foodType: 'อาหารทั่วไป', status_Register: '', internalPosition: 'พยาบาล',
-        workGroup: '', department: '', affiliation: '', workPlace: '',
-        name_Receipt: '', address: '', taxpayer_ID: '', slipImage: null
-      });
+        const editForm = ref({});
+        const originalForm = ref(null);
 
-      const workGroupData = ref({});
-      const currentDepts = ref([]);
-      const prefixOptions = ref([]);
-      const affiliationOptions = ref([]);
-      const professionOptions = ref([]);
-      const deadlineTimestamp = ref(null);
-      const externalDeadline = ref(null);
-      const assessmentTimer = ref(null);
-      const certDeadline = ref(null);
-      const isTimerLoaded = ref(false);
+        // วันเวลาและเงื่อนไข
+        const deadlineTimestamp = ref(null);
+        const externalDeadline = ref(null);
+        const assessmentTimer = ref(null);
+        const certDeadline = ref(null);
+        const isTimerLoaded = ref(false);
+        const isAssessmentTimerLoaded = ref(false);
 
-      // --- 🟢 ส่วนที่ 3: ระบบเชื่อมต่อ API (Bridge) ---
-      const callApi = async (action, data = {}) => {
-          try {
-              const response = await fetch(GAS_WEB_APP_URL, {
-                  method: 'POST',
-                  body: JSON.stringify({ action, data }),
-                  headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-              });
-              return await response.json();
-          } catch (error) {
-              console.error("API Error:", error);
-              return { success: false, message: "เชื่อมต่อฐานข้อมูลไม่ได้" };
+        // แบบประเมิน
+        const evalDay = ref(1);
+        const evalForm = ref({ origin: '', gift: '', overallRating: '', nextTopic: '', feedback: '' });
+        const day1Questions = ref([]);
+        const day2Questions = ref([]);
+        const subItems = [
+          { id: 1, text: 'หัวข้อเรื่องน่าสนใจ' },
+          { id: 2, text: 'ความเหมาะสมของเนื้อหา' },
+          { id: 3, text: 'ความรู้ที่ได้รับเป็นประโยชน์' },
+          { id: 4, text: 'ความเหมาะสมของสื่อการบรรยาย' },
+          { id: 5, text: 'ระยะเวลาเหมาะสม' }
+        ];
+
+        // กำหนดการและสแกน
+        const scheduleData = ref({ day1: [], day2: [] });
+        const downloadCount = ref(0);
+        const scanDay = ref('1');
+        const isScanning = ref(false);
+        const scannedUser = ref(null);
+        let html5QrCode = null;
+
+        // กล้องและรูปภาพ
+        const isCameraActive = ref(false);
+        const profilePreview = ref(null);
+        const cameraZoom = ref(1.0);
+        let webcam = null;
+        let cropper = null;
+        const cropModal = ref(null);
+
+        // --- 🟢 ส่วนที่ 2: ฟังก์ชันติดต่อ API ---
+        const api = async (action, data = {}) => {
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action, data }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                return await response.json();
+            } catch (error) {
+                console.error("API Error:", error);
+                return { success: false, message: "เชื่อมต่อฐานข้อมูลไม่ได้" };
+            }
+        };
+
+        // --- 🟢 ส่วนที่ 3: Logic การทำงานทั้งหมด ---
+
+        onMounted(async () => {
+            loading.value = true;
+            const res = await api('loadInitialData');
+            if (res) {
+                COL.value = res.COL;
+                REG_STATUS.value = res.REG_STATUS;
+                workGroupData.value = res.workGroups;
+                prefixOptions.value = res.prefixes;
+                affiliationOptions.value = res.affiliations;
+                professionOptions.value = res.professions;
+                deadlineTimestamp.value = res.deadlines.reg;
+                externalDeadline.value = res.deadlines.external;
+                assessmentTimer.value = res.deadlines.assessment;
+                certDeadline.value = res.deadlines.cert;
+                isTimerLoaded.value = true;
+                isAssessmentTimerLoaded.value = true;
+                isReady.value = true;
+            }
+            const modalEl = document.getElementById('cropModal');
+            if (modalEl) cropModal.value = new bootstrap.Modal(modalEl);
+            initThailandJS();
+            checkLocalSession();
+            loading.value = false;
+        });
+
+        const checkLocalSession = () => {
+          const s = localStorage.getItem('nursing_admin_session');
+          if (s) {
+            const d = JSON.parse(s);
+            isAdminLoggedIn.value = true;
+            login.value.user = d.user;
+            userRole.value = d.role;
           }
-      };
+        };
 
-      // --- 🟢 ส่วนที่ 4: Logic การทำงาน ---
-      onMounted(async () => {
-          loading.value = true;
-          const res = await callApi('loadInitialData');
-          if (res) {
-              COL.value = res.COL || COL.value;
-              REG_STATUS.value = res.REG_STATUS || {};
-              workGroupData.value = res.workGroups || {};
-              prefixOptions.value = res.prefixes || [];
-              affiliationOptions.value = res.affiliations || [];
-              professionOptions.value = res.professions || [];
-              deadlineTimestamp.value = res.deadlines.reg;
-              externalDeadline.value = res.deadlines.external;
-              assessmentTimer.value = res.deadlines.assessment;
-              certDeadline.value = res.deadlines.cert;
-              isTimerLoaded.value = true;
-          }
-          
-          // โหลดข้อมูลเสริมอื่นๆ ป้องกันหน้าจอขาว
-          const evalRes = await callApi('getAssessmentConfig');
-          if(evalRes?.success) {
-            day1Questions.value = evalRes.day1;
-            day2Questions.value = evalRes.day2;
-          }
-          
-          loading.value = false;
-          initThailandJS();
-          checkLocalSession();
-      });
+        const handleSearch = async () => {
+            if (!searchQuery.value) return;
+            loading.value = true;
+            const res = await api('searchUser', { query: searchQuery.value });
+            loading.value = false;
+            if (res.success) {
+                searchResult.value = res.data;
+                setTimeout(() => document.getElementById('search-result-section')?.scrollIntoView({ behavior: 'smooth' }), 100);
+            } else Swal.fire("ไม่พบข้อมูล", res.message, "info");
+        };
 
-      const handleSearch = async () => {
-          if (!searchQuery.value) return;
-          loading.value = true;
-          const res = await callApi('searchUser', { query: searchQuery.value });
-          loading.value = false;
-          if (res?.success) searchResult.value = res.data;
-          else Swal.fire("ไม่พบข้อมูล", "", "info");
-      };
+        const submitForm = async () => {
+            loading.value = true;
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const action = isEditMode.value ? 'updateForm' : 'processForm';
+            const res = await api(action, { ...form.value, profilePreview: profilePreview.value });
+            if (res.success) {
+                Swal.fire("สำเร็จ", res.message, "success").then(() => { resetForm(); currentView.value = 'form'; });
+            } else Swal.fire("ล้มเหลว", res.message, "error");
+            loading.value = false;
+        };
 
-      const submitForm = async () => {
-          loading.value = true;
-          const action = isEditMode.value ? 'updateForm' : 'processForm';
-          const res = await callApi(action, { ...form.value, profilePreview: profilePreview.value });
-          loading.value = false;
-          if (res?.success) {
-              Swal.fire("สำเร็จ", res.message, "success");
-              resetForm();
-          }
-      };
+        const handleAdminLogin = async () => {
+            if (!login.value.pass) return;
+            loading.value = true;
+            const res = await api('checkAdminLogin', { password: login.value.pass });
+            loading.value = false;
+            if (res.success) {
+                isAdminLoggedIn.value = true;
+                login.value.user = res.username;
+                userRole.value = res.role;
+                localStorage.setItem('nursing_admin_session', JSON.stringify({ user: res.username, role: res.role }));
+                loadAdminTable();
+            } else Swal.fire("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error");
+        };
 
-      const handleAdminLogin = async () => {
-          loading.value = true;
-          const res = await callApi('checkAdminLogin', { password: login.value.pass });
-          loading.value = false;
-          if (res?.success) {
-              isAdminLoggedIn.value = true;
-              userRole.value = res.role;
-              login.value.user = res.username;
+        const loadAdminTable = async () => {
+            loading.value = true;
+            const res = await api('getAdminAllData');
+            adminData.value = res;
+            originalAdminData.value = JSON.parse(JSON.stringify(res));
+            loading.value = false;
+        };
+
+        const saveAdminUpdate = async (item) => {
+            savingRows.value[item.rowNumber] = true;
+            const res = await api('updateAdminStatus', { rowNumber: item.rowNumber, item: item });
+            if (res.success) {
+              Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 800, showConfirmButton: false });
               loadAdminTable();
-          } else {
-              Swal.fire("รหัสผ่านไม่ถูกต้อง", "", "error");
-          }
-      };
+            }
+            savingRows.value[item.rowNumber] = false;
+        };
 
-      const loadAdminTable = async () => {
+        const confirmDelete = (rowNum) => {
+          Swal.fire({ title: 'ลบข้อมูล?', text: "ไม่สามารถย้อนกลับได้", icon: 'warning', showCancelButton: true }).then(async (r) => {
+            if (r.isConfirmed) {
+              const res = await api('deleteRegistration', { rowNumber: rowNum });
+              if (res.success) loadAdminTable();
+            }
+          });
+        };
+
+        // --- แบบประเมิน ---
+        const fetchAssessmentConfig = async () => {
+          loadingEval.value = true;
+          const res = await api('getAssessmentConfig');
+          if (res.success) { day1Questions.value = res.day1; day2Questions.value = res.day2; }
+          loadingEval.value = false;
+        };
+
+        const submitEvaluation = async (e) => {
+          e.preventDefault();
           loading.value = true;
-          const res = await callApi('getAdminAllData');
-          if (res) {
-              adminData.value = res;
-              originalAdminData.value = JSON.parse(JSON.stringify(res));
+          const res = await api('saveAssessment', { ...evalForm.value, evalDay: evalDay.value });
+          if (res.success) {
+            Swal.fire("สำเร็จ", "ขอบคุณสำหรับการประเมิน", "success");
+            currentView.value = 'form';
           }
           loading.value = false;
-      };
+        };
 
-      // --- 🟢 ส่วนที่ 5: Computed สำหรับจัดการตาราง Admin ---
-      const filteredAdminData = computed(() => {
-          if (!adminSearch.value && !filterRegType.value) return adminData.value;
-          const q = adminSearch.value.toLowerCase().trim();
-          return adminData.value.filter(item => {
-              const matchSearch = !q || (
-                  String(item[COL.value.FNAME]).toLowerCase().includes(q) ||
-                  String(item[COL.value.ID]).toLowerCase().includes(q)
-              );
-              const matchType = !filterRegType.value || item[COL.value.REG_TYPE] === filterRegType.value;
-              return matchSearch && matchType;
+        // --- กำหนดการ ---
+        const navToSchedule = async () => {
+          currentView.value = 'schedule';
+          loadingSchedule.value = true;
+          const res = await api('getSchedule');
+          if (res.success) scheduleData.value = res.data;
+          loadingSchedule.value = false;
+        };
+
+        // --- สแกน QR ---
+        const startScanner = () => {
+          isScanning.value = true;
+          setTimeout(() => {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+            (txt) => { processAttendance(txt); stopScanner(); });
+          }, 500);
+        };
+
+        const stopScanner = () => { if (html5QrCode) { html5QrCode.stop(); html5QrCode = null; } isScanning.value = false; };
+
+        const processAttendance = async (txt) => {
+          loadingScanner.value = true;
+          const res = await api('recordAttendance', { text: txt, day: scanDay.value });
+          if (res.success) {
+            Swal.fire("สำเร็จ", res.message, "success");
+            loadAdminTable();
+          } else Swal.fire("ล้มเหลว", res.message, "error");
+          loadingScanner.value = false;
+        };
+
+        // --- รูปภาพและกล้อง ---
+        const startWebcam = async () => {
+          isCameraActive.value = true;
+          await nextTick();
+          webcam = new Webcam(document.getElementById('webcam'), 'user', document.getElementById('canvas'));
+          await webcam.start();
+        };
+
+        const capturePhoto = () => {
+          const canvas = document.getElementById('canvas');
+          const video = document.getElementById('webcam');
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          openCropModal(canvas.toDataURL('image/jpeg'));
+          stopWebcam();
+        };
+
+        const openCropModal = (src) => {
+          document.getElementById('imageToCrop').src = src;
+          cropModal.value.show();
+          setTimeout(() => {
+            cropper = new Cropper(document.getElementById('imageToCrop'), { aspectRatio: 1, viewMode: 1 });
+          }, 300);
+        };
+
+        const applyCrop = () => {
+          profilePreview.value = cropper.getCroppedCanvas({ width: 400, height: 400 }).toDataURL('image/jpeg');
+          cropModal.value.hide();
+        };
+
+        const stopWebcam = () => { if(webcam) webcam.stop(); isCameraActive.value = false; };
+
+        // --- ฟังก์ชันช่วยเหลืออื่นๆ ---
+        const selectMenu = (v) => { 
+          currentView.value = v; 
+          if(v === 'AssessmentForm') fetchAssessmentConfig();
+        };
+        const resetForm = () => { 
+          isEditMode.value = false; step.value = 1; profilePreview.value = null;
+          form.value = { title_Name: 'นางสาว', foodType: 'อาหารทั่วไป', internalPosition: 'พยาบาล' };
+        };
+        const formatThaiDate = (v, thai) => { if(!v) return '-'; const d = new Date(v); return d.toLocaleDateString('th-TH', { day:'numeric', month:'short', year: thai ? 'numeric' : '2-digit' }); };
+
+        // Computed
+        const filteredAdminData = computed(() => {
+          return adminData.value.filter(i => {
+            const mType = !filterRegType.value || i[COL.value.REG_TYPE] === filterRegType.value;
+            const mQuery = !searchAdminQuery.value || JSON.stringify(i).toLowerCase().includes(searchAdminQuery.value.toLowerCase());
+            return mType && mQuery;
           });
-      });
+        });
+        const paginatedAdminData = computed(() => filteredAdminData.value.slice((currentPage.value-1)*itemsPerPage, currentPage.value*itemsPerPage));
+        const totalPages = computed(() => Math.ceil(filteredAdminData.value.length / itemsPerPage));
+        const canUserEdit = computed(() => isAdminLoggedIn.value || (deadlineTimestamp.value && Date.now() < deadlineTimestamp.value));
+        const isExternalClosed = computed(() => externalDeadline.value && Date.now() > externalDeadline.value);
+        const isCertTimeOpen = computed(() => isAdminLoggedIn.value || (certDeadline.value && Date.now() >= certDeadline.value));
+        const canDownload = (i) => i[COL.value.CERT_URL] && i[COL.value.CERT_URL] !== '-';
+        const isRowChanged = (i) => JSON.stringify(i) !== JSON.stringify(originalAdminData.value.find(o => o.rowNumber === i.rowNumber));
 
-      const paginatedAdminData = computed(() => {
-          const start = (currentPage.value - 1) * itemsPerPage;
-          return filteredAdminData.value.slice(start, start + itemsPerPage);
-      });
-
-      const totalPages = computed(() => Math.ceil(filteredAdminData.value.length / itemsPerPage));
-
-      // --- ฟังก์ชันช่วยเหลืออื่นๆ ---
-      const selectMenu = (v) => { currentView.value = v; if (v === 'dashboard' && isAdminLoggedIn.value) loadAdminTable(); };
-      const resetForm = () => { isEditMode.value = false; step.value = 1; form.value = { title_Name: 'นางสาว', foodType: 'อาหารทั่วไป' }; profilePreview.value = null; };
-      const checkLocalSession = () => { const s = localStorage.getItem('nursing_admin_session'); if(s) { const d = JSON.parse(s); isAdminLoggedIn.value = true; login.value.user = d.user; userRole.value = d.role; } };
-
-      // --- กล้องและรูปภาพ ---
-      const isCameraActive = ref(false);
-      const profilePreview = ref(null);
-      let webcam = null;
-      let cropper = null;
-      const startWebcam = async () => { isCameraActive.value = true; await nextTick(); webcam = new Webcam(document.getElementById('webcam'), 'user', document.getElementById('canvas')); await webcam.start(); };
-      const stopWebcam = () => { if(webcam) webcam.stop(); isCameraActive.value = false; };
-      const capturePhoto = () => { 
-        const c = document.getElementById('canvas'); 
-        const v = document.getElementById('webcam');
-        c.width = v.videoWidth; c.height = v.videoHeight;
-        c.getContext('2d').drawImage(v, 0, 0);
-        openCropModal(c.toDataURL('image/jpeg'));
-        stopWebcam();
-      };
-      const openCropModal = (src) => {
-        const img = document.getElementById('imageToCrop');
-        img.src = src;
-        const m = new bootstrap.Modal(document.getElementById('cropModal'));
-        m.show();
-        if(cropper) cropper.destroy();
-        setTimeout(() => { cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1 }); }, 300);
-      };
-      const applyCrop = () => {
-        profilePreview.value = cropper.getCroppedCanvas({ width: 400, height: 400 }).toDataURL('image/jpeg');
-        bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
-      };
-      const retakePhoto = () => { profilePreview.value = null; startWebcam(); };
-
-      return {
-          currentView, step, loading, isAdminLoggedIn, userRole, login, showPassword,
-          COL, REG_STATUS, form, adminSearch, filterRegType, adminData, filteredAdminData, paginatedAdminData, totalPages, currentPage,
-          searchQuery, searchResult, day1Questions, day2Questions, subItems, scheduleData,
-          prefixOptions, affiliationOptions, professionOptions, workGroupData, currentDepts,
-          onWorkGroupChange: () => { currentDepts.value = workGroupData.value[form.value.workGroup] || []; },
-          handleSearch, submitForm, handleAdminLogin, selectMenu, resetForm,
-          isCameraActive, profilePreview, startWebcam, stopWebcam, capturePhoto, applyCrop, retakePhoto,
-          formatPhone: (e) => { let v = e.target.value.replace(/\D/g, ""); if (v.length > 3 && v.length <= 6) v = v.slice(0, 3) + "-" + v.slice(3); else if (v.length > 6) v = v.slice(0, 3) + "-" + v.slice(3, 6) + "-" + v.slice(6, 10); form.value.phoneNumber = v; },
-          scrollToTop: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
-          scrollToBottom: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-      };
-    }
-  }).mount('#app');
-
-  // ThailandJS
-  function initThailandJS() {
-      if (typeof $.Thailand !== 'undefined') {
-          $.Thailand({
-              $district: $("#sub_district"), $amphoe: $("#district"), $province: $("#province"), $zipcode: $("#postcode"),
-              onDataFill: (data) => {
-                  const app = document.getElementById('app').__vue_app__._instance.proxy;
-                  app.form.address_subdistrict = data.district;
-                  app.form.address_district = data.amphoe;
-                  app.form.address_province = data.province;
-                  app.form.address_postcode = data.zipcode;
-              }
-          });
+        return {
+          isReady, loading, currentView, step, isEditMode, form, editForm, isAdminLoggedIn, userRole, login,
+          COL, REG_STATUS, prefixOptions, workGroupData, currentDepts, affiliationOptions, professionOptions,
+          searchQuery, searchResult, adminSearch, searchAdminQuery, filterRegType, paginatedAdminData, currentPage, totalPages,
+          day1Questions, day2Questions, evalDay, evalForm, subItems, loadingEval,
+          scheduleData, loadingSchedule, downloadCount, isScanning, scanDay, scannedUser,
+          isCameraActive, profilePreview, cameraZoom, deadlineTimestamp, externalDeadline, assessmentTimer, certDeadline,
+          api, handleSearch, submitForm, handleAdminLogin, logoutAdmin, selectMenu, resetForm,
+          onWorkGroupChange: () => currentDepts.value = workGroupData.value[form.value.workGroup] || [],
+          prepareEdit: (i) => { isEditMode.value = true; form.value = {...i}; profilePreview.value = i[COL.value.IMAGE]; step.value = 1; },
+          formatThaiDate, canUserEdit, isExternalClosed, isCertTimeOpen, canDownload, isRowChanged,
+          saveAdminUpdate, confirmDelete, openAdminEditModal: (i) => { editForm.value = {...i}; new bootstrap.Modal('#adminEditModal').show(); },
+          submitAdminEdit: async () => { const res = await api('updateForm', editForm.value); if(res.success) loadAdminTable(); },
+          changePage: (p) => currentPage.value = p,
+          startWebcam, stopWebcam, capturePhoto, applyCrop, retakePhoto: () => { profilePreview.value = null; startWebcam(); },
+          handleFileUpload: (e) => { const reader = new FileReader(); reader.onload = (ev) => openCropModal(ev.target.result); reader.readAsDataURL(e.target.files[0]); },
+          handleSlipUpload: (e) => { const reader = new FileReader(); reader.onload = (ev) => form.value.slipImage = ev.target.result; reader.readAsDataURL(e.target.files[0]); },
+          startScanner, stopScanner, changeDay: (d) => evalDay.value = d, submitEvaluation,
+          navToSchedule, handleDownload: () => window.open('https://drive.google.com/file/d/your_id/view'),
+          openSpeakerModal: (s) => { document.getElementById('modalImageExpanded').src = s.img; document.getElementById('speakerDetailModal').style.display='flex'; },
+          closeSpeakerModal: () => document.getElementById('speakerDetailModal').style.display='none',
+          formatPhone: (e) => { let v = e.target.value.replace(/\D/g,''); form.value.phoneNumber = v.length > 6 ? v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6) : v; },
+          scrollToTop: () => window.scrollTo({top:0, behavior:'smooth'}),
+          scrollToBottom: () => window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'}),
+          hasImage: (img) => img && img !== '-',
+          OPTIONAL_POSITIONS
+        }
       }
-  }
-</script>
+    }).mount('#app');
+
+    function initThailandJS() {
+        if (typeof $.Thailand !== 'undefined') {
+            $.Thailand({
+                $district: $("#sub_district"), $amphoe: $("#district"), $province: $("#province"), $zipcode: $("#postcode"),
+                onDataFill: (data) => {
+                    const app = document.getElementById('app').__vue_app__._instance.proxy;
+                    app.form.address_subdistrict = data.district;
+                    app.form.address_district = data.amphoe;
+                    app.form.address_province = data.province;
+                    app.form.address_postcode = data.zipcode;
+                }
+            });
+        }
+    }
+  </script>
 
 </body>
 </html>
