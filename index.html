@@ -2,172 +2,180 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบเช็คชื่อ 2569</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scan Attendance System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Kanit', sans-serif; background-color: #f1f5f9; }
-        
-        /* สไตล์หลักตามรูปภาพ */
-        .header-navy { background-color: #002D57; }
-        .card-result { border: 4px solid #22c55e; border-radius: 2rem; background: #fff; }
-        .btn-purple { background-color: #6D28D9; color: white; }
-        .btn-off { background-color: #fff; color: #64748b; border: 1px solid #e2e8f0; }
-
-        /* --- การจัดการหน้าจอ (สำคัญ) --- */
-        
-        /* สำหรับหน้าจอใหญ่ (PC) */
-        @media (min-width: 1024px) {
-            .app-container {
-                display: grid;
-                grid-template-columns: 1fr 1fr; /* แบ่งครึ่งซ้ายขวาเป๊ะๆ */
-                gap: 2rem;
-                padding: 2rem;
-            }
-            #reader { aspect-ratio: 16/9; }
+        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
+        #reader { border: none !important; border-radius: 1rem; overflow: hidden; }
+        #reader__dashboard_section_csr button {
+            background-color: #4F46E5 !important; color: white !important; border-radius: 0.5rem !important; padding: 8px 16px !important;
         }
-
-        /* สำหรับหน้าจอมือถือ (Mobile) */
-        @media (max-width: 1023px) {
-            .app-container {
-                display: flex;
-                flex-direction: column; /* เรียงต่อกันลงมา */
-                gap: 1rem;
-                padding: 1rem;
-            }
-            #reader { aspect-ratio: 1/1; } /* จัตุรัสเพื่อให้ประหยัดพื้นที่แนวตั้ง */
-            .nav-title { font-size: 0.9rem; }
-        }
-
-        #reader { border-radius: 1.5rem; overflow: hidden; border: 4px solid #fff; background: #000; }
+        .scan-region-highlight { border-radius: 20px !important; }
+        .loading-shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body>
+<body class="min-h-screen bg-slate-50">
 
-    <nav class="header-navy text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md">
-        <div class="flex items-center gap-2">
-            <span class="text-yellow-400 font-bold">⚡</span>
-            <span class="nav-title font-semibold uppercase">ระบบเช็คชื่อเข้าประชุม 2569</span>
+    <nav class="bg-indigo-700 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <span class="text-2xl">📝</span> ระบบเช็คชื่อเข้าประชุม
+            </h1>
+            <select id="daySelect" class="bg-indigo-600 border border-indigo-400 rounded-lg px-3 py-1 outline-none">
+                <option value="1">วันที่ 1 (Day 1)</option>
+                <option value="2">วันที่ 2 (Day 2)</option>
+            </select>
         </div>
-        <div id="clock" class="text-xs font-mono opacity-80">00:00:00</div>
     </nav>
 
-    <div class="max-w-7xl mx-auto app-container">
-        
-        <div class="space-y-4">
-            <div id="reader" class="shadow-xl"></div>
+    <main class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <div class="bg-white p-4 rounded-[2rem] shadow-sm space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="setDay(1)" id="d1" class="btn-purple py-4 rounded-2xl font-bold flex flex-col items-center shadow-lg">
-                        <span class="text-[10px] opacity-70">วันที่ 1</span>
-                        <span class="text-sm">25 ก.พ. 69</span>
-                    </button>
-                    <button onclick="setDay(2)" id="d2" class="btn-off py-4 rounded-2xl font-bold flex flex-col items-center">
-                        <span class="text-[10px] opacity-70">วันที่ 2</span>
-                        <span class="text-sm">26 ก.พ. 69</span>
-                    </button>
-                </div>
-                
-                <label class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer">
-                    <span class="text-sm text-slate-500 font-medium">🖼️ เลือกจากรูปภาพ</span>
-                    <input type="file" id="file-input" accept="image/*" class="hidden">
-                </label>
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            <div id="display" class="card-result p-6 min-h-[300px] flex flex-col items-center justify-center text-center shadow-lg relative">
-                <div id="wait" class="space-y-3">
-                    <div class="text-5xl">☀️</div>
-                    <p class="text-slate-400 font-bold">รอการสแกน...</p>
-                </div>
-                
-                <div id="info" class="hidden space-y-4">
-                    <img id="uImg" src="" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-slate-50 shadow-md">
-                    <div>
-                        <h2 id="uName" class="text-xl font-bold text-slate-800">-</h2>
-                        <p id="uId" class="text-indigo-600 font-bold text-xs">-</p>
+            <div class="space-y-6">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="font-semibold text-slate-700">กล้องสแกน QR Code</h2>
+                        <span class="flex h-3 w-3 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
                     </div>
-                    <div class="bg-green-500 text-white px-6 py-1.5 rounded-full text-sm font-bold">✓ เช็คอินแล้ว</div>
+                    <div id="reader" class="w-full"></div>
+                    <p class="text-center text-sm text-slate-400 mt-4">วาง QR Code ให้อยู่ในกรอบเพื่อสแกน</p>
                 </div>
 
-                <div id="loader" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-[2rem]">
-                    <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <div id="resultCard" class="hidden bg-white p-6 rounded-2xl shadow-xl border-t-4 border-green-500 transform transition-all">
+                    <div class="flex items-center gap-4">
+                        <div id="userImg" class="w-20 h-20 rounded-full bg-slate-200 object-cover border-2 border-indigo-100 flex-shrink-0 flex items-center justify-center text-2xl">👤</div>
+                        <div>
+                            <h3 id="userName" class="text-xl font-bold text-slate-800">-</h3>
+                            <p id="userDept" class="text-slate-500 text-sm">-</p>
+                            <p id="userTime" class="text-indigo-600 font-medium text-sm mt-1">เวลา: --:--</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white/50 p-4 rounded-2xl">
-                <h4 class="text-xs font-bold text-slate-500 mb-3 italic">⏱ ประวัติล่าสุด</h4>
-                <div id="logs" class="space-y-2"></div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[500px] lg:h-auto">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+                    <h2 class="font-semibold text-slate-700 italic">Recent Attendees</h2>
+                    <span id="recordCount" class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">กำลังโหลด...</span>
+                </div>
+                <div id="historyList" class="flex-grow overflow-y-auto p-2 space-y-2">
+                    </div>
             </div>
+
         </div>
+    </main>
 
-    </div>
+    <audio id="beepSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
 
     <script>
-        const URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
-        let day = 1;
-        let scanner;
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
+        let html5QrCode;
+        let isScanning = true;
 
-        window.onload = () => {
-            scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (t) => send(t));
-            setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
-            updateLogs();
-        };
+        // Initialize Scanner
+        function startScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+        }
 
-        async function send(text) {
-            document.getElementById('loader').classList.remove('hidden');
+        async function onScanSuccess(decodedText) {
+            if (!isScanning) return;
+            isScanning = false; // หยุดสแกนชั่วคราวเพื่อรอผลจาก Server
+            
+            document.getElementById('beepSound').play();
+            showLoading(true);
+
+            const day = document.getElementById('daySelect').value;
+
             try {
-                const res = await fetch(URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text, day } }) });
-                const r = await res.json();
-                if (r.success) {
-                    document.getElementById('wait').classList.add('hidden');
-                    document.getElementById('info').classList.remove('hidden');
-                    document.getElementById('uName').innerText = r.user.name;
-                    document.getElementById('uId').innerText = "ID: " + r.user.id;
-                    document.getElementById('uImg').src = r.user.img || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                    updateLogs();
-                    new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3').play();
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'recordAttendance',
+                        data: { text: decodedText, day: day }
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    displayResult(result.user);
+                    updateHistory();
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: result.user.name, timer: 1500, showConfirmButton: false });
                 } else {
-                    Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: r.message, toast: true, position: 'top' });
+                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message });
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'เชื่อมต่อ Server ไม่ได้' });
+            }
+
+            setTimeout(() => { isScanning = true; }, 3000); // รอ 3 วินาทีก่อนสแกนคนถัดไป
+        }
+
+        function displayResult(user) {
+            const card = document.getElementById('resultCard');
+            card.classList.remove('hidden');
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userDept').innerText = user.dept;
+            document.getElementById('userTime').innerText = `เวลาเช็คอิน: ${user.time}`;
+            
+            const imgDiv = document.getElementById('userImg');
+            if (user.img) {
+                imgDiv.innerHTML = `<img src="${user.img}" class="w-full h-full rounded-full object-cover">`;
+            } else {
+                imgDiv.innerHTML = `👤`;
+            }
+        }
+
+        async function updateHistory() {
+            const day = document.getElementById('daySelect').value;
+            try {
+                const response = await fetch(`${GAS_URL}?action=getRecentRecords&day=${day}`); // Note: GAS doPost requires special handling, typically we use POST for everything in this setup
+                // เพื่อความง่ายในตัวอย่างนี้ แนะนำให้ใช้ fetch แบบ POST ตามที่เขียนใน Code.gs
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: day } })
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    const list = document.getElementById('historyList');
+                    list.innerHTML = '';
+                    result.records.forEach(rec => {
+                        list.innerHTML += `
+                            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 animate-fadeIn">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">${rec.id.toString().slice(-2)}</div>
+                                    <div class="font-medium text-slate-700 text-sm">${rec.name}</div>
+                                </div>
+                                <div class="text-xs text-slate-400">${rec.time}</div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('recordCount').innerText = `${result.records.length} ล่าสุด`;
                 }
             } catch (e) { console.error(e); }
-            finally { document.getElementById('loader').classList.add('hidden'); }
         }
 
-        document.getElementById('file-input').addEventListener('change', async (e) => {
-            if (e.target.files[0]) {
-                try {
-                    const t = await scanner.scanFile(e.target.files[0], true);
-                    send(t);
-                } catch (err) { Swal.fire('ไม่พบ QR', '', 'error'); }
-            }
-        });
-
-        async function updateLogs() {
-            try {
-                const res = await fetch(URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
-                const r = await res.json();
-                document.getElementById('logs').innerHTML = r.records.map(i => `
-                    <div class="bg-white p-2 rounded-xl flex justify-between items-center shadow-sm text-xs">
-                        <div><b>${i.name}</b><br><span class="text-[9px] text-slate-400">${i.time}</span></div>
-                        <div class="text-green-500 font-bold">✓</div>
-                    </div>
-                `).join('');
-            } catch (e) {}
+        function showLoading(status) {
+            // ทำระบบ Loading หรืองานอื่นๆ เพิ่มเติมได้ที่นี่
         }
 
-        function setDay(d) {
-            day = d;
-            document.getElementById('d1').className = d === 1 ? 'btn-purple py-4 rounded-2xl font-bold flex flex-col items-center shadow-lg' : 'btn-off py-4 rounded-2xl font-bold flex flex-col items-center';
-            document.getElementById('d2').className = d === 2 ? 'btn-purple py-4 rounded-2xl font-bold flex flex-col items-center shadow-lg' : 'btn-off py-4 rounded-2xl font-bold flex flex-col items-center';
-            updateLogs();
-        }
+        // เริ่มงาน
+        window.onload = () => {
+            startScanner();
+            updateHistory();
+            setInterval(updateHistory, 15000); // Refresh รายชื่อทุก 15 วินาที
+        };
     </script>
 </body>
 </html>
