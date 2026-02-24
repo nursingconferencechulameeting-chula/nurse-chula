@@ -3,86 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart QR Check-in</title>
+    <title>Smart QR Check-in System</title>
+    <!-- Tailwind CSS & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- HTML5 QR Code & SweetAlert2 -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
-        body { font-family: 'Prompt', sans-serif; background: #f8fafc; }
-        #reader { border: none !important; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        #reader video { object-fit: cover !important; }
-        .glass-morphism { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
-        .success-pulse { animation: pulse-green 2s infinite; }
-        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+        body { font-family: 'Prompt', sans-serif; background: #f1f5f9; color: #1e293b; }
+        
+        /* Scanner Styling */
+        #reader { border: none !important; position: relative; overflow: hidden; border-radius: 1.5rem; background: #000; }
+        #reader video { object-fit: cover !important; border-radius: 1.5rem; }
+        
+        /* Scanning Animation Line */
+        .scanner-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(to right, transparent, #4f46e5, transparent);
+            box-shadow: 0 0 10px #4f46e5;
+            animation: scan 2s linear infinite;
+            z-index: 10;
+        }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        .success-pulse { animation: pulse-green 1.5s infinite; }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+        
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="text-slate-800">
+<body class="min-h-screen pb-10">
 
-    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+    <!-- Header Navigation -->
+    <nav class="sticky top-0 z-50 glass border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-white p-2 rounded-lg shadow-inner">
-                    <svg class="w-6 h-6 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                 </div>
-                <h1 class="text-lg md:text-xl font-semibold tracking-tight">QR Scanner System</h1>
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">Check-in Pro</h1>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="hidden md:inline text-sm opacity-80">เลือกวัน:</span>
-                <select id="daySelect" class="bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm outline-none focus:ring-2 ring-white/50 transition-all cursor-pointer">
-                    <option class="text-slate-800" value="1">Day 1</option>
-                    <option class="text-slate-800" value="2">Day 2</option>
-                </select>
-            </div>
+            <select id="daySelect" class="bg-white border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm focus:ring-2 ring-indigo-500 outline-none">
+                <option value="1">วันที่ 1 (Day 1)</option>
+                <option value="2">วันที่ 2 (Day 2)</option>
+            </select>
         </div>
-    </header>
+    </nav>
 
-    <main class="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
+            <!-- Left Side: Scanner & User Profile -->
             <div class="lg:col-span-7 space-y-6">
                 
-                <div class="relative group">
-                    <div id="reader" class="w-full"></div>
-                    <div id="scanOverlay" class="absolute inset-0 pointer-events-none border-2 border-dashed border-white/30 rounded-[1.5rem] m-8 hidden md:block"></div>
+                <!-- Scanner Window -->
+                <div class="bg-white rounded-[2rem] p-4 shadow-xl border border-white overflow-hidden relative">
+                    <div id="reader-container" class="relative group">
+                        <div id="reader" class="w-full aspect-[4/3] md:aspect-video"></div>
+                        <div id="scanLine" class="scanner-line hidden"></div>
+                    </div>
+                    <div class="mt-4 flex justify-center items-center gap-2 text-slate-400">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        <p class="text-sm">กำลังเปิดกล้องเพื่อสแกน QR Code...</p>
+                    </div>
                 </div>
 
+                <!-- Result Card -->
                 <div id="resultContainer" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div id="userCard" class="bg-white rounded-3xl p-6 shadow-xl border-t-8 border-green-500 flex flex-col md:flex-row items-center gap-6">
-                        <div class="relative">
-                            <img id="userImg" src="https://via.placeholder.com/150" alt="Profile" class="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover shadow-md border-4 border-white">
-                            <div id="statusIcon" class="absolute -bottom-2 -right-2 bg-green-500 text-white p-2 rounded-full shadow-lg">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    <div id="userCard" class="bg-white rounded-[2rem] p-6 shadow-2xl border-2 border-slate-50 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+                        
+                        <!-- Badge สำหรับคนนอก/คนใน -->
+                        <div id="regBadge" class="absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"></div>
+
+                        <div class="shrink-0 relative">
+                            <img id="userImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-32 h-32 md:w-40 md:h-40 rounded-[2rem] object-cover shadow-lg border-4 border-white">
+                            <div id="statusIcon" class="absolute -bottom-2 -right-2 p-2 rounded-2xl shadow-lg border-4 border-white">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                             </div>
                         </div>
-                        <div class="text-center md:text-left space-y-2 flex-grow">
-                            <span id="resStatus" class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 uppercase tracking-widest mb-2">เช็คอินสำเร็จ</span>
-                            <h2 id="resName" class="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">สมชาย สายลุย</h2>
-                            <div class="grid grid-cols-1 gap-1 text-slate-500">
-                                <p class="flex items-center justify-center md:justify-start gap-2">
-                                    <span class="font-semibold text-slate-700">ID:</span> <span id="resId">12345</span>
-                                </p>
-                                <p class="flex items-center justify-center md:justify-start gap-2 text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-lg w-fit">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                    <span id="resDept">ฝ่ายเทคโนโลยีสารสนเทศ</span>
-                                </p>
+
+                        <div class="text-center md:text-left space-y-3 flex-grow">
+                            <div>
+                                <h2 id="resName" class="text-2xl md:text-3xl font-bold text-slate-800">สมชาย สายลุย</h2>
+                                <p id="resId" class="text-indigo-600 font-medium tracking-widest uppercase text-sm">ID: 123456</p>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-center md:justify-start gap-2 text-slate-500">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                    <span id="resDept" class="text-sm">แผนกการพยาบาล</span>
+                                </div>
+                                <div class="flex items-center justify-center md:justify-start gap-2 text-slate-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span id="resTime" class="text-xs">10:45:00</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Right Side: Recent History -->
             <div class="lg:col-span-5">
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                            <span class="w-2 h-5 bg-indigo-500 rounded-full"></span>
-                            ผู้เช็คอินล่าสุด
+                <div class="bg-white rounded-[2rem] shadow-xl border border-white h-full flex flex-col overflow-hidden">
+                    <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                        <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                            <span class="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+                            ประวัติล่าสุด
                         </h3>
-                        <span id="recordCount" class="text-xs font-medium text-slate-400">Loading...</span>
+                        <span id="recordCount" class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">0</span>
                     </div>
-                    <div id="historyList" class="p-4 space-y-3 h-[400px] lg:h-[600px] overflow-y-auto">
-                        <div class="text-center py-10 text-slate-400">ไม่มีข้อมูลการสแกน</div>
+                    
+                    <div id="historyList" class="flex-grow overflow-y-auto p-4 space-y-3 custom-scroll min-h-[400px]">
+                        <!-- Empty State -->
+                        <div class="flex flex-col items-center justify-center py-20 text-slate-300">
+                            <svg class="w-12 h-12 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"></path></svg>
+                            <p class="text-xs mt-2">ยังไม่มีข้อมูลการสแกน</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -90,27 +134,34 @@
         </div>
     </main>
 
+    <!-- Audio Effects -->
     <audio id="beepSuccess" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
     <audio id="beepError" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
+        // แทนที่ด้วย URL ของ Google Apps Script (Web App) ของคุณ
+        const GAS_URL = "YOUR_GAS_URL_HERE"; 
+        
         let html5QrCode;
         let isProcessing = false;
 
+        // เริ่มต้น Scanner
         function initScanner() {
             html5QrCode = new Html5Qrcode("reader");
             const config = { 
-                fps: 15, 
-                qrbox: (viewWidth, viewHeight) => {
-                    const minSize = Math.min(viewWidth, viewHeight);
-                    return { width: minSize * 0.7, height: minSize * 0.7 };
+                fps: 20, 
+                qrbox: (w, h) => {
+                    const size = Math.min(w, h) * 0.7;
+                    return { width: size, height: size };
                 },
                 aspectRatio: 1.0
             };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .then(() => document.getElementById('scanLine').classList.remove('hidden'))
+                .catch(err => console.error("Camera error:", err));
         }
 
+        // เมื่อสแกน QR สำเร็จ
         async function onScanSuccess(decodedText) {
             if (isProcessing) return;
             isProcessing = true;
@@ -125,48 +176,68 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    document.getElementById('beepSuccess').play();
-                    showUserData(result.user, true);
+                    playAudio('success');
+                    showUserData(result.user);
                     updateHistory();
                 } else {
-                    document.getElementById('beepError').play();
-                    // กรณีสแกนซ้ำ หรือ ไม่พบข้อมูล
+                    playAudio('error');
+                    
+                    // เงื่อนไข: ถ้าเป็นเรื่องชำระเงิน ให้แสดงไอคอนเตือน (Warning) สีส้ม
+                    const isPaymentError = result.message.includes("ชำระเงิน");
+                    
                     Swal.fire({
-                        icon: result.message.includes("ไปแล้ว") ? 'warning' : 'error',
-                        title: 'แจ้งเตือน',
+                        icon: isPaymentError ? 'warning' : 'error',
+                        title: isPaymentError ? 'พบปัญหาการชำระเงิน' : 'ผิดพลาด',
                         text: result.message,
-                        toast: true,
-                        position: 'top',
-                        timer: 3000,
-                        showConfirmButton: false
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: isPaymentError ? '#f59e0b' : '#ef4444',
+                        // ถ้าเรื่องเงิน ให้เจ้าหน้าที่ต้องกดปิดเอง
+                        timer: isPaymentError ? 0 : 3000
                     });
                 }
             } catch (err) {
-                console.error(err);
+                Swal.fire({ icon: 'error', title: 'Connection Error', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
             } finally {
-                // รอ 2.5 วินาทีก่อนให้สแกนใหม่ได้ เพื่อป้องกันการสแกนซ้อน
+                // หน่วงเวลาสแกนครั้งต่อไป 2.5 วินาที
                 setTimeout(() => { isProcessing = false; }, 2500);
             }
         }
 
-        function showUserData(user, isSuccess) {
+        // แสดงข้อมูลผู้ใช้งานบนหน้าจอ
+        function showUserData(user) {
             const container = document.getElementById('resultContainer');
             const card = document.getElementById('userCard');
+            const badge = document.getElementById('regBadge');
+            const statusIcon = document.getElementById('statusIcon');
             
             container.classList.remove('hidden');
             document.getElementById('resName').innerText = user.name;
-            document.getElementById('resId').innerText = user.id;
+            document.getElementById('resId').innerText = "ID: " + user.id;
             document.getElementById('resDept').innerText = user.dept;
-            document.getElementById('resStatus').innerText = "ลงทะเบียนสำเร็จ (" + user.time + ")";
+            document.getElementById('resTime').innerText = "ลงทะเบียนสำเร็จ: " + user.time;
             
+            // รูปภาพโปรไฟล์
             const imgEl = document.getElementById('userImg');
             imgEl.src = user.img ? user.img : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+            // ปรับ Badge ตามประเภท
+            if (user.regType && user.regType.includes("ภายนอก")) {
+                badge.innerText = "External / บุคคลภายนอก";
+                badge.className = "absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-wider";
+            } else {
+                badge.innerText = "Internal / บุคลากร";
+                badge.className = "absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wider";
+            }
+
+            // สีไอคอนสถานะ
+            statusIcon.className = "absolute -bottom-2 -right-2 p-2 rounded-2xl shadow-lg border-4 border-white bg-green-500";
             
-            // เพิ่ม Animation เอฟเฟกต์
+            // Effects
             card.classList.add('success-pulse');
-            setTimeout(() => card.classList.remove('success-pulse'), 2000);
+            setTimeout(() => card.classList.remove('success-pulse'), 1500);
         }
 
+        // ดึงประวัติล่าสุด
         async function updateHistory() {
             const day = document.getElementById('daySelect').value;
             try {
@@ -178,29 +249,37 @@
                 
                 const list = document.getElementById('historyList');
                 if (result.success && result.records.length > 0) {
-                    list.innerHTML = result.records.map(rec => `
-                        <div class="flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
-                            <div class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    list.innerHTML = result.records.map((rec, i) => `
+                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-all animate-in slide-in-from-right duration-300" style="animation-delay: ${i*50}ms">
+                            <div class="bg-slate-100 text-slate-500 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0">
                                 ${rec.id.toString().slice(-3)}
                             </div>
                             <div class="flex-grow">
-                                <p class="text-sm font-semibold text-slate-700">${rec.name}</p>
-                                <p class="text-[10px] text-slate-400">เช็คอินเวลา: ${rec.time}</p>
+                                <p class="text-sm font-bold text-slate-700">${rec.name}</p>
+                                <p class="text-[10px] text-slate-400">เช็คอิน: ${rec.time}</p>
                             </div>
-                            <div class="text-green-500">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            <div class="text-green-500 bg-green-50 p-1.5 rounded-lg">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                             </div>
                         </div>
                     `).join('');
-                    document.getElementById('recordCount').innerText = `${result.records.length} คนล่าสุด`;
+                    document.getElementById('recordCount').innerText = result.records.length;
                 }
-            } catch (e) { console.log(e); }
+            } catch (e) { console.log("History error"); }
         }
 
+        function playAudio(type) {
+            const audio = document.getElementById(type === 'success' ? 'beepSuccess' : 'beepError');
+            audio.currentTime = 0;
+            audio.play();
+        }
+
+        // เมื่อโหลดหน้าเว็บ
         window.onload = () => {
             initScanner();
             updateHistory();
-            setInterval(updateHistory, 30000); // อัปเดตรายชื่อทุก 30 วินาที
+            // อัปเดตประวัติทุกๆ 20 วินาที
+            setInterval(updateHistory, 20000);
         };
     </script>
 </body>
