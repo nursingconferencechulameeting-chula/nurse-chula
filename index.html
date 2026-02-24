@@ -3887,11 +3887,11 @@
 <script>
     const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
 
-    // 🛑 1. ตรวจสอบ URL นี้ให้ถูกต้อง (Web App URL จากการ Deploy)
+    // 🛑 1. ตรวจสอบ URL Web App ของคุณให้ถูกต้อง
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
 
     /**
-     * ฟังก์ชันหลักสื่อสารกับ Google Sheets ผ่าน Fetch API
+     * ฟังก์ชันสื่อสารกับ Google Sheets ผ่าน API
      */
     async function callGAS(action, data = {}) {
         try {
@@ -3902,36 +3902,35 @@
             return await response.json();
         } catch (error) {
             console.error("GAS Error:", error);
-            return { success: false, message: "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: " + error.toString() };
+            return { success: false, message: "เชื่อมต่อไม่สำเร็จ: " + error.toString() };
         }
     }
 
     createApp({
       setup() {
-        // --- 🟢 แก้ไข Error 2: กำหนดค่าเริ่มต้นให้ editForm ครบทุกฟิลด์ที่ HTML เรียกใช้ ---
-        const editForm = ref({ 
-            id: '', 
-            rowNumber: null, 
-            profileImageUrl: '', 
-            firstName: '', 
-            lastName: '', 
-            status_Register: '', 
-            foodType: 'อาหารทั่วไป' 
-        });
+        // --- 🟢 แก้ Error 2: กำหนดค่าเริ่มต้นให้ scheduleData ป้องกัน 'day1' undefined ---
+        const scheduleData = ref({ day1: [], day2: [] });
+        const loadingSchedule = ref(false);
+        const downloadCount = ref(0);
+        const adminSheetUrl = ref('');
 
-        const COL = ref({});
-        const REG_STATUS = ref({});
-        const searchAdminQuery = ref(''); 
+        // --- แก้ Error: กำหนดค่าเริ่มต้นให้ editForm และตัวแปรแอดมิน ---
+        const editForm = ref({ id: '', rowNumber: null, profileImageUrl: '', firstName: '', lastName: '', status_Register: '', foodType: 'อาหารทั่วไป' });
+        const searchAdminQuery = ref('');
         const filterRegType = ref('');
         const adminData = ref([]);
-        const errors = ref({});
+        const savingRows = ref({});
+        
+        // --- ตัวแปรสถานะระบบ ---
+        const COL = ref({});
+        const REG_STATUS = ref({});
         const step = ref(1);
         const loading = ref(false);
         const currentView = ref('form');
         const isAdminLoggedIn = ref(false);
         const userRole = ref('');
         const login = ref({ user: '', pass: '' });
-        
+
         // ฟอร์มลงทะเบียน
         const form = ref({
           rowNumber: null, email: '', title_Name: 'นางสาว', firstName: '', lastName: '',
@@ -3940,24 +3939,18 @@
           address_subdistrict: '', address_district: '', address_province: '', address_postcode: ''
         });
 
-        // ข้อมูล Options
+        // ข้อมูล Options และ ค้นหา
         const workGroupData = ref({});
         const prefixOptions = ref([]);
         const affiliationOptions = ref([]);
         const professionOptions = ref([]);
+        const currentDepts = ref([]);
         const searchQuery = ref('');
         const searchResult = ref(null);
         const profilePreview = ref(null);
         const OPTIONAL_POSITIONS = ['วิทยากร', 'คณะกรรมการฯ', 'พิธีกร', 'อื่นๆ'];
 
-        // Deadline & Timer
-        const deadlineTimestamp = ref(null);
-        const certDeadline = ref(null);
-        const externalDeadline = ref(null);
-        const isTimerLoaded = ref(false);
-
-        // --- 🔵 ฟังก์ชันดึงข้อมูลต่างๆ (แก้ Error 1 & 3: เปลี่ยน google.script เป็น callGAS และจัดลำดับใหม่) ---
-        
+        // 🔵 ฟังก์ชันดึงข้อมูลเริ่มต้น
         const loadInitialData = async () => {
             const res = await callGAS('loadInitialData');
             if (res) {
@@ -3967,35 +3960,24 @@
                 prefixOptions.value = res.prefixes || [];
                 affiliationOptions.value = res.affiliations || [];
                 professionOptions.value = res.professions || [];
-                
-                // ตั้งค่า Deadlines
-                deadlineTimestamp.value = res.deadlines?.reg;
-                externalDeadline.value = res.deadlines?.external;
-                certDeadline.value = res.deadlines?.cert;
-                isTimerLoaded.value = true;
             }
         };
 
-        const loadAdminTable = async () => {
-            loading.value = true;
-            const res = await callGAS('getAdminAllData');
-            adminData.value = res || [];
-            loading.value = false;
-        };
-
-        // --- 🔵 ฟังก์ชันจัดการผู้ใช้ ---
-        
-        const handleSearch = async () => {
-            if (!searchQuery.value) return;
-            loading.value = true;
-            const res = await callGAS('searchUser', { query: searchQuery.value });
-            loading.value = false;
-            if (res && res.success) {
-                searchResult.value = res.data;
-                nextTick(() => document.getElementById('search-result-section')?.scrollIntoView({ behavior: 'smooth' }));
+        // 🔵 แก้ Error 1: สร้างฟังก์ชัน navToSchedule
+        const navToSchedule = async () => {
+            currentView.value = 'schedule';
+            if (scheduleData.value.day1.length === 0) {
+                loadingSchedule.value = true;
+                const res = await callGAS('getSchedule');
+                if (res && res.success) {
+                    scheduleData.value = res.data;
+                    adminSheetUrl.value = res.sheetUrl || '';
+                }
+                loadingSchedule.value = false;
             }
         };
 
+        // 🔵 ฟังก์ชันแอดมินและการจัดการตาราง
         const handleAdminLogin = async () => {
             if (!login.value.pass) return;
             loading.value = true;
@@ -4008,56 +3990,51 @@
                 localStorage.setItem('nursing_admin_session', JSON.stringify(res));
                 loadAdminTable();
             } else {
-                Swal.fire("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error");
+                Swal.fire("รหัสผ่านไม่ถูกต้อง", "", "error");
             }
         };
 
-        // --- 🔵 Lifecycle Hooks ---
-        
-        onMounted(async () => {
+        const loadAdminTable = async () => {
             loading.value = true;
-            await loadInitialData(); // เรียกข้อมูลเริ่มต้น
-
-            // เช็ค Session แอดมิน
-            const savedSession = localStorage.getItem('nursing_admin_session');
-            if (savedSession) {
-                const sessionData = JSON.parse(savedSession);
-                isAdminLoggedIn.value = true;
-                login.value.user = sessionData.username;
-                userRole.value = sessionData.role;
-                if(currentView.value === 'dashboard') loadAdminTable();
-            }
+            const res = await callGAS('getAdminAllData');
+            adminData.value = res || [];
             loading.value = false;
-        });
+        };
 
-        // --- 🟡 Computed & Helpers ---
+        const saveAdminUpdate = async (item) => {
+            savingRows.value[item.rowNumber] = true;
+            const res = await callGAS('updateAdminStatus', { rowNumber: item.rowNumber, item: item });
+            savingRows.value[item.rowNumber] = false;
+            if (res.success) Swal.fire({ icon: 'success', title: 'บันทึกแล้ว', timer: 800, showConfirmButton: false });
+        };
 
-        const filteredAdminData = computed(() => {
-            if (!adminData.value) return [];
-            const q = searchAdminQuery.value.toLowerCase().trim();
-            return adminData.value.filter(item => {
-                const matchType = !filterRegType.value || item[COL.value.REG_TYPE] === filterRegType.value;
-                const matchQuery = !q || (
-                    String(item[COL.value.ID]).toLowerCase().includes(q) ||
-                    String(item[COL.value.FNAME]).toLowerCase().includes(q) ||
-                    String(item[COL.value.LNAME]).toLowerCase().includes(q)
-                );
-                return matchType && matchQuery;
-            });
-        });
+        const openAdminEditModal = (item) => {
+            editForm.value = JSON.parse(JSON.stringify(item));
+            editForm.value.profileImageUrl = item[COL.value.IMAGE] || '';
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('adminEditModal'));
+            modal.show();
+        };
 
-        const canUserEdit = computed(() => {
-            if (isAdminLoggedIn.value) return true;
-            if (!isTimerLoaded.value || !deadlineTimestamp.value) return false;
-            return new Date().getTime() < deadlineTimestamp.value;
-        });
+        // 🔵 ฟังก์ชันสแกนและอื่นๆ
+        const isScanning = ref(false);
+        const scanDay = ref('1');
+        let html5QrCode = null;
 
-        const isCertTimeOpen = computed(() => {
-            if (isAdminLoggedIn.value) return true;
-            if (!certDeadline.value) return false;
-            return new Date().getTime() >= certDeadline.value;
-        });
+        const startScanner = () => {
+            isScanning.value = true;
+            setTimeout(() => {
+                html5QrCode = new Html5Qrcode("reader");
+                html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (text) => {
+                    const res = await callGAS('recordAttendance', { text, day: scanDay.value });
+                    if (res.success) Swal.fire("สำเร็จ", `คุณ ${res.userData[COL.value.FNAME]}`, "success");
+                    stopScanner();
+                });
+            }, 300);
+        };
 
+        const stopScanner = () => { if (html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); isScanning.value = false; }); else isScanning.value = false; };
+
+        // 🔵 ฟังก์ชันช่วย (Helpers)
         const selectMenu = (v) => {
             currentView.value = v;
             if (v === 'dashboard' && isAdminLoggedIn.value) loadAdminTable();
@@ -4065,18 +4042,51 @@
             if (navbar?.classList.contains('show')) bootstrap.Collapse.getInstance(navbar).hide();
         };
 
-        const formatThaiDate = (val) => val || '-';
-        const hasImage = (url) => url && url !== '-' && url !== '';
+        onMounted(async () => {
+            await loadInitialData();
+            const saved = localStorage.getItem('nursing_admin_session');
+            if (saved) {
+                const data = JSON.parse(saved);
+                isAdminLoggedIn.value = true;
+                login.value.user = data.username;
+                userRole.value = data.role;
+                if(currentView.value === 'dashboard') loadAdminTable();
+            }
+        });
+
+        // 🟡 กรองข้อมูลตาราง
+        const filteredAdminData = computed(() => {
+            if (!adminData.value) return [];
+            const q = searchAdminQuery.value.toLowerCase().trim();
+            return adminData.value.filter(item => {
+                const matchType = !filterRegType.value || item[COL.value.REG_TYPE] === filterRegType.value;
+                const matchQuery = !q || (String(item[COL.value.ID]).toLowerCase().includes(q) || String(item[COL.value.FNAME]).toLowerCase().includes(q) || String(item[COL.value.LNAME]).toLowerCase().includes(q));
+                return matchType && matchQuery;
+            });
+        });
 
         return {
-          COL, REG_STATUS, currentView, step, loading, isAdminLoggedIn, userRole, login,
-          form, editForm, searchAdminQuery, filterRegType, adminData, filteredAdminData,
-          workGroupData, prefixOptions, affiliationOptions, professionOptions, searchQuery, searchResult,
-          handleSearch, handleAdminLogin, loadAdminTable, selectMenu,
-          canUserEdit, isCertTimeOpen, formatThaiDate, hasImage, OPTIONAL_POSITIONS,
-          resetForm: () => { step.value = 1; searchResult.value = null; },
-          scrollToTop: () => window.scrollTo({top: 0, behavior: 'smooth'}),
-          scrollToBottom: () => window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})
+            COL, REG_STATUS, currentView, step, loading, isAdminLoggedIn, userRole, login,
+            form, editForm, searchAdminQuery, filterRegType, adminData, filteredAdminData,
+            scheduleData, loadingSchedule, downloadCount, adminSheetUrl, navToSchedule,
+            workGroupData, prefixOptions, affiliationOptions, professionOptions, searchQuery, searchResult, savingRows, profilePreview,
+            handleSearch: async () => { 
+                loading.value = true; 
+                const res = await callGAS('searchUser', { query: searchQuery.value });
+                searchResult.value = res.success ? res.data : null;
+                loading.value = false;
+            },
+            handleAdminLogin, loadAdminTable, openAdminEditModal, saveAdminUpdate, selectMenu,
+            startScanner, stopScanner, isScanning, scanDay,
+            formatThaiDate: (d) => d || '-', hasImage: (u) => (u && u !== '-' && u !== ''),
+            canDownload: (item) => item[COL.value.ATTEND_1] === 'เข้าประชุม' && item[COL.value.ATTEND_2] === 'เข้าประชุม',
+            isRowChanged: () => true, OPTIONAL_POSITIONS,
+            resetForm: () => { step.value = 1; searchResult.value = null; },
+            onWorkGroupChange: () => currentDepts.value = workGroupData.value[form.value.workGroup] || [],
+            onDownloadClick: (row) => callGAS('trackDownload', { rowNum: row }),
+            handleDownload: () => window.open('https://your-pdf-link.com', '_blank'),
+            scrollToTop: () => window.scrollTo({top: 0, behavior: 'smooth'}),
+            scrollToBottom: () => window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})
         };
       }
     }).mount('#app');
