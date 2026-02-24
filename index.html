@@ -3,251 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern QR Scan - Pro</title>
+    <title>ระบบเช็คชื่อเข้าประชุม 2569</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background: #edf2f7; }
-        #reader { border: none !important; border-radius: 1rem; }
-        #reader__dashboard_section_csr button { display: none; } /* ซ่อนปุ่มเดิมของ lib */
-        .status-loading { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .bg-glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
+        .header-bg { background-color: #003366; } /* สีน้ำเงินเข้มตามรูป */
+        #reader { border-radius: 1.5rem; overflow: hidden; background: #333; position: relative; }
+        /* ตกแต่งกรอบสแกนในจอ */
+        #reader__scan_region { border: 2px dashed rgba(255,255,255,0.5) !important; border-radius: 20px; }
+        .status-card { border: 4px solid #22c55e; border-radius: 2rem; }
+        .btn-day-active { background-color: #6366f1; color: white; }
+        .btn-day-inactive { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+        /* สไตล์ปุ่มเลือกไฟล์แบบในรูป */
+        .file-upload-box { border: 2px dashed #cbd5e1; border-radius: 1rem; }
     </style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="bg-slate-100">
 
-    <nav class="bg-indigo-900 text-white p-4 shadow-xl mb-6 sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">⚡</span>
-                <h1 class="font-bold text-lg">ระบบเช็คชื่อเข้าประชุม 2026</h1>
-            </div>
-            <div id="clock" class="text-sm font-mono bg-black/20 px-3 py-1 rounded-full">00:00:00</div>
+    <nav class="header-bg text-white p-3 shadow-md flex justify-between items-center px-6">
+        <div class="flex items-center gap-2">
+            <span class="text-yellow-400 text-2xl">⚡</span>
+            <h1 class="text-lg font-bold">ระบบเช็คชื่อเข้าประชุม 2569</h1>
+        </div>
+        <div id="currentTime" class="bg-blue-900/50 px-4 py-1 rounded-full text-sm font-mono text-blue-200">
+            00:00:00
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <div class="lg:col-span-7 space-y-4">
-            <div class="bg-white rounded-3xl shadow-lg overflow-hidden border border-gray-200">
-                <div class="flex border-b">
-                    <button onclick="switchMode('camera')" id="btnCam" class="flex-1 py-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50">
-                        📸 เปิดกล้องสแกน
-                    </button>
-                    <button onclick="switchMode('file')" id="btnFile" class="flex-1 py-4 font-semibold text-gray-500 hover:bg-gray-50">
-                        📁 เลือกจากรูปภาพ
-                    </button>
+    <main class="max-w-7xl mx-auto p-4 md:p-6 lg:p-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            
+            <div class="space-y-6">
+                <div class="relative">
+                    <div id="reader" class="w-full aspect-video shadow-2xl shadow-indigo-200/50 border-4 border-white"></div>
+                    <div class="absolute top-4 left-4 bg-black/40 text-white px-3 py-1 rounded-full text-xs flex items-center gap-2 backdrop-blur-md">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span> กล้องสแกน QR Code
+                    </div>
                 </div>
 
-                <div class="p-4">
-                    <div id="cameraArea" class="relative bg-black rounded-2xl overflow-hidden aspect-video flex items-center justify-center">
-                        <div id="reader" class="w-full"></div>
-                        <div id="scanMsg" class="absolute bottom-4 left-0 right-0 text-center text-white text-sm bg-black/50 py-2">
-                            พร้อมสำหรับการสแกน...
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm space-y-4 border border-white">
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="changeDay(1)" id="btnDay1" class="btn-day-active flex items-center justify-center gap-3 py-4 rounded-2xl font-bold shadow-md transition-all active:scale-95">
+                            <span class="text-2xl">📸</span>
+                            <div class="text-left">
+                                <div class="text-[10px] opacity-80 uppercase leading-none">วันที่ 1</div>
+                                <div class="text-sm">25 ก.พ. 69</div>
+                            </div>
+                        </button>
+                        <button onclick="changeDay(2)" id="btnDay2" class="btn-day-inactive flex items-center justify-center gap-3 py-4 rounded-2xl font-bold transition-all active:scale-95">
+                            <div class="text-left">
+                                <div class="text-[10px] opacity-80 uppercase leading-none text-slate-400">วันที่ 2</div>
+                                <div class="text-sm">26 ก.พ. 69</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <label class="file-upload-box w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-slate-50 transition-colors cursor-pointer group">
+                        <span class="text-blue-500 group-hover:scale-110 transition-transform">🖼️</span>
+                        <span class="text-sm text-slate-500 font-medium">เลือกจากรูปภาพ QR Code</span>
+                        <input type="file" id="qr-file" accept="image/*" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div id="statusCard" class="status-card bg-white p-8 shadow-xl flex flex-col items-center justify-center min-h-[320px] transition-all relative">
+                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm rounded-[2rem] z-20 flex flex-col items-center justify-center">
+                        <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="mt-2 text-indigo-600 font-bold text-sm">กำลังประมวลผล...</p>
+                    </div>
+
+                    <div id="waitMsg" class="text-center space-y-4">
+                        <div class="text-green-500 text-4xl animate-bounce">☀️</div>
+                        <h3 class="text-xl font-bold text-slate-400">รอรับข้อมูลจากการสแกน</h3>
+                        <p class="text-slate-300 text-sm italic">รายการที่สแกนสำเร็จจะปรากฏที่นี่</p>
+                    </div>
+
+                    <div id="userDisplay" class="hidden w-full text-center space-y-4 scale-in">
+                        <div class="relative inline-block">
+                            <img id="uImg" src="" class="w-32 h-32 rounded-full mx-auto object-cover border-4 border-white shadow-lg">
+                            <div class="absolute bottom-0 right-0 bg-white shadow-md p-1 rounded-full">🕒</div>
+                        </div>
+                        <div>
+                            <h2 id="uName" class="text-2xl font-bold text-slate-800 leading-tight">-</h2>
+                            <p id="uId" class="text-slate-400 font-mono text-sm">ID: -</p>
+                            <p id="uDept" class="text-slate-500 text-sm mt-1">-</p>
+                        </div>
+                        <div class="bg-green-100 text-green-700 font-bold py-2 px-6 rounded-full inline-flex items-center gap-2 shadow-sm">
+                            <span class="text-lg">✓</span> เข้าประชุมแล้ว
                         </div>
                     </div>
-
-                    <div id="fileArea" class="hidden py-10 border-2 border-dashed border-gray-300 rounded-2xl text-center bg-gray-50">
-                        <input type="file" id="qr-input-file" accept="image/*" class="hidden">
-                        <label for="qr-input-file" class="cursor-pointer">
-                            <div class="text-5xl mb-3">🖼️</div>
-                            <p class="text-gray-600 font-medium">คลิกเพื่อเลือกรูปภาพ QR Code</p>
-                            <p class="text-gray-400 text-xs mt-1">รองรับ JPG, PNG, WEBP</p>
-                        </label>
-                    </div>
                 </div>
 
-                <div class="p-4 bg-gray-50 flex gap-2">
-                    <button onclick="setDay(1)" id="day1" class="flex-1 py-3 rounded-xl font-bold transition-all bg-indigo-600 text-white shadow-md">วันที่ 1</button>
-                    <button onclick="setDay(2)" id="day2" class="flex-1 py-3 rounded-xl font-bold transition-all bg-white text-gray-600 border border-gray-200">วันที่ 2</button>
-                </div>
-            </div>
-
-            <div id="loader" class="hidden bg-white p-4 rounded-2xl shadow-md border-l-4 border-yellow-400 flex items-center gap-4 status-loading">
-                <div class="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-yellow-700 font-medium">กำลังประมวลผลข้อมูล โปรดรอสักครู่...</span>
-            </div>
-        </div>
-
-        <div class="lg:col-span-5 space-y-4">
-            <div id="resultDisplay" class="bg-white rounded-3xl p-6 shadow-xl border-2 border-transparent transition-all min-h-[300px] flex flex-col items-center justify-center text-center">
-                <div id="resDefault">
-                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center text-4xl mb-4 text-gray-300">👤</div>
-                    <h3 class="text-xl font-bold text-gray-400">รอรับข้อมูลการสแกน</h3>
-                    <p class="text-gray-400 text-sm">ข้อมูลจะปรากฏที่นี่เมื่อสแกนสำเร็จ</p>
-                </div>
-                
-                <div id="resContent" class="hidden w-full">
-                    <div class="relative inline-block mb-4">
-                        <img id="resImg" src="" class="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-lg mx-auto bg-gray-100">
-                        <div class="absolute -bottom-2 -right-2 bg-green-500 text-white p-1.5 rounded-full shadow-lg">✅</div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center px-2">
+                        <h4 class="text-slate-500 font-bold text-sm flex items-center gap-2">
+                            <span class="text-blue-500 italic">⏱ ประวัติล่าสุดวันนี้</span>
+                        </h4>
+                        <span id="count" class="bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded-full">0 รายการ</span>
                     </div>
-                    <div class="space-y-1">
-                        <p id="resId" class="text-indigo-600 font-mono font-bold tracking-widest text-lg">ID: -</p>
-                        <h2 id="resName" class="text-2xl font-bold text-gray-800 leading-tight">-</h2>
-                        <p id="resDept" class="text-gray-500 bg-gray-100 px-4 py-1 rounded-full inline-block text-sm mt-2">-</p>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-dashed w-full text-green-600 font-bold flex justify-center items-center gap-2">
-                        <span>สแกนสำเร็จเวลา:</span>
-                        <span id="resTime">00:00</span>
-                    </div>
+                    <div id="history" class="space-y-2">
+                        </div>
                 </div>
-            </div>
-
-            <div class="bg-white rounded-3xl shadow-lg overflow-hidden">
-                <div class="p-4 bg-gray-800 text-white flex justify-between items-center">
-                    <h3 class="font-bold text-sm">ประวัติล่าสุดวันนี้</h3>
-                    <span id="count" class="bg-white/20 text-[10px] px-2 py-0.5 rounded-full">0 รายการ</span>
-                </div>
-                <div id="history" class="p-2 max-h-[350px] overflow-y-auto space-y-2">
-                    </div>
             </div>
         </div>
     </main>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec";
-        let html5QrCode;
-        let currentDay = 1;
-        let isBusy = false;
+        let activeDay = 1;
+        let scanner;
 
-        // 1. จัดการโหมดสลับ (กล้อง/ไฟล์)
-        function switchMode(mode) {
-            const camArea = document.getElementById('cameraArea');
-            const fileArea = document.getElementById('fileArea');
-            const btnCam = document.getElementById('btnCam');
-            const btnFile = document.getElementById('btnFile');
+        // เริ่มกล้องอัตโนมัติเมื่อโหลดเสร็จ
+        window.onload = () => {
+            scanner = new Html5Qrcode("reader");
+            startCamera();
+            setInterval(updateClock, 1000);
+            updateHistory();
+        };
 
-            if (mode === 'camera') {
-                camArea.classList.remove('hidden');
-                fileArea.classList.add('hidden');
-                btnCam.className = "flex-1 py-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50";
-                btnFile.className = "flex-1 py-4 font-semibold text-gray-500 hover:bg-gray-50";
-                startCamera();
-            } else {
-                camArea.classList.add('hidden');
-                fileArea.classList.remove('hidden');
-                btnFile.className = "flex-1 py-4 font-semibold text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50";
-                btnCam.className = "flex-1 py-4 font-semibold text-gray-500 hover:bg-gray-50";
-                if(html5QrCode) html5QrCode.stop();
-            }
-        }
-
-        // 2. จัดการกล้อง
         function startCamera() {
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 250, height: 250 } };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+            scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, onScanSuccess);
         }
 
-        // 3. จัดการไฟล์ภาพ
-        document.getElementById('qr-input-file').addEventListener('change', e => {
-            if (e.target.files.length == 0) return;
-            const imageFile = e.target.files[0];
-            const fileScanner = new Html5Qrcode("reader"); // ใช้ instance ใหม่สำหรับไฟล์
-            setLoading(true);
-            fileScanner.scanFile(imageFile, true)
-                .then(onScanSuccess)
-                .catch(err => {
-                    setLoading(false);
-                    Swal.fire('ไม่พบ QR Code', 'รูปภาพนี้ไม่มีข้อมูล QR หรือภาพไม่ชัด', 'error');
-                });
+        async function onScanSuccess(decodedText) {
+            processCheckIn(decodedText);
+        }
+
+        // รองรับการเลือกจากรูปภาพ
+        document.getElementById('qr-file').addEventListener('change', async e => {
+            if (e.target.files.length === 0) return;
+            showLoading(true);
+            try {
+                const result = await scanner.scanFile(e.target.files[0], true);
+                processCheckIn(result);
+            } catch (err) {
+                showLoading(false);
+                Swal.fire('Error', 'ไม่พบ QR Code ในรูปภาพ', 'error');
+            }
         });
 
-        // 4. เมื่อสแกนสำเร็จ
-        async function onScanSuccess(decodedText) {
-            if (isBusy) return;
-            isBusy = true;
-            setLoading(true);
-
+        async function processCheckIn(qrText) {
+            showLoading(true);
             try {
-                const response = await fetch(GAS_URL, {
+                const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: decodedText, day: currentDay } })
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day: activeDay } })
                 });
-                const result = await response.json();
-
+                const result = await res.json();
+                
                 if (result.success) {
-                    showResult(result.user);
+                    showUser(result.user);
                     updateHistory();
+                    new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3').play();
                 } else {
-                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message, timer: 2000 });
+                    Swal.fire('แจ้งเตือน', result.message, 'warning');
                 }
-            } catch (err) {
-                console.error(err);
+            } catch (e) {
+                console.error(e);
             } finally {
-                setLoading(false);
-                setTimeout(() => { isBusy = false; }, 2000);
+                showLoading(false);
             }
         }
 
-        function showResult(user) {
-            document.getElementById('resDefault').classList.add('hidden');
-            document.getElementById('resContent').classList.remove('hidden');
-            document.getElementById('resultDisplay').className = "bg-white rounded-3xl p-6 shadow-xl border-2 border-green-500 transition-all scale-105";
-            
-            document.getElementById('resName').innerText = user.name;
-            document.getElementById('resId').innerText = `ID: ${user.id}`;
-            document.getElementById('resDept').innerText = user.dept;
-            document.getElementById('resTime').innerText = user.time;
-            document.getElementById('resImg').src = user.img ? user.img : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        }
-
-        function setLoading(status) {
-            const loader = document.getElementById('loader');
-            const scanMsg = document.getElementById('scanMsg');
-            if (status) {
-                loader.classList.remove('hidden');
-                scanMsg.innerText = "กำลังรับข้อมูลจาก Server...";
-            } else {
-                loader.classList.add('hidden');
-                scanMsg.innerText = "พร้อมสำหรับการสแกน...";
-            }
-        }
-
-        function setDay(day) {
-            currentDay = day;
-            document.getElementById('day1').className = day === 1 ? "flex-1 py-3 rounded-xl font-bold transition-all bg-indigo-600 text-white shadow-md" : "flex-1 py-3 rounded-xl font-bold transition-all bg-white text-gray-600 border border-gray-200";
-            document.getElementById('day2').className = day === 2 ? "flex-1 py-3 rounded-xl font-bold transition-all bg-indigo-600 text-white shadow-md" : "flex-1 py-3 rounded-xl font-bold transition-all bg-white text-gray-600 border border-gray-200";
-            updateHistory();
+        function showUser(user) {
+            document.getElementById('waitMsg').classList.add('hidden');
+            document.getElementById('userDisplay').classList.remove('hidden');
+            document.getElementById('uName').innerText = user.name;
+            document.getElementById('uId').innerText = "ID: " + user.id;
+            document.getElementById('uDept').innerText = user.dept;
+            document.getElementById('uImg').src = user.img || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
         }
 
         async function updateHistory() {
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: currentDay } })
+                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: activeDay } })
                 });
                 const result = await res.json();
-                const list = document.getElementById('history');
-                const count = document.getElementById('count');
-                if (result.success) {
-                    count.innerText = `${result.records.length} รายการ`;
-                    list.innerHTML = result.records.map(rec => `
-                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">${rec.id}</div>
-                            <div class="flex-grow">
-                                <div class="text-xs font-bold text-gray-700">${rec.name}</div>
-                                <div class="text-[10px] text-gray-400">เช็คอิน: ${rec.time}</div>
-                            </div>
+                const container = document.getElementById('history');
+                container.innerHTML = result.records.map(rec => `
+                    <div class="bg-white p-3 rounded-2xl flex justify-between items-center shadow-sm border-l-4 border-green-500">
+                        <div>
+                            <div class="font-bold text-slate-700 text-sm">${rec.name}</div>
+                            <div class="text-[10px] text-slate-400 font-mono">ID: ${rec.id} | เวลา: ${rec.time}</div>
                         </div>
-                    `).join('');
-                }
+                        <div class="bg-green-500 text-white p-1 rounded-full text-[10px]">✓</div>
+                    </div>
+                `).join('');
+                document.getElementById('count').innerText = `${result.records.length} รายการ`;
             } catch (e) {}
         }
 
-        // นาฬิกาแบบ Real-time
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('th-TH');
-        }, 1000);
-
-        window.onload = () => {
-            startCamera();
+        function changeDay(day) {
+            activeDay = day;
+            document.getElementById('btnDay1').className = day === 1 ? 'btn-day-active py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-md' : 'btn-day-inactive py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-md';
+            document.getElementById('btnDay2').className = day === 2 ? 'btn-day-active py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-md' : 'btn-day-inactive py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-md';
             updateHistory();
-        };
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('currentTime').innerText = now.toLocaleTimeString('th-TH');
+        }
     </script>
 </body>
 </html>
