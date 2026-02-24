@@ -1186,6 +1186,7 @@
 </head>
 
 <body>
+
   <div id="app" v-cloak>
     
     <!-- Navbar -->
@@ -1332,11 +1333,8 @@
       <div class="row justify-content-center">
 
         <div class="container-fluid">
-          <div v-if="!isReady" class="text-center py-5">
-            <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
-            <p class="mt-3 text-muted fw-bold">กำลังโหลดระบบ...</p>
-          </div>
-          <div v-else class="main-card mb-4" >
+
+          <div class="main-card mb-4" >
 
             <!-- Header Section -->
             <div class="form-header-banner" v-if="currentView === 'form'">
@@ -2320,7 +2318,7 @@
                         <div class="camera-card border rounded-4 p-4 shadow-sm text-center">
                             <!-- วงกลมพรีวิว -->
                             <div class="camera-circle-wrapper mb-3">
-                                <video v-show="isCameraActive" 
+                                <video v-if="isCameraActive" 
                                       id="webcam" 
                                       autoplay 
                                       playsinline 
@@ -3228,11 +3226,10 @@
                               <th width="350">ระดับความพึงพอใจ</th>
                             </tr>
                           </thead>
-                          
-                          <tbody v-if="(evalDay === 1 ? day1Questions : day2Questions).length > 0">
+                          <tbody>
 
                             <template v-for="q in (evalDay === 1 ? day1Questions : day2Questions)" :key="q.id">
-                              <tr v-if="q && q.id">
+                              <tr>
                                 <td colspan="2" class="p-3 p-md-4 border-0">
                                   <div class="d-flex flex-column flex-md-row align-items-center align-items-md-center gap-3">
                                     
@@ -3258,7 +3255,7 @@
                                 </td>
                               </tr>
 
-                              <tr v-if="q" v-for="sub in subItems" :key="(q?.id ?? '') + '_' + sub.id">
+                              <tr v-for="sub in subItems" :key="q.id + '_' + sub.id">
                                 <td class="ps-md-5 py-3 sub-text-large">
                                   <span class="sub-number">{{ q.id }}.{{ sub.id }}</span> {{ sub.text }}
                                 </td>
