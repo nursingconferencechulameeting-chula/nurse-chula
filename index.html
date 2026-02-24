@@ -8,96 +8,121 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
-        body { font-family: 'Prompt', sans-serif; background: #f8fafc; color: #1e293b; }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        body { font-family: 'Prompt', sans-serif; background: #f0f2f5; color: #1c1e21; }
+        .glass-nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); }
         
-        /* สไตล์ปุ่มเลือกวัน */
-        .day-btn.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); }
-        .day-btn { background-color: white; color: #64748b; transition: all 0.3s; }
+        /* ปุ่ม Tab วันที่ */
+        .day-tab { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .day-tab.active { background: #4f46e5; color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
 
-        /* Scanner Styling */
+        /* ปรับแต่ง Scanner */
         #reader { border: none !important; border-radius: 1.5rem; overflow: hidden; background: #000; }
         #reader video { object-fit: cover !important; }
 
-        .btn-action { @apply flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all active:scale-95; }
-        
-        /* Mobile specific adjustments */
-        @media (max-width: 768px) {
-            .mobile-bottom-sheet { border-radius: 2rem 2rem 0 0; }
+        .scan-line {
+            position: absolute; top: 0; width: 100%; height: 4px;
+            background: linear-gradient(to right, transparent, #6366f1, transparent);
+            animation: moveScan 2s linear infinite;
+            z-index: 20;
         }
+        @keyframes moveScan { 0% { top: 0%; } 100% { top: 100%; } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen">
 
-    <!-- Header -->
-    <header class="glass sticky top-0 z-50 border-b border-slate-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="bg-indigo-600 p-2 rounded-lg text-white">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+    <!-- Header / Navigation -->
+    <nav class="glass-nav sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                 </div>
-                <h1 class="text-lg font-bold tracking-tight text-slate-800 hidden sm:block">QR Scanner Pro</h1>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">QR Scanner System</h1>
             </div>
             
-            <!-- เลือกวันแบบคลิกเลือก -->
-            <div class="flex bg-slate-100 p-1 rounded-xl w-fit">
-                <button onclick="setDay(1)" id="btnDay1" class="day-btn active px-4 py-1.5 rounded-lg text-sm font-bold">วันที่ 1</button>
-                <button onclick="setDay(2)" id="btnDay2" class="day-btn px-4 py-1.5 rounded-lg text-sm font-bold">วันที่ 2</button>
+            <!-- ปุ่มเลือกวันที่ (Click Tabs) -->
+            <div class="flex bg-slate-200/50 p-1.5 rounded-2xl border border-slate-200">
+                <button onclick="selectDay(1)" id="btn-day-1" class="day-tab active px-6 py-2 rounded-xl text-sm font-bold">Day 1</button>
+                <button onclick="selectDay(2)" id="btn-day-2" class="day-tab px-6 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-indigo-600">Day 2</button>
             </div>
         </div>
-    </header>
+    </nav>
 
     <main class="max-w-7xl mx-auto p-4 md:p-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <!-- ส่วนควบคุมและสแกนเนอร์ -->
+            <!-- ส่วนที่ 1: เครื่องมือสแกน และผลลัพธ์ (Main) -->
             <div class="lg:col-span-7 space-y-6">
                 
-                <!-- Action Buttons (แยกชัดเจน) -->
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="startCamera()" class="btn-action bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        สแกนผ่านกล้อง
+                <!-- ปุ่มสแกน & อัพโหลด (Mobile Friendly) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button onclick="startScanner()" class="flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-3xl font-bold shadow-xl shadow-indigo-200 transition-all active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                        เริ่มสแกนด้วยกล้อง
                     </button>
-                    <button onclick="document.getElementById('qr-input-file').click()" class="btn-action bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        อัปโหลดรูป
+                    <button onclick="document.getElementById('file-input').click()" class="flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-indigo-600 border-2 border-indigo-600 py-5 rounded-3xl font-bold shadow-sm transition-all active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        เลือกรูปจากเครื่อง
                     </button>
-                    <input type="file" id="qr-input-file" accept="image/*" class="hidden">
+                    <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
                 </div>
 
-                <!-- Scanner Display -->
-                <div class="bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden relative aspect-video flex items-center justify-center">
+                <!-- ช่องแสดง Scanner -->
+                <div class="relative bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl aspect-square md:aspect-video flex items-center justify-center border-4 border-white">
                     <div id="reader" class="w-full h-full"></div>
-                    <div id="placeholderText" class="absolute text-slate-500 text-center p-6">
-                        <p class="text-sm">กดปุ่ม "สแกนผ่านกล้อง" เพื่อเริ่มทำงาน</p>
+                    <div id="scan-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-100">
+                        <div class="bg-white p-6 rounded-full shadow-inner mb-4">
+                            <svg class="w-16 h-16 text-slate-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                        </div>
+                        <p class="font-medium">กดปุ่มด้านบนเพื่อเริ่มการทำงาน</p>
                     </div>
+                    <div id="scan-line-ui" class="scan-line hidden"></div>
                 </div>
 
-                <!-- ผลลัพธ์ (Result Card) -->
-                <div id="resultContainer" class="hidden animate-in slide-in-from-top-4 duration-500">
-                    <div id="userCard" class="bg-white rounded-[2rem] p-6 shadow-xl border border-indigo-50 flex items-center gap-5">
-                        <img id="userImg" src="" class="w-20 h-20 md:w-28 md:h-28 rounded-2xl object-cover bg-slate-100">
-                        <div class="flex-grow">
-                            <span id="regBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 inline-block"></span>
-                            <h2 id="resName" class="text-xl md:text-2xl font-bold text-slate-800 leading-tight"></h2>
-                            <p id="resId" class="text-indigo-600 text-sm font-medium tracking-wider uppercase"></p>
-                            <p id="resDept" class="text-slate-500 text-xs mt-1"></p>
+                <!-- ผลลัพธ์ผู้เช็คอิน (Card) -->
+                <div id="resultContainer" class="hidden transform transition-all duration-500 translate-y-4">
+                    <div class="bg-white rounded-[2.5rem] p-6 shadow-2xl border-2 border-indigo-50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+                        <div id="regBadge" class="absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter"></div>
+                        <div class="shrink-0">
+                            <img id="userImg" src="" class="w-32 h-32 md:w-44 md:h-44 rounded-[2rem] object-cover bg-slate-100 border-4 border-white shadow-xl">
+                        </div>
+                        <div class="text-center md:text-left space-y-4">
+                            <div>
+                                <h2 id="resName" class="text-2xl md:text-4xl font-black text-slate-800 leading-tight">--</h2>
+                                <p id="resId" class="text-indigo-600 font-bold tracking-[0.2em] text-sm mt-1 uppercase">ID: --</p>
+                            </div>
+                            <div class="flex flex-wrap justify-center md:justify-start gap-2">
+                                <div class="bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                    <span id="resDept" class="text-sm font-medium text-slate-600">--</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ส่วนประวัติ (ขวามือบน PC / ล่างสุดบนมือถือ) -->
-            <div class="lg:col-span-5 h-full">
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 h-full flex flex-col overflow-hidden">
-                    <div class="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                        <h3 class="font-bold text-slate-700">ผู้เข้าร่วมล่าสุด</h3>
-                        <span id="recordCount" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">0</span>
+            <!-- ส่วนที่ 2: ประวัติล่าสุด (Sidebar สำหรับ PC / Bottom สำหรับ Mobile) -->
+            <div class="lg:col-span-5">
+                <div class="bg-white rounded-[2.5rem] shadow-xl border border-white h-full flex flex-col overflow-hidden max-h-[600px] md:max-h-[800px]">
+                    <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+                        <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                            <span class="w-2 h-6 bg-indigo-600 rounded-full"></span>
+                            ผู้เข้าร่วมล่าสุด
+                        </h3>
+                        <span id="recordCount" class="bg-indigo-600 text-white px-3 py-1 rounded-xl text-xs font-bold">0 คน</span>
                     </div>
-                    <div id="historyList" class="p-4 space-y-3 overflow-y-auto max-h-[500px] lg:max-h-none flex-grow">
-                        <!-- History items will be injected here -->
+                    <div id="historyList" class="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-grow">
+                        <!-- ตัวอย่างข้อมูลประวัติจะถูกใส่ที่นี่ -->
+                        <div class="text-center py-20 text-slate-300 italic flex flex-col items-center">
+                            <svg class="w-12 h-12 mb-2 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2 2V5z"></path></svg>
+                            <p>ไม่มีข้อมูลการสแกน</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -109,42 +134,52 @@
     <audio id="beepError" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
 
     <script>
-        const GAS_URL = "YOUR_GAS_URL_HERE"; 
-        let currentDay = 1;
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
         let html5QrCode;
+        let selectedDay = 1;
         let isProcessing = false;
 
-        // ฟังก์ชันเลือกวัน
-        function setDay(day) {
-            currentDay = day;
-            document.getElementById('btnDay1').classList.toggle('active', day === 1);
-            document.getElementById('btnDay2').classList.toggle('active', day === 2);
+        function selectDay(day) {
+            selectedDay = day;
+            document.querySelectorAll('.day-tab').forEach(btn => {
+                btn.classList.remove('active', 'text-white');
+                btn.classList.add('text-slate-500');
+            });
+            const activeBtn = document.getElementById(`btn-day-${day}`);
+            activeBtn.classList.add('active');
+            activeBtn.classList.remove('text-slate-500');
             updateHistory();
         }
 
-        // เริ่มต้นใช้งานกล้อง
-        function startCamera() {
-            document.getElementById('placeholderText').classList.add('hidden');
-            if (html5QrCode) { html5QrCode.stop().then(() => startScan()); }
-            else { startScan(); }
-        }
-
-        function startScan() {
-            html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 15, qrbox: { width: 250, height: 250 } };
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-        }
-
-        // จัดการอัปโหลดไฟล์
-        document.getElementById('qr-input-file').addEventListener('change', e => {
-            if (e.target.files.length == 0) return;
-            const imageFile = e.target.files[0];
-            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+        function startScanner() {
+            if (html5QrCode) html5QrCode.stop();
+            document.getElementById('scan-placeholder').classList.add('hidden');
+            document.getElementById('scan-line-ui').classList.remove('hidden');
             
-            html5QrCode.scanFile(imageFile, true)
-                .then(decodedText => onScanSuccess(decodedText))
-                .catch(err => Swal.fire('Error', 'ไม่พบ QR Code ในรูปภาพนี้', 'error'));
-        });
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { 
+                fps: 20, 
+                qrbox: (w, h) => {
+                    const s = Math.min(w, h) * 0.8;
+                    return { width: s, height: s };
+                }
+            };
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err => Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้ กรุณาตรวจสอบสิทธิ์', 'error'));
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const scanner = new Html5Qrcode("reader");
+            try {
+                const decodedText = await scanner.scanFile(file, true);
+                onScanSuccess(decodedText);
+            } catch (err) {
+                Swal.fire('Error', 'ไม่พบ QR Code ในรูปภาพนี้ กรุณาลองใหม่', 'error');
+            }
+        }
 
         async function onScanSuccess(decodedText) {
             if (isProcessing) return;
@@ -153,78 +188,94 @@
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: decodedText, day: currentDay } })
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: decodedText, day: selectedDay } })
                 });
                 const result = await response.json();
 
                 if (result.success) {
-                    playTone(true);
-                    showResult(result.user);
+                    playTone('beepSuccess');
+                    showUserData(result.user);
                     updateHistory();
                 } else {
-                    playTone(false);
-                    const isPayErr = result.message.includes("ชำระเงิน");
+                    playTone('beepError');
+                    const isMoneyIssue = result.message.includes("ชำระเงิน");
                     Swal.fire({
-                        icon: isPayErr ? 'warning' : 'error',
-                        title: isPayErr ? 'ตรวจสอบการชำระเงิน' : 'ล้มเหลว',
+                        icon: isMoneyIssue ? 'warning' : 'error',
+                        title: isMoneyIssue ? 'ติดปัญหาการชำระเงิน' : 'เช็คอินไม่สำเร็จ',
                         text: result.message,
                         confirmButtonColor: '#4f46e5'
                     });
                 }
             } catch (err) {
                 console.error(err);
+                Swal.fire('Error', 'การเชื่อมต่อขัดข้อง', 'error');
             } finally {
-                setTimeout(() => { isProcessing = false; }, 2000);
+                setTimeout(() => { isProcessing = false; }, 2500);
             }
         }
 
-        function showResult(user) {
+        function showUserData(user) {
             const container = document.getElementById('resultContainer');
             container.classList.remove('hidden');
+            container.classList.remove('translate-y-4');
             
             document.getElementById('resName').innerText = user.name;
             document.getElementById('resId').innerText = "ID: " + user.id;
             document.getElementById('resDept').innerText = user.dept;
-            document.getElementById('userImg').src = user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
+            document.getElementById('userImg').src = user.img ? user.img : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+            
             const badge = document.getElementById('regBadge');
-            const isExt = user.regType && user.regType.includes("ภายนอก");
-            badge.innerText = isExt ? "บุคคลภายนอก" : "บุคลากรภายใน";
-            badge.className = isExt ? "text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 inline-block bg-orange-100 text-orange-600" 
-                                    : "text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 inline-block bg-indigo-100 text-indigo-600";
+            if (user.regType && user.regType.includes("ภายนอก")) {
+                badge.className = "absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-600";
+                badge.innerText = "External / บุคคลภายนอก";
+            } else {
+                badge.className = "absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600";
+                badge.innerText = "Internal / บุคลากร";
+            }
         }
 
         async function updateHistory() {
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: currentDay } })
+                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } })
                 });
                 const result = await res.json();
                 const list = document.getElementById('historyList');
-                if (result.success) {
-                    list.innerHTML = result.records.map(rec => `
-                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                            <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[10px] font-bold text-slate-400 border border-slate-200">
+                
+                if (result.success && result.records.length > 0) {
+                    list.innerHTML = result.records.map((rec, i) => `
+                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-200 transition-all animate-in slide-in-from-right duration-300" style="animation-delay: ${i*50}ms">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-sm text-indigo-600 shrink-0">
                                 ${rec.id.toString().slice(-3)}
                             </div>
                             <div class="flex-grow">
-                                <p class="text-sm font-bold text-slate-700">${rec.name}</p>
-                                <p class="text-[10px] text-slate-400 uppercase tracking-tighter">${rec.time}</p>
+                                <p class="text-sm font-bold text-slate-800">${rec.name}</p>
+                                <p class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">เวลา: ${rec.time}</p>
                             </div>
-                            <div class="text-green-500"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div>
+                            <div class="text-emerald-500 bg-emerald-50 p-2 rounded-xl">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
                         </div>
                     `).join('');
-                    document.getElementById('recordCount').innerText = result.records.length;
+                    document.getElementById('recordCount').innerText = `${result.records.length}`;
+                } else {
+                    list.innerHTML = `<div class="text-center py-20 text-slate-300 italic flex flex-col items-center">
+                        <svg class="w-12 h-12 mb-2 opacity-20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"></path></svg>
+                        <p>ไม่มีข้อมูลการสแกน</p>
+                    </div>`;
+                    document.getElementById('recordCount').innerText = `0`;
                 }
             } catch (e) { console.log(e); }
         }
 
-        function playTone(isSuccess) {
-            document.getElementById(isSuccess ? 'beepSuccess' : 'beepError').play();
+        function playTone(id) {
+            const audio = document.getElementById(id);
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log("Audio play blocked"));
         }
 
-        window.onload = updateHistory;
+        window.onload = () => { updateHistory(); setInterval(updateHistory, 30000); };
     </script>
 </body>
 </html>
