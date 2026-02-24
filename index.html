@@ -1,1191 +1,2125 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 
 <head>
-  <base target="_top">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ลงทะเบียนประชุมวิชาการพยาบาล 2569</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบส่งยอดเตียงและอัตรากำลัง</title>
 
-  <!-- CSS Libs -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.11.0/dist/sweetalert2.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;800&display=swap">
-  
-  <!-- ThailandJS CSS -->
-  <link rel="stylesheet" href="https://earthchie.github.io/jquery.Thailand.js/jquery.Thailand.js/dist/jquery.Thailand.min.css">
+  <!-- ================= LIBRARIES (CDN) ================= -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!--===== Library JS =====-->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- SheetJS (xlsx)-->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
+    /* ================= 1. VARIABLES & GLOBAL CONFIG ================= */
     :root {
-      --primary-color: #004085;
-      --secondary-color: #6610f2;
-      --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f8f9fa 100%);
+      /* กำหนดธีม โทนม่วง */
+      --primary-color: #6a1b9a;
+      /* ม่วงเข้มหลัก */
+      --secondary-color: #4a148c;
+      /* ม่วงเข้มพิเศษ */
+      --bg-gradient-start: #7b1fa2;
+      /* ม่วงสว่างสำหรับ Gradient */
+      --bg-gradient-end: #4a148c;
+      /* ม่วงเข้มสำหรับ Gradient */
+      --bg-body: #f3f0f7;
+      /* พื้นหลังเทาอมม่วงจางๆ */
+      --text-main: #333;
+
+      /* Status Colors */
+      --color-success: #2e7d32;
+      --color-warning: #f57f17;
+      --color-danger: #c62828;
+
+      /* Layout */
+      --font-family: 'Sarabun', sans-serif;
+
+      /* กำหนดความกว้างของกลุ่มคอลัมน์ต่างๆ ที่นี่ */
+      /* --w-ward-name: ไม่ต้องกำหนดค่าแล้วครับ ให้มันคำนวณเอง */
+
+      --w-capacity: 3.0%;
+      /* 2. จำนวนเตียงเต็ม (3 คอลัมน์) */
+      --w-patients: 4.5%;
+      /* 3. ยอดผู้ป่วย */
+      --w-empty: 3.0%;
+      /* 4. เตียงว่าง */
+      --w-critical-vent: 6.5%;
+      /* 5. คอลัมน์ Vent/ECMO/CRRT  */
+      --w-critical-hold: 3.5%;
+      /* 6. คอลัมน์ คงค้าง ICU  */
+      --w-surgery: 3.2%;
+      /* 7. ผ่าตัด (2 คอลัมน์) */
+
+      /* กลุ่มที่คุณต้องการปรับปรุง */
+      --w-reduction: 2.8%;
+      /* 8. ปรับลดอัตรากำลัง (4 คอลัมน์) */
+      --w-remaining: 2.8%;
+      /* 9. อัตรากำลังคงเหลือ (4 คอลัมน์) */
+      --w-workload: 2.8%;
+      /* 10. ภาระงาน (8 คอลัมน์) */
+    }
+
+    /* คลาสสำหรับเรียกใช้งานใน HTML ตารางสรุปข้อมูล */
+    .col-ward {
+      width: auto !important;
+    }
+
+    .col-grp-cap {
+      width: var(--w-capacity) !important;
+    }
+
+    .col-grp-patients {
+      width: var(--w-patients) !important;
+    }
+
+    .col-grp-empty {
+      width: var(--w-empty) !important;
+    }
+
+    .col-grp-crit-vent {
+      width: var(--w-critical-vent) !important;
+    }
+
+    .col-grp-crit-hold {
+      width: var(--w-critical-hold) !important;
+    }
+
+    .col-grp-surg {
+      width: var(--w-surgery) !important;
+    }
+
+    .col-grp-red {
+      width: var(--w-reduction) !important;
+    }
+
+    .col-grp-rem {
+      width: var(--w-remaining) !important;
+    }
+
+    .col-grp-work {
+      width: var(--w-workload) !important;
+    }
+
+    .badge-time-close {
+      color: #0d47a1;
+      background: #e3f2fd;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid #bbdefb;
+      display: inline-flex;
+      align-items: center;
     }
 
     body {
-      font-family: 'Sarabun', sans-serif;
-      background: var(--bg-gradient);
-      background-attachment: fixed;
-      min-height: 100vh;
-      padding-top: 70px; /* สำหรับ Navbar */
+      font-family: var(--font-family);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      font-size: 14px;
+      overflow-x: hidden;
+      /* ซ่อน Scrollbar ของหน้าเว็บแนวนอน */
     }
 
-    /* Navbar Styling */
-    .navbar {
-      background: rgba(255, 255, 255, 0.9) !important;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .navbar-brand { font-weight: 800; color: var(--primary-color) !important; }
-
-    /* +++ ส่วนที่พัฒนาเพิ่มเข้าใหม่: ดีไซน์เมนู Navbar +++ */
-    .navbar-nav .nav-link {
-      font-weight: 600;
-      color: #495057 !important;
-      padding: 0.5rem 1.2rem !important; /* ขยายพื้นที่ปุ่ม */
-      border-radius: 50px; /* ทำขอบโค้งมน */
+    /* ================= 2. NAVBAR & LAYOUT ================= */
+    .navbar-custom {
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      padding: 0.6rem 1rem;
       transition: all 0.3s ease;
-      margin: 0 0.15rem;
+    }
+
+    .navbar-brand {
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: 0.5px;
+      color: #fff !important;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .navbar-nav .nav-link {
+      color: rgba(255, 255, 255, 0.85) !important;
+      border-radius: 50px;
+      padding: 8px 16px !important;
+      margin: 0 4px;
+      transition: all 0.2s ease-in-out;
+      font-weight: 500;
     }
 
     .navbar-nav .nav-link:hover {
-      color: var(--primary-color) !important;
-      background-color: rgba(0, 64, 133, 0.05); /* สีพื้นหลังตอนเอาเมาส์ชี้ */
+      color: #fff !important;
+      background-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
     }
 
-    /* 🟢 ตกแต่งสถานะ Active ให้เด่นชัด */
     .navbar-nav .nav-link.active {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 10px rgba(102, 16, 242, 0.25);
+      color: var(--primary-color) !important;
+      background-color: #fff;
+      font-weight: 700;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
 
-    /* ปรับขนาดให้พอดีเมื่อย่อหน้าจอเป็นมือถือ */
+    /* เมนูโปรไฟล์ */
+    .user-dropdown .dropdown-toggle {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white !important;
+      border-radius: 50px;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-dropdown .dropdown-toggle:hover,
+    .user-dropdown.show .dropdown-toggle {
+      background: rgba(255, 255, 255, 0.2);
+      color: white !important;
+    }
+
+    .dropdown-menu-custom {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .dropdown-item {
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f0f7ff;
+      color: var(--primary-color);
+    }
+
+    .dropdown-item i {
+      width: 20px;
+      text-align: center;
+      margin-right: 8px;
+    }
+
+    /* Mobile Responsive */
     @media (max-width: 991px) {
+      .navbar-collapse {
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(10px);
+        margin-top: 15px;
+        padding: 15px;
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
       .navbar-nav .nav-link {
-        border-radius: 10px;
-        margin: 0.2rem 0;
+        margin-bottom: 5px;
+        border-radius: 8px;
+      }
+
+      .user-dropdown {
+        margin-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 15px;
+      }
+
+      .user-dropdown .dropdown-toggle {
+        width: 100%;
+        justify-content: center;
       }
     }
 
-    /* Card Styling */
-    .main-card {
+    /* [MODIFIED] Container Layout - เว้นขอบซ้ายขวา */
+    .container-wide {
+      width: 98% !important;
+      /* กว้าง 98% ของจอ */
+      max-width: 100% !important;
+      margin: 0 auto !important;
+      /* จัดกึ่งกลาง */
+      padding: 0 !important;
+    }
+
+    /* ================= 3. CARDS & SECTIONS ================= */
+    .card {
       border: none;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      margin-bottom: 15px;
     }
 
-    /* ปรับแต่ง Header ใหม่ */
-    .form-header-banner {
-        background: linear-gradient(135deg, #001a4d 0%, #4b0082 50%, #6610f2 100%);
-        padding: 3rem 1rem;
-        color: white;
-        text-align: center;        /* ตัวอักษรตรงกลาง */
-    }
-
-
-    /* จัดการโลโก้ให้ลอยตัว */
-    .header-logo-container .logo-wrapper {
-        background: none !important;
-        box-shadow: none !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 120px; /* คุมความสูงโลโก้ในจอคอม */
-        width: auto;
-    }
-
-    .header-logo-container .header-logo {
-        max-height: 100%;
-        max-width: 100%;
-        object-fit: contain;
-        /* ใช้ drop-shadow เพื่อให้รูปที่ไม่มีพื้นหลังดูมีมิติบนพื้นสีเข้ม */
-        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3)); 
-    }
-
-    /* หัวข้อประชุม */
-    .conference-main-title {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-    }
-
-    .conference-sub-title {
-        font-size: 1.4rem;
-        opacity: 0.95;
-        margin-bottom: 1.5rem;
-    }
-
-    /* แถบ Theme */
-    .header-theme-box .theme-badge-pill {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        padding: 10px 30px;
-        border-radius: 50px;
-        font-weight: 600;
-        font-size: 1.1rem;
-        letter-spacing: 0.5px;
-    }
-
-    /* ข้อมูลวันที่และสถานที่ */
-    .header-info-details {
-        font-size: 1rem;
-        font-weight: 400;
-        opacity: 0.9;
-    }
-
-    /* Responsive สำหรับมือถือ */
-    @media (max-width: 768px) {
-        .header-logo-container .logo-wrapper {
-            height: 85px; /* ปรับขนาดโลโก้ลงในมือถือโดยที่ยังลอยอยู่ */
-            width: auto;
-            background: none !important;
-            box-shadow: none !important;
-            padding: 0;
-        }
-        .conference-main-title { font-size: 1.5rem; }
-        .conference-sub-title { font-size: 1.1rem; }
-        .theme-badge-pill { font-size: 0.8rem; padding: 8px 15px; }
-        .header-info-details { font-size: 0.85rem; flex-direction: column; gap: 10px; }
+    .card-header {
+      background-color: #fff;
+      border-bottom: 2px solid #f0f0f0;
+      font-weight: 600;
+      border-radius: 8px 8px 0 0 !important;
+      padding: 10px 15px;
     }
 
     .section-title {
-      display: flex;
-      align-items: center;
-      background: rgba(0, 64, 133, 0.04); /* พื้นหลังสีน้ำเงินจางๆ */
-      padding: 15px 20px;
-      border-radius: 15px;
-      border-left: 8px solid var(--primary-color) !important; /* ขอบหนาขึ้น */
-      color: var(--primary-color);
-      font-weight: 800;
-      font-size: 1.25rem;
-      margin: 3rem 0 1.5rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03); /* เพิ่มเงาจางๆ */
-    }
-
-    /* ตกแต่ง Icon ในหัวข้อหลัก */
-    .section-title i {
-      background: var(--primary-color) !important; /* กล่องไอคอนสีเข้มทึบ */
-      color: #ffffff !important; /* ไอคอนสีขาว */
-      width: 45px;
-      height: 45px;
-      line-height: 45px;
-      text-align: center;
-      border-radius: 12px;
-      margin-right: 15px;
-      font-size: 1.4rem;
-      box-shadow: 0 4px 8px rgba(0, 64, 133, 0.2); /* เงาใต้ไอคอน */
-    }
-
-    .form-label { font-weight: 600; color: #495057; }
-    .required::after { content: " *"; color: red; }
-
-    .form-control, .form-select {
-      border-radius: 10px;
-      padding: 0.6rem 1rem;
-      border: 1px solid #dee2e6;
-    }
-
-    .form-control:focus {
-      border-color: var(--secondary-color);
-      box-shadow: 0 0 0 0.25rem rgba(102, 16, 242, 0.1);
-    }
-
-    /* Stepper Header (Optional) */
-    .summary-item {
-      display: flex;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
-    }
-    .summary-label { width: 40%; font-weight: bold; color: #666; }
-    .summary-value { width: 60%; color: var(--primary-color); }
-
-    /* สถานะสิทธิ์ */
-    .status-section {
-      margin: 1.5rem 0; /* ขยายขอบให้ชนขอบการ์ดหลักในจอมือถือ */
-      padding: 1.5rem;
-      border-top: 2px solid #eee;
-      border-bottom: 2px solid #eee;
-      background-color: #fcfcfc;
-      overflow-x: hidden; 
-    }
-
-    /* หัวข้อส่วนสถานะ แบบไม่มีกรอบซ้อน */
-    .status-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 1.5rem;
-    }
-
-    .status-header i {
-      font-size: 1.8rem;
-    }
-
-    .status-header h5 {
-      margin: 0;
-      font-weight: 700;
-    }
-
-    /* สีประจำแต่ละสถานะ (ใช้แค่สีข้อความ/ไอคอน) */
-    .text-internal { color: #004085; }
-    .text-quota { color: #6610f2; }
-    .text-external { color: #0d6efd; }
-
-    .deadline-info {
-      font-size: 0.85rem;
-      background: #fff3cd;
-      color: #856404;
-      padding: 5px 12px;
-      border-radius: 6px;
-      display: inline-block;
-      margin-top: 5px;
-      border: 1px solid #ffeeba;
-    }
-    .deadline-info i {
       font-size: 1rem;
+      color: var(--primary-color);
+      font-weight: 700;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+
+      border-left: 5px solid var(--primary-color);
+      padding: 6px 10px;
+      margin-bottom: 15px;
+
+      background-color: #eef5fa;
+      border-radius: 0 6px 6px 0;
     }
-    /* ปรับปรุงขนาดกว้างของพื้นที่กรอกข้อมูลในมือถือ */
-    @media (max-width: 576px) {
-      .status-section {
-        margin: 1.5rem -1rem; /* ลด margin ในมือถือเพื่อให้เหลือพื้นที่ริมขอบ */
-        padding: 1rem;
-        border-radius: 0;
+
+    /* ข้อความรอง / หมายเหตุ */
+    .section-title .sub-note {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #dc3545;
+      /* bootstrap danger */
+      margin-left: 6px;
+    }
+
+    /* ฝั่งขวา (เบอร์โทร) */
+    .section-title .right-info {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #495057;
+      white-space: nowrap;
+    }
+
+    .section-title .right-info span {
+      margin-left: 12px;
+    }
+
+    /* ================= 4. FORMS ================= */
+    .form-label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 0.85rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .form-control,
+    .form-select {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.7rem;
+    }
+
+    /* ============================================================ */
+    /* [FIX] แก้ไขสี Placeholder ให้จางลง และไม่ตัวหนา */
+    /* ============================================================ */
+    .form-control::placeholder {
+      color: #adb5bd !important;
+      /* สีเทาจางมาตรฐาน Bootstrap */
+      opacity: 1 !important;
+      /* บังคับค่า Opacity (สำหรับ Firefox) */
+      font-weight: 400 !important;
+      /* บังคับตัวบาง (แม้ Input จะเป็น fw-bold) */
+      font-size: 0.9em;
+      /* ลดขนาดลงเล็กน้อยเพื่อให้ดูแตกต่าง */
+    }
+
+    /* กรณี Browser เก่า (Webkit/Edge) */
+    .form-control::-webkit-input-placeholder {
+      color: #adb5bd !important;
+      font-weight: 400 !important;
+    }
+
+    /* กรณี Browser เก่า (Moz) */
+    .form-control:-moz-placeholder {
+      color: #adb5bd !important;
+      opacity: 1 !important;
+      font-weight: 400 !important;
+    }
+
+    /* ================= 5. TABLES (DASHBOARD - HEADER WRAP ONLY) ================= */
+
+    /* Table Layout - บังคับพอดีจอ */
+    .table-dashboard {
+      width: 100% !important;
+      table-layout: fixed;
+      /* คำสั่งสำคัญ: บังคับคอลัมน์ไม่ให้ดันจนล้น */
+      border-collapse: collapse;
+      border-spacing: 0;
+      font-size: 10px !important;
+      /* ลดขนาด Font เพื่อให้ข้อมูลแน่นๆ พอดีจอ */
+    }
+
+    /* ============================================================ */
+    /* [NEW] การตั้งค่าตัวหนังสือในตาราง Dashboard แยกส่วน */
+    /* ============================================================ */
+
+    /* 1. คอลัมน์แรก: "ชื่อหน่วยงาน" */
+    .table-dashboard tbody td:first-child {
+      font-size: 14px !important;
+      /* <-- ปรับขนาดชื่อตึกตรงนี้ */
+      font-weight: 600 !important;
+      /* ความหนา (600=กึ่งหนา, 700=หนามาก) */
+      color: #000;
+      /* สีตัวอักษร */
+      padding-left: 0.75rem !important;
+      /* เทียบเท่าระยะ ms-3 เพื่อความชัดเจน */
+      text-align: left !important;
+      /* บังคับชิดซ้าย */
+    }
+
+    /* 2. คอลัมน์อื่นๆ: "ตัวเลขข้อมูล" */
+    .table-dashboard tbody td:not(:first-child) {
+      font-size: 14px !important;
+      /* <-- ปรับขนาดตัวเลขตรงนี้ (แนะนำ 12-14px) */
+      font-weight: 700 !important;
+      /* ตัวเลขให้หนาหน่อยจะอ่านง่าย */
+      letter-spacing: -0.3px;
+      /* บีบช่องไฟตัวเลขนิดนึง ถ้าเลขเยอะช่วยให้ไม่ล้น */
+    }
+
+    /* ----------------------------------------------------------- */
+    /* 1. เฉพาะ "หัวตาราง (TH)" */
+    /* ----------------------------------------------------------- */
+    .table-dashboard th {
+      background-color: #e9ecef;
+      vertical-align: middle;
+      text-align: center;
+      padding: 8px 3px !important;
+      /* เดิม 3px -> เปลี่ยนเป็น 8px เพื่อให้หัวตารางดูไม่อึดอัด */
+      line-height: 1.4 !important;
+      /* เดิม 1.1 -> เปลี่ยนเป็น 1.4 เพื่อรองรับสระ/วรรณยุกต์ */
+      border: 1px solid #dee2e6;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      word-wrap: break-word;
+    }
+
+    /* ----------------------------------------------------------- */
+    /* 2. ส่วน "ข้อมูล (TD)" */
+    /* ----------------------------------------------------------- */
+    .table-dashboard td {
+      vertical-align: middle;
+      padding: 6px 3px !important;
+      /* เดิม 3px -> เปลี่ยนเป็น 6px */
+      line-height: 1.4 !important;
+      /* เดิม 1.1 -> เปลี่ยนเป็น 1.4 */
+      border: 1px solid #dee2e6;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    /* ============================================================ */
+    /* [NEW] ปรับขนาดหัวตาราง (Thead) แยกตามระดับชั้น */
+    /* ============================================================ */
+
+    /* 1. ชื่อหอผู้ป่วย (มุมซ้ายบน) - ให้ใหญ่และเด่นที่สุด */
+    .table-dashboard thead th:first-child {
+      font-size: 14px !important;
+      font-weight: 900 !important;
+      color: #000;
+    }
+
+    /* 2. ระดับหมวดหมู่หลัก (แถวที่ 2) */
+    /* เช่น "จำนวนเตียงเต็ม", "ปรับลดอัตรากำลัง", "ภาระงาน" -> ให้ตัวใหญ่รองลงมา */
+    .table-dashboard thead tr:nth-child(2) th {
+      font-size: 13px !important;
+      font-weight: 800 !important;
+      color: #333;
+    }
+
+    /* 3. ระดับหมวดหมู่ย่อย (แถวที่ 3) */
+    /* เช่น "สามัญ", "พิเศษ", "เวรบ่าย", "เวรดึก" -> ขนาดกลาง */
+    .table-dashboard thead tr:nth-child(3) th {
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #444;
+    }
+
+    /* 4. ระดับรายละเอียดล่างสุด (แถวที่ 4) */
+    /* เช่น "RN", "PN", "รับใหม่", "ย้ายออก" -> เล็กสุดเพื่อให้ลงช่องแคบได้ */
+    .table-dashboard thead tr:nth-child(4) th {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.2px;
+      /* บีบช่องไฟเล็กน้อย */
+      color: #555;
+    }
+
+    .main-line-header {
+      background: linear-gradient(to right, #1565c0, var(--secondary-color)) !important;
+      color: white !important;
+      padding: 6px 10px !important;
+      font-size: 1rem !important;
+      font-weight: bold;
+      border-radius: 4px 4px 0 0;
+      border-bottom: 2px solid #002171;
+      text-transform: uppercase;
+    }
+
+    .group-header-row td {
+      /* ใช้การไล่เฉดสีจากฟ้าอ่อนไปขาวเพื่อให้ดูมีมิติ */
+      background: linear-gradient(to right, #e3f2fd, #ffffff) !important;
+      color: #0d47a1 !important;
+      /* ปรับเป็นน้ำเงินเข้มเพื่อให้อ่านง่าย */
+      font-size: 13px !important;
+      /* เพิ่มขนาดเล็กน้อย */
+      font-weight: 800 !important;
+      padding: 8px 15px !important;
+      /* เพิ่มพื้นที่หายใจ */
+
+      /* เพิ่มเส้นขอบซ้ายที่หนาขึ้นเพื่อเน้นจุดเริ่มต้นของกลุ่ม */
+      border-left: 5px solid #1976d2 !important;
+      border-top: 2px solid #90caf9 !important;
+      border-bottom: 2px solid #90caf9 !important;
+
+      text-transform: uppercase;
+      /* ทำให้ตัวหนังสือดูเป็นทางการขึ้น (สำหรับภาษาอังกฤษ) */
+      letter-spacing: 0.5px;
+    }
+
+    /* Highlight */
+    .table-hover tbody tr:hover>td,
+    .table-hover tbody tr:hover>th {
+      background-color: #e2e6ea !important;
+    }
+
+    .col-highlight {
+      background-color: #e2e6ea !important;
+    }
+
+    .table-hover tbody tr:hover>td.col-highlight {
+      background-color: #c5d7f2 !important;
+      font-weight: bold;
+      border: 2px solid var(--secondary-color) !important;
+    }
+
+    /* ============================================================ */
+    /* [NEW] ไฮไลท์ยอดผู้ป่วย (Metric Highlight) */
+    /* ============================================================ */
+    /* คลาสโครงสร้างหลัก (เหมือนกันทั้ง 3 สี) */
+    .metric-highlight {
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-weight: 800 !important;
+      font-size: 14px !important;
+      display: inline-block;
+      min-width: 35px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* สีฟ้า - สำหรับ ยอดผู้ป่วย (ปกติ) */
+    .metric-blue {
+      color: #0d47a1;
+      background-color: #e3f2fd;
+      border: 1px solid #90caf9;
+    }
+
+    /* สีเขียว - สำหรับ เตียงว่าง (เมื่อมีที่ว่าง) */
+    .metric-green {
+      color: #2e7d32;
+      background-color: #e8f5e9;
+      border: 1px solid #a5d6a7;
+    }
+
+    /* สีแดง - สำหรับ เตียงล้น / ยังไม่ส่งยอด */
+    .metric-red {
+      color: #c62828;
+      background-color: #fdecea;
+      border: 1px solid #ef9a9a;
+    }
+
+    /* กรณีเป็นเลข 0 หรือไม่มีข้อมูล */
+    .metric-zero {
+      color: #adb5bd;
+      /* สีเทาจาง */
+      font-weight: normal;
+    }
+
+    /* ================= 6. UTILITIES ================= */
+    .fade-in {
+      animation: fadeIn 0.4s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
-    /* ปรับปรุงความสวยงามของ Input Group Icon */
+    .ward-clickable {
+      cursor: pointer;
+      color: var(--secondary-color);
+      font-weight: bold;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .ward-clickable:hover {
+      color: #0a58ca;
+      text-decoration: underline;
+      background-color: #e7f1ff;
+      border-radius: 4px;
+      padding: 0 4px;
+    }
+
+    .nav-tabs-scroll {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      white-space: nowrap;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .nav-tabs-scroll .nav-link {
+      color: #555;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+    }
+
+    .nav-tabs-scroll .nav-link.active {
+      color: var(--secondary-color);
+      background-color: transparent;
+      border-bottom: 3px solid var(--secondary-color);
+      font-weight: bold;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: #555;
+      font-size: 0.85rem;
+    }
+
+    .detail-value {
+      color: #000;
+      font-weight: 500;
+      font-size: 0.9rem;
+      border-bottom: 1px dotted #ccc;
+      padding-bottom: 2px;
+    }
+
+    .detail-box {
+      background: #fff;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 10px;
+      height: 100%;
+    }
+
+    .pre-wrap-text {
+      white-space: pre-wrap;
+      font-family: var(--font-family);
+      background-color: #f8f9fa;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      border: 1px solid #dee2e6;
+    }
+
+    /* สำหรับเบอร์โทรศัพท์ */
+    .phone-badge {
+      display: inline-block;
+      /* ให้แสดงผล */
+      font-size: 0.75rem;
+      /* ขนาดตัวอักษรเล็กหน่อย */
+      color: #555;
+      /* สีเทาเข้ม */
+      background-color: #f8f9fa;
+      /* พื้นหลังสีเทาจางๆ */
+      border: 1px solid #dee2e6;
+      /* เส้นขอบ */
+      border-radius: 4px;
+      /* มุมมน */
+      padding: 0 4px;
+      /* ระยะห่างภายใน */
+      margin-left: 5px;
+      /* เว้นระยะห่างจากชื่อหน่วยงาน */
+      font-weight: normal;
+      /* ตัวอักษรปกติ (ไม่หนา) */
+    }
+
+    .phone-badge i {
+      color: #198754;
+      /* สีเขียวสำหรับไอคอนโทรศัพท์ */
+      margin-right: 2px;
+    }
+
+    /* ================= 7. PRINT STYLES ================= */
+    @media print {
+      @page {
+        size: legal landscape;
+        margin: 10mm;
+      }
+
+      body {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: economy !important;
+      }
+
+      * {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        border-color: #000 !important;
+      }
+
+      .no-print,
+      .navbar,
+      .scroll-btn-group,
+      .nav-tabs,
+      .btn,
+      .pagination-container,
+      .search-box,
+      .modal {
+        display: none !important;
+      }
+
+      .container-wide {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .col-12,
+      .col-md-12 {
+        padding: 0 !important;
+        width: 100% !important;
+      }
+
+      .card {
+        border: none !important;
+        margin-bottom: 0 !important;
+        break-inside: auto !important;
+        display: block !important;
+      }
+
+      .card[style*="display: none"] {
+        display: none !important;
+      }
+
+      .table-dashboard {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 10px !important;
+        margin-bottom: 10px !important;
+      }
+
+      .table-dashboard th,
+      .table-dashboard td {
+        padding: 3px 2px !important;
+        border: 1px solid #000 !important;
+        line-height: 1.15 !important;
+      }
+
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tfoot {
+        display: table-footer-group;
+      }
+    }
+
+    /* ================= 8. MODERN PAGINATION & COMPONENTS ================= */
+    .pagination-wrapper {
+      background: linear-gradient(to right, #f8f9fa, #ffffff);
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-top: 15px;
+    }
+
+    .pagination-info {
+      font-size: 0.9rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .pagination-info b {
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    .btn-page {
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      color: #555;
+      font-size: 0.85rem;
+      padding: 6px 15px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-page:hover:not(.disabled) {
+      background-color: #f1f3f5;
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-page.disabled {
+      background-color: #f8f9fa;
+      color: #adb5bd;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .btn-page-display {
+      background-color: var(--primary-color) !important;
+      color: #fff !important;
+      border: 1px solid var(--primary-color) !important;
+      opacity: 1 !important;
+      font-weight: 600;
+      min-width: 80px;
+    }
+
+    .input-group-flat {
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #e9ecef;
+      transition: all 0.2s;
+    }
+
+    .input-group-flat:focus-within {
+      background-color: #fff;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    }
+
+    #supervisorModal .modal-dialog {
+      max-width: 90%;
+      width: 1200px;
+    }
+
+    @media (max-width: 768px) {
+      #supervisorModal .modal-dialog {
+        max-width: 95%;
+        margin: 10px auto;
+      }
+    }
+
+    /* ================= 9. MODERN LOGIN PAGE ================= */
+    .login-container {
+      /* ใช้สีเดียวกับ Navbar เพื่อความคุมโทน */
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ตกแต่งพื้นหลังด้วยวงกลมจางๆ ให้ดูมีมิติ */
+    .login-deco-circle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 0;
+    }
+
+    .circle-1 {
+      width: 300px;
+      height: 300px;
+      top: -50px;
+      left: -50px;
+    }
+
+    .circle-2 {
+      width: 400px;
+      height: 400px;
+      bottom: -100px;
+      right: -100px;
+    }
+
+    /* การ์ด Login สไตล์กระจก (Glassmorphism) */
+    .login-card-modern {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      /* เบลอฉากหลัง */
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 420px;
+      padding: 40px 30px;
+      position: relative;
+      z-index: 10;
+      transform: translateY(0);
+      transition: transform 0.3s;
+    }
+
+    .login-header-icon {
+      width: 80px;
+      height: 80px;
+
+      background-image: url('https://lh5.googleusercontent.com/d/1ho87dNmtrctiPR1ER6xSYcr5KHP1RMty');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 70%;
+
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      margin: 0 auto 20px;
+
+      box-shadow:
+        0 10px 20px rgba(0, 78, 146, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, .3);
+
+      transition: transform .3s ease;
+    }
+
+    .login-header-icon:hover {
+      transform: scale(1.15);
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+
+      background: #fff url("https://lh5.googleusercontent.com/d/1ho87dNmtrctiPR1ER6xSYcr5KHP1RMty") center / 80% no-repeat;
+      border-radius: 50%;
+
+      border: 1px solid rgba(0, 0, 0, .2);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+
+      transition: transform .2s ease;
+    }
+
+    .navbar-brand:hover .brand-logo {
+      transform: scale(1.15);
+    }
+
+    /* Input Fields ที่ดูสะอาดตา */
+    .input-modern {
+      border: 2px solid #eef2f6;
+      background-color: #f8fafc;
+      border-radius: 12px;
+      padding: 12px 15px;
+      padding-left: 45px;
+      /* เว้นที่ให้ icon */
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+
+    .input-modern:focus {
+      border-color: var(--primary-color);
+      background-color: #fff;
+      box-shadow: 0 0 0 4px rgba(0, 78, 146, 0.1);
+    }
+
     .input-icon-wrapper {
       position: relative;
     }
+
     .input-icon-wrapper i {
       position: absolute;
       left: 15px;
       top: 50%;
       transform: translateY(-50%);
-      color: #adb5bd;
-    }
-    .input-icon-wrapper .form-control, 
-    .input-icon-wrapper .form-select {
-      padding-left: 45px;
+      color: #94a3b8;
+      font-size: 1.1rem;
+      transition: color 0.3s;
     }
 
-    /* Container สำหรับการ์ดเลือกสถานะ */
-    .registration-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 15px;
-      margin-bottom: 2rem;
+    .input-modern:focus+i,
+    .input-modern:focus~i {
+      /* เปลี่ยนสีไอคอนเมื่อโฟกัส */
+      color: var(--primary-color);
     }
 
-    /* ซ่อน Radio ดั้งเดิม */
-    .reg-input {
-      display: none;
-    }
-
-    /* สไตล์การ์ดพื้นฐาน */
-    .reg-card {
-      cursor: pointer;
-      border: 2px solid #e9ecef;
-      border-radius: 15px;
-      padding: 20px;
-      text-align: center;
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      background: white;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .reg-card:hover {
-      border-color: var(--secondary-color);
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-
-    .reg-card i {
-      font-size: 2.5rem;
-      margin-bottom: 15px;
-      color: #adb5bd;
+    /* ปุ่ม Login */
+    .btn-login-modern {
+      background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: white;
+      box-shadow: 0 10px 20px rgba(0, 78, 146, 0.2);
       transition: all 0.3s;
     }
 
-    .reg-card span {
+    .btn-login-modern:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(0, 78, 146, 0.4);
+      color: white;
+    }
+
+    .btn-login-modern:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* ================= 10. STEPPER UI (ปุ่ม +/-) ================= */
+    /* ซ่อนลูกศรเดิมของ Browser */
+    .no-spinners::-webkit-outer-spin-button,
+    .no-spinners::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .no-spinners {
+      -moz-appearance: textfield;
+    }
+
+    /* กล่องกรอกตัวเลข */
+    .input-stepper {
+      text-align: center;
+      font-weight: 800;
+      font-size: 1.1rem !important;
+      padding: 4px !important;
+      z-index: 0 !important;
+    }
+
+    /* ============================================================ */
+    /* 11. DASHBOARD SUMMARY / FORM PULL CONFIG (ดึงยอด / กำหนดค่า) */
+    /* ============================================================ */
+
+    /* ---------- Card ---------- */
+    .summary-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      height: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ---------- Card Content ---------- */
+    .summary-card-body {
+      padding: 1rem;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* ---------- Labels & Values ---------- */
+    /* ค่าเริ่มต้น (ใช้กับพื้นหลังขาว) */
+    .summary-label {
+      font-size: 0.85rem;
       font-weight: 600;
       color: #495057;
-      display: block;
-      line-height: 1.4;
     }
 
-    /* สไตล์เมื่อถูกเลือก (Checked) */
-    .reg-input:checked + .reg-card {
-      border-color: var(--secondary-color);
-      background-color: rgba(102, 16, 242, 0.03);
-      box-shadow: 0 5px 15px rgba(102, 16, 242, 0.15);
+    /* เมื่ออยู่ในการ์ดสีเข้ม */
+    .summary-card--primary .summary-label,
+    .summary-card--success .summary-label {
+      color: rgba(255, 255, 255, 0.85);
     }
 
-    .reg-input:checked + .reg-card i {
-      color: var(--secondary-color);
-      transform: scale(1.1);
+    .summary-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.2;
     }
 
-    .reg-input:checked + .reg-card span {
-      color: var(--secondary-color);
+    /* ---------- Dashboard Input (ดึงยอด / กำหนดค่า) ---------- */
+    .summary-input {
+      width: 100%;
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: transparent;
+      border: none;
+      color: inherit;
+      padding: 0;
+      text-align: left;
     }
 
-    /* สัญลักษณ์เครื่องหมายถูกเมื่อเลือก */
-    .reg-input:checked + .reg-card::after {
-      content: "\f058"; /* FontAwesome check-circle */
-      font-family: "Font Awesome 6 Free";
-      font-weight: 900;
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      color: var(--secondary-color);
-      font-size: 1.2rem;
-    }
-
-    /* สไตล์สำหรับการ์ดที่ถูก Disable */
-    .reg-input:disabled + .reg-card {
-      cursor: not-allowed;
-      filter: grayscale(0.8); /* ทำสีให้ออกเทาๆ */
-      background-color: #f8f9fa;
-      border-style: dashed;
-    }
-
-    .reg-input:disabled + .reg-card:hover {
-      transform: none; /* ไม่ให้มีการลอยตัวขึ้นเวลาเอาเมาส์วาง */
+    .summary-input:focus {
+      outline: none;
       box-shadow: none;
     }
 
-    /* จำกัดขนาด grid สำหรับส่วนที่เป็น 2 คอลัมน์ (เช่น อาหาร) ไม่ให้กว้างเกินไปบนจอคอม */
-    @media (min-width: 768px) {
-      .food-selection-grid {
-        grid-template-columns: repeat(2, 1fr);
-        max-width: 500px; /* จำกัดความกว้างรวม */
-      }
-    }
-
-    .search-integrated-container {
-      background-color: #f8faff;
-      border: 2px dashed #d1d9e6;
-      transition: all 0.3s ease;
-    }
-
-    .search-integrated-container:focus-within {
-      border-color: var(--secondary-color);
-      background-color: #ffffff;
-    }
-
-    .border-dashed {
-      border-style: dashed !important;
-    }
-
-    .animate__fadeIn {
-      animation: fadeIn 0.5s;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Custom Styles for Result Card */
-    .result-card {
-      transition: transform 0.3s ease;
-    }
-    .bg-internal { background-color: #004085; }
-    .bg-quota { background-color: #6610f2; }
-    .bg-external { background-color: #0d6efd; }
-
-    .category-strip {
-      height: 6px;
-      width: 100%;
-    }
-
-    .avatar-icon {
+    /* ---------- Action Button (ดึงยอด / Save) ---------- */
+    .summary-circle-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 5;
     }
 
-    .bg-soft-primary { background-color: rgba(0, 64, 133, 0.1); }
-    .bg-soft-warning { background-color: rgba(255, 193, 7, 0.1); }
-
-    .badge-custom {
-      padding: 6px 12px;
-      font-weight: 500;
-      border-radius: 8px;
+    /* ---------- Background Icon ---------- */
+    .summary-bg-icon {
+      position: absolute;
+      right: -10px;
+      bottom: -10px;
+      font-size: 5rem;
+      opacity: 0.15;
+      pointer-events: none;
     }
 
-    .info-item label {
-      display: block;
-      font-size: 0.75rem;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 2px;
+    /* ---------- Theme Variants ---------- */
+    .summary-card--primary {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: #fff;
     }
 
-    .info-item p {
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 0;
-      font-size: 0.95rem;
+    .summary-card--success {
+      background: linear-gradient(135deg, #198754, #146c43);
+      color: #fff;
     }
 
-    .bg-light-status {
-      background-color: #fcfdfe;
-    }
-
-    .tiny-label {
-      font-size: 0.65rem;
-      color: #999;
-      text-transform: uppercase;
-    }
-
-    .btn-hover-grow {
-      transition: all 0.2s ease;
-    }
-    .btn-hover-grow:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-    @media (min-width: 992px) {
-      .border-start {
-        border-left: 1px solid #edf2f7 !important;
-      }
-    }
-
-    @media (max-width: 991px) {
-      .bg-light-status {
-        border-top: 1px solid #edf2f7;
-      }
-    }
-
-    /* --- หน้าสรุปข้อมูลความพึงพอใจ --- */
-    .lecturer-title {
-      font-size: 1.2rem; 
-      font-weight: 800;
-      color: #004085;
-      display: block;
-      margin-bottom: 5px;
-    }
-    .lecturer-desc {
-      font-size: 1rem;
-      color: #555;
-      border-left: 5px solid #6610f2;
-      padding-left: 15px;
-      margin-bottom: 10px;
-    }
-    .sub-text-large {
-      font-size: 1.15rem !important;
-      color: #333;
-      font-weight: 600;
-    }
-    .sub-number {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: #6610f2;
-      margin-right: 8px;
-    }
-
-    /* --- CSS ปุ่มกด มาก ปานกลาง น้อย --- */
-    .rating-container {
-      display: flex;
-      gap: 12px;
-      width: 100%;
-      margin-top: 8px;
-    }
-    .rating-item { flex: 1; }
-    .rating-input { display: none; }
-    .rating-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14px 5px;
-      background-color: #ffffff;
-      border: 2.5px solid #cbd5e1; /* ขอบหนาขึ้นและเข้มขึ้น */
-      border-radius: 15px; /* โค้งมนสวยงาม */
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      font-weight: 800; /* ตัวหนังสือหนาพิเศษ */
-      color: #475569;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    /* เอฟเฟกต์เมื่อเลือก (Checked) - ปรับสีและเงาให้ชัดเจนที่สุด */
-    .rating-input:checked + .rating-label.rating-มาก {
-      background-color: #157347 !important; /* เขียวเข้ม */
-      border-color: #157347 !important;
-      color: #ffffff !important;
-      box-shadow: 0 8px 20px rgba(21, 115, 71, 0.35) !important;
-      transform: translateY(-4px) scale(1.03); /* เด้งขึ้นและขยาย */
-    }
-    .rating-input:checked + .rating-label.rating-ปานกลาง {
-      background-color: #ffc107 !important; /* เหลืองทอง */
-      border-color: #ffc107 !important;
-      color: #000000 !important;
-      box-shadow: 0 8px 20px rgba(255, 193, 7, 0.35) !important;
-      transform: translateY(-4px) scale(1.03);
-    }
-    .rating-input:checked + .rating-label.rating-น้อย {
-      background-color: #bb2d3b !important; /* แดงเข้ม */
-      border-color: #bb2d3b !important;
-      color: #ffffff !important;
-      box-shadow: 0 8px 20px rgba(187, 45, 59, 0.35) !important;
-      transform: translateY(-4px) scale(1.03);
-    }
-
-    @media (max-width: 768px) {
-      .questions-table tr { display: block; border-bottom: 2px solid #eee !important; padding: 15px 0; }
-      .questions-table td { display: block; width: 100% !important; border: none !important; padding: 5px 0 !important; }
-      .rating-container { max-width: 100%; }
-    }
-
-    /* สำหรับหน้ากำหนดการประชุมและรูปวิทยาการ */
-    .speaker-modal-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.8);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .speaker-modal-content {
-        background: white;
-        border-radius: 20px;
-        max-width: 500px;
-        width: 90%;
-        position: relative;
-        overflow: hidden;
-    }
-    #modalImageExpanded {
-        width: 100%;
-        max-height: 500px;
-        object-fit: cover;
-        object-position: top center;
-    }
-    .speaker-modal-close-button {
-        position: absolute;
-        top: 15px; right: 20px;
-        font-size: 35px;
-        color: white;
-        cursor: pointer;
-        text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        z-index: 10;
-    }
-
-    .schedule-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-        gap: 2rem;
-        align-items: start;
-      }
-
-      .day-column {
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 24px;
-        padding: 1.5rem;
-        border: 1px solid rgba(0,0,0,0.05);
-      }
-
-      .modern-day-header {
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        color: white;
-        padding: 1.5rem;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 20px rgba(0, 64, 133, 0.15);
-        text-align: center;
-      }
-
-      .modern-session-card {
-        background: white;
-        border-radius: 20px;
-        padding: 1.5rem;
-        margin-bottom: 1.25rem;
-        border: 1px solid #f0f0f0;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .modern-session-card:hover {
-        transform: translateY(-5px) scale(1.01);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
-        border-color: var(--secondary-color);
-      }
-
-      /* แถบเวลาดีไซน์ใหม่ */
-      .time-badge {
-        background: rgba(102, 16, 242, 0.1);
-        color: var(--secondary-color);
-        padding: 4px 12px;
-        border-radius: 50px;
-        font-weight: 800;
-        font-size: 0.85rem;
-        display: inline-block;
-        width: fit-content;
-      }
-
-      .session-content h5 {
-        font-weight: 800;
-        color: #1a202c;
-        line-height: 1.4;
-        margin-bottom: 0.5rem;
-      }
-
-      /* รูปวิทยากรแบบวงกลมพร้อมเอฟเฟกต์ */
-      .speaker-pill {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: #f8fafc;
-        padding: 10px;
-        border-radius: 15px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-
-      .speaker-pill:hover {
-        background: #f1f5f9;
-      }
-
-      /* ขยายขนาด Container ของรูปวิทยากร */
-      .img-wrapper {
-        position: relative;
-        width: 85px;  /* 🟢 เพิ่มขนาดจาก 55px เป็น 85px */
-        height: 85px; /* 🟢 เพิ่มขนาดจาก 55px เป็น 85px */
-        flex-shrink: 0; /* ป้องกันรูปถูกบีบ */
-      }
-
-      .speaker-img-mini {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        object-fit: cover;
-        /* 🟢 แก้ปัญหาหัวขาด: ให้ยึดขอบบนของรูปเป็นหลัก */
-        object-position: top center; 
-        border: 3px solid white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        cursor: pointer;
-        transition: transform 0.3s ease;
-      }
-
-      /* เอฟเฟกต์เมื่อเอาเมาส์วางที่รูป */
-      .speaker-img-mini:hover {
-        transform: scale(1.05);
-      }
-
-      /* ปรับให้ Speaker Pill ดูสมดุลกับรูปที่ใหญ่ขึ้น */
-      .speaker-pill {
-        display: flex;
-        align-items: center;
-        gap: 18px; /* เพิ่มระยะห่างระหว่างรูปกับชื่อ */
-        background: #f8fafc;
-        padding: 12px 15px;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.2s;
-        border: 1px solid transparent;
-      }
-
-      .speaker-pill:hover {
-        background: #ffffff;
-        border-color: var(--secondary-color);
-      }
-
-      /* ปรับตำแหน่งไอคอนแว่นขยาย */
-      .zoom-icon {
-        position: absolute;
-        bottom: 5px;
-        right: 5px;
-        background: var(--secondary-color);
-        color: white;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        font-size: 11px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      }
-
-      /* สไตล์สำหรับช่วงพัก */
-      .break-card {
-        background: #fdfdfd;
-        border-left: 5px solid #cbd5e1;
-        opacity: 0.8;
-      }
-
-      @media (max-width: 991px) {
-        .schedule-grid { grid-template-columns: 1fr; }
-        .container-full { max-width: 100% !important; }
-      }
-      /* ปรับแต่ง Grid เฉพาะหน้า Schedule เมื่อยืดเต็มจอ */
-      @media (min-width: 1200px) {
-        .schedule-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr; /* แบ่ง 2 ฝั่งชัดเจน */
-          gap: 40px; /* เพิ่มระยะห่างระหว่างวัน 1 และ วัน 2 */
-          padding: 10px;
-        }
-      }
-
-    /* --- Admin Responsive Cards --- */
-    .admin-mobile-card {
-        display: none; /* ซ่อนไว้ก่อนในจอคอม */
-    }
-
-    @media (max-width: 991.98px) {
-        /* ซ่อนตารางดั้งเดิม */
-        .admin-desktop-table {
-            display: none;
-        }
-
-        /* แสดงรูปแบบ Card */
-        .admin-mobile-card {
-            display: block;
-        }
-
-        .data-card {
-            background: white;
-            border-radius: 15px;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            border: 1px solid #edf2f7;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        }
-
-        .card-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: #718096;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-
-        .card-data {
-            font-size: 0.95rem;
-            color: #2d3748;
-            margin-bottom: 12px;
-        }
-
-        .status-group {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-    }
-
-    /* ตกแต่งปุ่มขณะกำลังบันทึก */
-    .btn:disabled {
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
-    /* ปรับระยะห่าง Spinner ในปุ่ม */
-    .spinner-border-sm {
-        width: 1rem;
-        height: 1rem;
-        border-width: 0.15em;
-    }
-
-    /* คอนเทนเนอร์หลักสำหรับกลุ่มรูปภาพวิทยากร */
-    /* คอนเทนเนอร์หลัก - ใช้ Grid เพื่อคุมแถวละ 2 ในหน้า PC */
-    /* --- 1. สไตล์รูปภาพ (วงกลม + ขอบเด่นชัด) --- */
-    .speaker-avatar-circle {
-        /* ขนาดสำหรับหน้าจอคอม PC */
-        width: 85px !important;
-        height: 85px !important;
-        flex: 0 0 85px !important;    /* ป้องกันรูปถูกบีบเบี้ยว */
-        flex-shrink: 0 !important;
-        aspect-ratio: 1 / 1 !important;
-        
-        background: transparent !important;
-        border: none !important;
-        display: inline-block !important; 
-        margin: 8px !important;
-        overflow: visible !important; /* เพื่อให้เห็นขอบเงาที่ลอยออกมา */
-        border-radius: 50% !important; 
-    }
-
-    .img-speaker-fluid {
-        width: 100% !important;
-        height: 100% !important;
-        border-radius: 50% !important; 
-        object-fit: cover !important;  
-        object-position: top center !important; 
-        
-        /* เส้นขอบ 2 ชั้นให้เด่นชัด */
-        border: 3px solid white !important; /* ขอบในสีขาว */
-        box-shadow: 0 0 0 2px var(--secondary-color), 0 4px 10px rgba(0,0,0,0.2) !important; /* ขอบนอกสีม่วง + เงา */
-        
-        display: block !important;
-        transition: transform 0.2s ease;
-    }
-
-    /* --- 2. การจัดวางหน้าจอมือถือ (เรียงแนวนอน) --- */
-    @media (max-width: 768px) {
-        /* ปรับ container หลักในตารางแบบประเมิน */
-        .questions-table td .d-flex {
-            flex-direction: row !important;  /* บังคับเรียงแนวนอน */
-            flex-wrap: wrap !important;      /* ถ้ามีรูปเยอะให้ขึ้นบรรทัดใหม่ได้ */
-            justify-content: center !important; /* จัดรูปให้อยู่ตรงกลาง */
-            align-items: center !important;
-        }
-
-        .speaker-avatar-circle {
-            width: 65px !important;          /* ย่อขนาดรูปในมือถือลงเล็กน้อย */
-            height: 65px !important;
-            flex: 0 0 65px !important;
-            margin: 4px !important;          /* ลดระยะห่างระหว่างรูป */
-        }
-
-        /* บังคับให้ส่วนที่เป็น "ข้อความชื่อวิทยากร" ลงมาอยู่บรรทัดล่างสุดหลังจากรูปเรียงกัน */
-        .questions-table td .flex-grow-1 {
-            width: 100% !important;          /* บังคับความกว้าง 100% เพื่อให้หล่นลงมา */
-            flex: 0 0 100% !important;
-            margin-top: 10px;
-            text-align: center !important;
-        }
-    }
-
-    /* เอฟเฟกต์เบาๆ เวลาเอาเมาส์วาง */
-    .speaker-avatar-circle:hover .img-speaker-fluid {
-        transform: scale(1.05);
-        box-shadow: 0 0 0 3px var(--primary-color), 0 6px 15px rgba(0,0,0,0.3) !important;
-    }
-
-    /* 2. จัดการหน้าจอมือถือ */
-    @media (max-width: 768px) {
-        .speaker-avatar-circle {
-            width: 75px !important; 
-            height: 75px !important;
-            flex: 0 0 75px !important;
-            margin: 5px !important;
-        }
-    }
-
-    /* Scroll Buttons Styling */
-    .scroll-buttons-container {
+    /* ================= SCROLL TO TOP-BOTTOM BUTTONS ================= */
+    .scroll-btn-group {
       position: fixed;
-      bottom: 30px;
-      right: 30px;
+      bottom: 80px;
+      /* ขยับขึ้นหนีปุ่มท้ายตารางเล็กน้อย */
+      right: 15px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      z-index: 1050; /* ให้อยู่เหนือ Navbar และเนื้อหาอื่นๆ */
+      gap: 8px;
+      z-index: 1050;
+      /* ลดลงมาให้ต่ำกว่า Modal (1055) แต่สูงกว่า Navbar */
+      opacity: 0.4;
+      /* ให้จางลงมากเมื่อไม่ได้ใช้งาน */
+      transition: opacity 0.3s ease;
+    }
+
+    .scroll-btn-group:hover {
+      opacity: 1;
+      /* จะเข้มขึ้นเมื่อเอาเมาส์ไปชี้ */
     }
 
     .btn-scroll {
-      width: 50px;
-      height: 50px;
+      width: 38px;
+      /* ขนาดเล็กลงจาก 45px */
+      height: 38px;
       border-radius: 50%;
-      background-color: var(--primary-color);
+      background: var(--primary-color);
       color: white;
-      border: 2px solid white;
+      border: 1.5px solid white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.3s ease;
-      opacity: 0.8;
+      transition: all 0.2s ease;
     }
 
     .btn-scroll:hover {
       opacity: 1;
       transform: scale(1.1);
-      background-color: var(--secondary-color);
-      box-shadow: 0 6px 15px rgba(0,0,0,0.2) !important;
+      background: var(--secondary-color);
     }
 
-    /* ปรับขนาดเมื่ออยู่ในมือถือ */
-    @media (max-width: 576px) {
-      .scroll-buttons-container {
-        bottom: 20px;
-        right: 20px;
-        gap: 10px;
-      }
-      .btn-scroll {
-        width: 45px;
-        height: 45px;
-      }
+    .btn-scroll i {
+      font-size: 1.2rem;
     }
 
-    /* --- ส่วนของกล้องถ่ายรูป (Camera Styles) --- */
-    /* 1. ตัว Card หลักของกล้อง */
-    .camera-card {
-        background: #ffffff !important;
-        border: 1px solid #e0e6ed !important;
-        transition: all 0.3s ease;
-    }
-
-    /* 2. วงกลมพรีวิวกล้อง */
-    .camera-circle-wrapper {
-        /* ใช้ขนาดเดิมที่คุณตั้งไว้ */
-        width: 220px;
-        height: 220px;
-        
-        /* แก้เรื่องหลุดขอบ: ให้ย่อขนาดลงอัตโนมัติถ้าจอแคบกว่า 220px */
-        max-width: calc(100% - 10px); 
-        height: auto;
-        aspect-ratio: 1 / 1; /* คุมให้เป็นวงกลมเสมอ */
-
-        /* จัดวางตำแหน่ง */
-        margin: 15px auto;
-        position: relative;
-        border-radius: 50%;
-        overflow: hidden;
-
-        /* เส้นขอบ 2 ชั้นและเงา (คงธีมเดิมที่คุณต้องการ) */
-        border: 4px solid white;
-        box-shadow: 0 0 0 2px var(--secondary-color), 0 8px 20px rgba(0, 0, 0, 0.15);
-        
-        /* ป้องกันการทับซ้อน */
-        z-index: 1;
-    }
-
-    #webcam {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-        transition: transform 0.1s ease-out;
-        /* กลับด้านกล้องให้เหมือนกระจก (Mirror Effect) */
-        transform: scaleX(-1); 
-    }
-
-    /* กรณีมีการซูม ต้องคงการ Mirror ไว้ด้วย */
-    /* แก้ไขในส่วนของ Vue :style เพื่อให้รองรับทั้ง ScaleX และ Scaleซูม */
-
-    .photo-preview-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 10;
-        /* ถ้ารูปที่ถ่ายมาไม่ได้ Mirror ให้เอา scaleX(-1) ออก */
-    }
-
-    /* ปรับปรุง Placeholder (ไอคอนตอนยังไม่เปิดกล้อง) */
-    .camera-placeholder {
-        background-color: rgba(102, 16, 242, 0.05) !important; /* พื้นหลังม่วงอ่อนๆ */
-        color: var(--secondary-color) !important;
-    }
-
-    /* 5. ตกแต่งแถบปรับซูม (Zoom Slider) */
-    .zoom-control-wrapper {
-        max-width: 250px;
-        margin: 0 auto 20px auto;
-        padding: 10px 15px;
-        background: rgba(102, 16, 242, 0.05);
-        border-radius: 12px;
-    }
-
-    .zoom-label {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--secondary-color);
-        margin-bottom: 8px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    /* ปรับแต่งดีไซน์ของตัว Slider (Range Input) */
-    .form-range {
-        height: 6px;
-        padding: 0;
-        background: #dee2e6;
-        border-radius: 5px;
-    }
-
-    .form-range::-webkit-slider-thumb {
-        width: 18px;
-        height: 18px;
-        background: var(--secondary-color);
-        border: 3px solid #fff;
-        border-radius: 50%;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .form-range::-webkit-slider-thumb:hover {
-        transform: scale(1.2);
-        background: var(--primary-color);
-    }
-
-    /* 6. ส่วนของปุ่มกดใน Card กล้อง */
-    .camera-btn-group {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 10px;
-    }
-
-    /* จัดสไตล์ Placeholder เวลากล้องยังไม่เปิด */
-    .camera-placeholder {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #fff;
-        color: #dee2e6;
-    }
-
-    /* Responsive สำหรับมือถือ */
-    @media (max-width: 768px) {
-        .camera-circle-wrapper {
-            width: 180px;
-            height: 180px;
-        }
-        
-        .camera-card {
-            min-height: auto !important;
-            padding: 1.5rem !important;
-        }
-    }
-
-    /* บังคับให้ช่องครอบเป็นวงกลม */
-    .cropper-view-box,
-    .cropper-face {
-      border-radius: 50%;
-    }
-
-    /* เพิ่มเส้นขอบของวงกลมครอบส่วน */
-    .cropper-view-box {
-      outline: 0;
-      border: 2px solid #fff;
-    }
-
-    /* คอนเทนเนอร์หลัก: เพิ่มพื้นหลังดำป้องกันแสงรั่วระหว่างโหลด */
-    .scanner-container {
-        position: relative !important; 
-        width: 100%;
-        border-radius: 15px;
-        overflow: hidden;
-        min-height: 450px;
-        background: #000; /* เพิ่มพื้นหลังดำ */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* บังคับวิดีโอ: ห้ามยืด ห้ามเบี้ยว */
-    #reader video {
-        object-fit: cover !important;
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 450px;
-    }
-
-    /* จัดกึ่งกลางกรอบ Overlay สีขาว */
-    #reader__scan_region {
-        width: 100% !important;
-        height: 100% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    /* ล้างช่องว่างที่ Library มักเว้นไว้ด้านล่าง (ตัวการที่ทำให้กรอบเบี้ยว) */
-    #reader {
-        background: transparent !important;
-        border: none !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    /* ซ่อน UI ส่วนเกินทั้งหมด */
-    #reader__dashboard, 
-    #reader__dashboard_section_swaplink,
-    #reader__status_span {
+    /* ซ่อนปุ่มเมื่อไม่ได้ใช้งาน หรือเมื่อ Print */
+    @media print {
+      .scroll-btn-group {
         display: none !important;
+      }
     }
 
-    /* สำหรับ กราฟ */
-    #typeChart, #statusChart {
-      max-height: 300px !important; /* จำกัดความสูงไม่ให้กราฟโย่งเกินไป */
-      width: 100% !important;
+    /* ================= CUSTOM DASHBOARD TABS ================= */
+    .custom-dashboard-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+
+      /* 📱 ปรับให้มือถือเลื่อนซ้าย-ขวาได้ */
+      overflow-x: auto;
+      white-space: nowrap;
+      flex-wrap: nowrap;
+      scrollbar-width: none;
     }
-    /* สำหรับปุ่มคลิกเลือกวันที่ Scan Qr Code */
-    .transition-all {
+
+    /* 💻 ปรับให้หน้าจอคอมพิวเตอร์ (768px ขึ้นไป) แสดงเต็มพื้นที่ ไม่เลื่อน */
+    @media (min-width: 768px) {
+      .custom-dashboard-tabs {
+        flex-wrap: wrap;
+        /* อนุญาตให้ขึ้นบรรทัดใหม่ได้ถ้าปุ่มเยอะ */
+        overflow-x: visible;
+        /* ปิดการเลื่อนแนวนอน */
+        white-space: normal;
+        /* คืนค่าตัวหนังสือให้ปกติ */
+      }
+    }
+
+    .custom-dashboard-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .custom-dashboard-tabs .nav-link {
+      border-radius: 10px !important;
+      padding: 10px 20px !important;
+      color: #555;
+      font-weight: 600;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      background: #f8f9fa;
+      display: flex;
+      /* คงค่าจัดระเบียบเดิม */
+      align-items: center;
+      /* คงค่าจัดระเบียบเดิม */
+      justify-content: space-between;
+      /* คงค่าจัดระเบียบเดิม */
     }
 
-    .btn-group .btn {
-      border: none !important; /* ลบเส้นขอบปุ่ม */
+    /* Hover Effect */
+    .custom-dashboard-tabs .nav-link:hover {
+      background-color: #e9ecef;
+      transform: translateY(-2px);
+    }
+
+    /* Active State - แท็บทั่วไป */
+    .custom-dashboard-tabs .nav-link.active {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+      color: #fff !important;
+      box-shadow: 0 4px 12px rgba(0, 78, 146, 0.3);
+    }
+
+    /* แท็บพิเศษ: Ventilator */
+    .tab-ventilator {
+      color: var(--color-danger) !important;
+      border: 1px solid #ffcdd2 !important;
+    }
+
+    .tab-ventilator.active {
+      background: linear-gradient(135deg, #d32f2f, #b71c1c) !important;
+      color: #fff !important;
+      border: none !important;
+      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3) !important;
+    }
+
+    /* แท็บพิเศษ: Report */
+    .tab-report {
+      color: var(--color-success) !important;
+      border: 1px solid #c8e6c9 !important;
+    }
+
+    .tab-report.active {
+      background: linear-gradient(135deg, #2e7d32, #1b5e20) !important;
+      color: #fff !important;
+      border: none !important;
+      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3) !important;
+    }
+
+    /* ปรับแต่งไอคอนในแท็บ */
+    .custom-dashboard-tabs .nav-link i {
+      font-size: 1.1rem;
+      vertical-align: middle;
+    }
+
+    /* ตกแต่ง Badge ตัวเลข */
+    .badge-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0, 0, 0, 0.1);
+      color: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 50px;
+      margin-left: 8px;
+      min-width: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .nav-link.active .badge-count {
+      background-color: rgba(255, 255, 255, 0.3);
+      color: #fff;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* สำหรับ tab-ventilator และ tab-report เมื่อไม่ได้ Active */
+    .tab-ventilator:not(.active) .badge-count {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .tab-report:not(.active) .badge-count {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    /* Badge สำหรับจำนวน Vent ในแต่ละสาย */
+    .badge-vent-inline {
+      margin-left: 5px;
+      font-size: 0.7rem;
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 1px 6px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      border: 1px solid #ffcdd2;
+    }
+
+    .nav-link.active .badge-vent-inline {
+      background-color: rgba(255, 255, 255, 0.9);
+      border-color: #fff;
+      color: #b71c1c;
+    }
+
+    .nav-link[title] {
+      cursor: help;
+    }
+
+    @media (max-width: 576px) {
+
+      /* บนมือถือขนาดเล็ก ให้ปุ่มขยายเต็มความกว้าง (Full Width) เพื่อให้กดง่าย */
+      .d-grid.gap-2 .btn {
+        width: 100%;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        font-size: 0.9rem;
+        /* ขยายตัวหนังสือปุ่มบนมือถือนิดหน่อย */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* ปรับช่องเลือกวันที่ให้เต็มความกว้าง */
+      .form-control-sm {
+        height: calc(1.5em + 1rem + 2px);
+        font-size: 1rem;
+      }
+    }
+
+    /* เพิ่ม Effect เมื่อเอาเมาส์ชี้ปุ่มให้ดูทันสมัย */
+    .btn-sm {
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      /* มุมมนขึ้นเพื่อให้ดู Modern */
+    }
+
+    .btn-sm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* ================= 12. STICKY FOOTER BAR ================= */
+    .footer-bar-custom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
+      color: white;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 0.9rem;
+      z-index: 1000;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ปรับระยะห่างของเนื้อหาหลักไม่ให้โดน Footer บัง */
+    .main-content {
+      padding-bottom: 60px !important;
+    }
+
+    @media print {
+      .footer-bar-custom {
+        display: none !important;
+      }
+    }
+
+    /* สำหรับสถานะปุ่มที่เลือก (Active) */
+    /* จัดการตัวเลขหน้าให้ดูเป็นปุ่มจัตุรัส */
+    .btn-number {
+      min-width: 42px;
+      height: 38px;
+      font-weight: 600;
+      border: 1px solid #dee2e6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* สถานะหน้าปัจจุบัน */
+    .btn-page-active {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+      color: white !important;
+      border-color: var(--secondary-color) !important;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ระยะห่างของกลุ่มตัวเลขตรงกลาง */
+    .pagination-numbers-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ปรับแต่งปุ่มก่อนหน้า-ถัดไปให้เข้าชุดกัน */
+    .btn-page {
+      padding: 8px 16px;
+      border: 1px solid #dee2e6;
+    }
+
+    /* ซ่อนตัวเลขหน้าบนมือถือที่จอเล็กมากๆ เพื่อป้องกันการล้น */
+    @media (max-width: 576px) {
+      .pagination-numbers-container {
+        display: none;
+      }
+
+      .pagination-wrapper {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+
+    /* *********************** */
+    /* สำหรับปุ่ม "จดจำชื่อผู้ใช้" และหน้าต่างนับถอยหลัง */
+    .remember-me-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .remember-me-wrapper input {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary-color);
+    }
+
+    /* หน้าต่างแจ้งเตือนนับถอยหลัง (Toast) */
+    .logout-timer-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #fff;
+      border-left: 5px solid #ff9800;
+      /* สีส้มแจ้งเตือน */
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      animation: slideInRight 0.5s ease-out;
+    }
+
+    .logout-timer-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .logout-timer-title {
+      font-weight: bold;
+      color: #d32f2f;
+      margin-bottom: 2px;
+    }
+
+    .logout-timer-bar {
+      height: 4px;
+      background: #eee;
+      width: 100%;
+      margin-top: 8px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .logout-timer-progress {
+      height: 100%;
+      background: #ff9800;
+      transition: width 1s linear;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* ตกแต่ง Group Input ให้ดูทันสมัย */
+    .modern-form-group {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      border: 1px solid #edf2f7;
+    }
+
+    /* ปรับแต่ง Label ให้ดูหรูขึ้น */
+    .modern-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #4a5568;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .modern-label i {
+      color: var(--primary-color);
+      font-size: 1rem;
+      width: 24px;
+    }
+
+    /* ปรับแต่งช่อง Input/Select ให้ดูมีมิติ */
+    .modern-input {
+      border: 2px solid #e2e8f0 !important;
+      border-radius: 10px !important;
+      padding: 10px 12px !important;
+      font-weight: 500;
+      transition: all 0.2s ease-in-out;
+      background-color: #f8fafc !important;
+    }
+
+    .modern-input:focus {
+      background-color: #fff !important;
+      border-color: var(--primary-color) !important;
+      box-shadow: 0 0 0 4px rgba(106, 27, 154, 0.1) !important;
+      transform: translateY(-1px);
+    }
+
+    .modern-input:disabled {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+      color: #94a3b8;
+    }
+
+    .disabled-look {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      cursor: not-allowed !important;
+      pointer-events: none;
+    }
+
+    /* ================= WARD SEARCHABLE DROPDOWN ================= */
+    .ward-search-wrapper {
+      position: relative;
+    }
+
+    .ward-dropdown-menu {
+      position: absolute;
+      z-index: 1050;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: #fff;
+      border: 1px solid #ced4da;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      max-height: 300px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: dropdownFadeIn 0.2s ease-out;
+    }
+
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ward-dropdown-search-box {
+      padding: 10px;
+      border-bottom: 1px solid #f0f0f0;
+      flex-shrink: 0;
+    }
+
+    .ward-dropdown-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .ward-dropdown-group-header {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #6a1b9a;
+      text-transform: uppercase;
+      background: #f8f0fb;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .ward-dropdown-item {
+      padding: 10px 15px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #f9f9f9;
+    }
+
+    .ward-dropdown-item:hover {
+      background-color: #f3f0f7;
+      padding-left: 20px;
+    }
+
+    .ward-dropdown-item.selected {
+      background: #ede7f6 !important;
+      color: #6a1b9a;
+      font-weight: 600;
+    }
+
+    .ward-dropdown-no-result {
+      padding: 20px;
+      text-align: center;
+      color: #adb5bd;
+      font-size: 13px;
+    }
+
+    /* แถบแจ้งเตือนวันที่แบบ Soft UI */
+    .date-badge-soft {
+      display: inline-flex;
+      align-items: center;
+      background: #f0fdf4;
+      color: #166534;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      margin-top: 6px;
+      border: 1px solid #dcfce7;
+    }
+
+    /* ปรับปรุง Navbar Mobile - แก้ไขปัญหาการมองไม่เห็นข้อมูล */
+    @media (max-width: 991px) {
+      .navbar-collapse {
+        /* เปลี่ยนเป็นสีม่วงเข้ม (Theme หลัก) เพื่อให้ตัดกับ Badge และตัวหนังสือสีอ่อน */
+        background: linear-gradient(135deg, var(--secondary-color) 0%, #310d5e 100%);
+        margin-top: 10px;
+        padding: 15px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        max-height: 85vh;
+        overflow-y: auto;
+        border: 1px solid rgba(255,255,255,0.1); /* เพิ่มขอบให้เมนูดูชัดขึ้น */
+      }
+
+      /* ปรับแต่งหัวข้อเมนูหลัก */
+      .navbar-nav .nav-link {
+        color: rgba(255,255,255,0.85) !important; /* ตัวหนังสือขาวโปร่งแสง */
+        padding: 12px 20px !important;
+        border-radius: 10px;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+      }
+
+      /* เมนูที่ถูกเลือก */
+      .navbar-nav .nav-link.active {
+        background-color: rgba(255,255,255,0.15) !important;
+        color: #ffffff !important;
+        font-weight: bold;
+      }
+
+      /* ปรับปรุง Dropdown ภายในมือถือ */
+      .dropdown-menu-custom {
+        background-color: rgba(0, 0, 0, 0.2) !important; /* พื้นหลังดรอปดาวน์ให้เข้มขึ้นกว่าเมนูนิดนึง */
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px;
+        margin-top: 5px !important;
+      }
+
+      .dropdown-item {
+        color: rgba(255,255,255,0.8) !important; /* ตัวหนังสือขาว */
+        padding: 10px 15px !important;
+        border-radius: 8px;
+      }
+
+      .dropdown-item:hover {
+        background-color: rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+      }
+
+      /* ปรับแต่งส่วนหัวของ User ในมือถือ */
+      .dropdown-menu-custom .bg-light {
+        background-color: rgba(255, 255, 255, 0.1) !important; /* เปลี่ยนจากสีสว่างเป็นเข้ม */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+      }
+
+      /* บังคับให้ Badge ในเมนูมองเห็นได้ชัด */
+      .badge.bg-info {
+        background-color: #0dcaf0 !important; /* สีฟ้าสว่าง */
+        color: #000 !important;
+        font-weight: 700;
+      }
+
+      .dropdown-divider {
+        border-top: 1px solid rgba(255,255,255,0.1) !important;
+      }
+    }
+
+    /* สรุปข้อมูล ตกแต่ง Card สำหรับแสดงผลบนมือถือ */
+    .mobile-ward-card {
+      background: #fff;
+      border-radius: 12px;
+      border-left: 5px solid var(--primary-color);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .mobile-ward-card:active {
+      transform: scale(0.98);
+      background-color: #f8f9fa;
+    }
+
+    .mobile-metric-box {
+      text-align: center;
+      padding: 5px;
+      border-radius: 8px;
+      min-width: 60px;
+    }
+
+    .mobile-label {
+      font-size: 0.65rem;
+      display: block;
+      color: #6c757d;
+      font-weight: bold;
+    }
+
+    .mobile-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+
+    /* สไตล์สำหรับหัวข้อพิเศษใต้ Metrics บนมือถือ */
+    .mobile-special-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+    }
+
+    .badge-special {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    /* สีแยกตามประเภท */
+    .badge-ods { background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+    .badge-emu { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .badge-crit { background-color: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+
+    /* ปรับปรุง Group Header บนมือถือให้ดูเด่น */
+    .mobile-group-header {
+      background: #eef2f7;
+      padding: 8px 15px;
+      border-radius: 8px;
+      font-weight: 800;
+      color: #495057;
+      margin: 15px 0 10px 0;
       font-size: 0.9rem;
     }
+    /* คลาสสำหรับวันหยุด (ทำให้การ์ดดูเบาลง) */
+    .card-holiday-mode {
+      background-color: #fcfcfc !important;
+      border-left-color: #ffc107 !important;
+      opacity: 0.85;
+    }
 
-    /* --- Modern Status Select --- */
-    .status-badge-select {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      padding: 0.4rem 1.5rem 0.4rem 1rem;
-      font-size: 0.8rem;
-      font-weight: 700;
-      border-radius: 50rem; /* ทำเป็นทรงแคปซูล */
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.3s ease;
+    /* ปรับระยะขอบของรายการมือถือ */
+    .sticky-top {
+      position: -webkit-sticky; /* สำหรับ Safari */
+      position: sticky;
+      top: 0;                   /* ติดขอบบนสุดของ container */
+      z-index: 10;              /* ให้อยู่เหนือรายการอื่นๆ */
+      background-color: #f8f9fa !important; /* ควรมีพื้นหลังสีทึบเพื่อไม่ให้ตัวหนังสือซ้อนกัน */
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .mobile-ward-card {
+      transition: all 0.2s ease;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* เมื่อแตะ (Touch) จะมีเอฟเฟกต์ยุบตัว */
+    .mobile-ward-card:active {
+      transform: scale(0.97);
+      box-shadow: none;
+    }
+
+    /* 1. โครงสร้างหลัก (ใช้ร่วมกันทั้ง อัตรากำลัง และ ภาระงาน) */
+    .mobile-staff-row {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+    }
+
+    .mobile-staff-box {
+        flex: 1;
+        padding: 6px 4px; /* ปรับ Padding ให้แคบลงเล็กน้อยเพื่อให้ตัวเลขไม่ล้น */
+        border-radius: 8px;
+        font-size: 0.7rem;
+        min-width: 0; /* กันตัวหนังสือดันกล่องล้น */
+    }
+
+    /* 2. สีพื้นหลังแยกประเภท */
+    .bg-staff-aft { background-color: #e7f1ff; border: 1px solid #cfe2ff; color: #084298; }
+    .bg-staff-mid { background-color: #f8f9fa; border: 1px solid #dee2e6; color: #212529; }
+    .bg-workload-mini { background-color: #fff8e1; border: 1px solid #ffecb3; color: #856404; }
+
+    /* 3. การจัดวางรายการภายใน (Workload Item) */
+    .workload-item {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-bottom: 3px; /* เว้นระยะระหว่างบรรทัด */
+        white-space: nowrap; /* ห้ามขึ้นบรรทัดใหม่ */
+    }
+
+    .workload-item i {
+        width: 14px;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+
+    .workload-item b { 
+        font-size: 0.8rem; /* ตัวเลขเด่นขึ้น */
+    }
+
+    /* 4. สถานะพิเศษ */
+    .text-death-red { color: #d32f2f !important; font-weight: 800; }
+
+    /* ปรับสไตล์แถบสถานะด้านล่างของ Card มือถือ */
+    .mobile-status-footer {
+      background-color: #fff9db; /* สีเหลืองจางๆ สำหรับวันหยุด */
+      border-radius: 8px;
+      padding: 8px 12px;
+      border: 1px solid #ffe066;
+      word-break: break-word; /* ตัดคำเมื่อยาวเกิน */
+      white-space: normal;
+      display: block;
+    }
+
+    .mission-badge-mobile {
+      background: linear-gradient(135deg, #e7f1ff 0%, #fff 100%);
+      border: 1px solid #0d6efd;
+      color: #0d6efd;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+
+    /* คอนเทนเนอร์รวม Search + Tabs สำหรับมือถือ */
+    /* คอนเทนเนอร์หลักที่ลอยติดขอบ */
+    /* --- การจัดการหน้าจอแยกโหมด --- */
+    @media (min-width: 992px) {
+      .view-mobile-only { display: none !important; }
+      .view-pc-only { display: block !important; }
+    }
+
+    /* ============================================================ */
+    /* [PC MODE] Sticky Tabs & Line Info Header (Non-Table) */
+    /* ============================================================ */
+    @media (min-width: 992px) {
+      /* 1. ตัวหุ้มเมนูและหัวข้อสายงานให้ติดหนึบ */
+      .sticky-pc-control-wrapper {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 56px;      /* ตึงต่อจาก Navbar */
+        z-index: 1025;
+        background-color: var(--bg-body); /* สีพื้นหลังเดียวกับเว็บ */
+        padding: 10px 0 5px 0;
+        margin-bottom: 0;
+      }
+
+      .pc-sticky-line-banner {
+        background: linear-gradient(to right, #1565c0, var(--secondary-color));
+        color: white;
+        padding: 8px 20px;
+        border-radius: 10px;
+        margin-top: 8px;
+        font-size: 1rem;
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+    }
+    /* <!-- ************************************************* --> */
+
+    /* ปรับปรุง Z-index ของปุ่ม Scroll Up/Down ไม่ให้โดนทับ */
+    .scroll-btn-group {
+      z-index: 2000 !important;
+    }
+
+    @media (max-width: 991.98px) {
+      .view-mobile-only { display: block !important; }
+      .view-pc-only { display: none !important; }
+    }
+
+    @media (max-width: 991.98px) {
+      .view-mobile-only .btn-mobile-stack {
+          display: inline-flex !important;
+          /* ปรับ flex เพื่อไม่ให้ปุ่มโดนบีบหรือยืดในแนวนอนเกินจริง */
+          flex: 0 0 auto !important; 
+          flex-direction: column !important;
+          justify-content: center !important;
+          align-items: center !important;
+
+          /* --- การกำหนดขนาด --- */
+          height: 60px !important;      /* ล็อคความสูงไว้ที่ 60px ตลอดเวลา */
+          min-width: 60px !important;   /* เริ่มต้นความกว้างที่ 60px (เพื่อให้เป็นจัตุรัสถ้าข้อความสั้น) */
+          width: auto !important;       /* ถ้าข้อความยาว ให้ขยายความกว้างตามเนื้อหา */
+          
+          /* --- การจัดการข้อความ --- */
+          white-space: nowrap !important; /* ห้ามตัดขึ้นบรรทัดใหม่ เพื่อให้ความกว้างขยายออกข้าง */
+          padding: 0 10px !important;     /* เพิ่มช่องว่างด้านซ้าย-ขวา เวลาข้อความยาวจะได้ไม่ติดขอบ */
+          
+          gap: 4px !important;
+          line-height: 1 !important;
+      }
+
+      /* สั่งไอคอนเฉพาะในปุ่มที่เป็นคลาสนี้เท่านั้น */
+      .view-mobile-only .btn-mobile-stack i {
+        margin: 0 !important;
+        line-height: 1 !important;
+        font-size: 1.3rem !important;
+      }
+
+      /* สั่งข้อความเฉพาะในปุ่มที่เป็นคลาสนี้เท่านั้น */
+      .view-mobile-only .btn-mobile-stack span {
+        display: block !important;
+        font-size: 0.75rem !important;
+        line-height: 1 !important;
+      }
+    }
+    
+    /* --- แถบควบคุมรวม (สัมพันธ์กันทุกหน้า) --- */
+    /* --- จุดที่ 1: แถบควบคุม Search + Tabs --- */
+    .mobile-sticky-header {
+      position: sticky;
+      top: 60px;      /* ตึงต่อจาก Navbar */
+      z-index: 1020;  /* สูงกว่าเพื่อให้จุดที่ 2 มุดเข้าใต้เมื่อเลื่อนขึ้น */
+      background-color: var(--bg-body);
+      padding: 10px 8px 5px 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    /* --- จุดที่ 2: หัวข้อสายงาน (สีน้ำเงิน) --- */
+    .view-mobile-only .main-line-header {
+      position: sticky !important;
+      /* คำนวณจาก: Navbar(56px) + จุดที่ 1(ประมาณ 110px) = 166px */
+      top: 178px !important; 
+      z-index: 1010; /* ต่ำกว่าจุดที่ 1 */
+      background: linear-gradient(to right, #1565c0, var(--secondary-color)) !important;
+      margin-bottom: 10px;
+    }
+
+    /* ปรับปรุงช่อง Search ให้ดู Soft */
+    .search-wrapper-mobile {
+      background: white;
+      border-radius: 12px;
+      padding: 2px 12px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    /* ปรับปรุง Tabs ให้เลื่อนสมูท */
+    .custom-dashboard-tabs {
+      display: flex !important;
+      overflow-x: auto !important;
+      white-space: nowrap !important;
+      gap: 8px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 5px;
+    }
+    .custom-dashboard-tabs::-webkit-scrollbar { display: none; }
+
+    .custom-dashboard-tabs .nav-link {
+      padding: 8px 16px !important;
+      font-size: 0.9rem;
+      border-radius: 10px !important;
+      background: #fff;
+      border: 1px solid #eef2f7 !important;
+      color: #64748b !important;
+    }
+
+    .custom-dashboard-tabs .nav-link.active {
+      background: var(--primary-color) !important;
+      color: white !important;
+      border-color: var(--primary-color) !important;
+    }
+    /* ==== จบ สรุปข้อมูล โหมดมือถือ =======*/
+
+    /* การ์ดประวัติบนมือถือ */
+    /* การ์ดประวัติบนมือถือแบบเน้นใช้ Logic เดิม */
+    .history-card-mobile {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .h-header {
+      background: #f8fafc;
+      padding: 10px 16px;
+      border-bottom: 1px solid #f1f3f5;
+    }
+
+    .h-body {
+      padding: 16px;
+    }
+
+    /* ปรับแต่งส่วนเนื้อหาที่ดึงมาจาก renderHistoryInfo */
+    .h-metric-content {
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+
+    /* ส่วน subMetric (เตียงว่าง หรือ เวลา) ให้แยกกล่องชัดเจน */
+    .h-sub-content {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 12px;
+      border: 1px solid #eee;
       text-align: center;
+    }
+
+    /* ✅ ปุ่มกดดูรายละเอียด (ชัดเจนและกดง่าย) */
+    .h-btn-footer {
       width: 100%;
-      /* สร้างลูกศร Dropdown ใหม่ให้ดูมินิมอล */
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.6rem center;
-      background-size: 10px 10px;
+      padding: 14px; /* เพิ่มความหนาให้กดง่ายขึ้นมาก */
+      /* เปลี่ยนเป็นสีน้ำเงินเข้มแบบทึบ หรือจะใช้สีม่วง --primary-color ก็ได้ */
+      background-color: #0d6efd; 
+      color: #ffffff; /* ตัวหนังสือสีขาวเพื่อตัดกับพื้นหลัง */
+      font-weight: 700;
+      border: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      /* ทำให้มุมล่างมนเท่ากับขอบการ์ด */
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2); /* เพิ่มมิติขอบด้านบน */
     }
 
-    .status-badge-select:focus {
-      outline: none;
-      box-shadow: 0 0 0 0.25rem rgba(102, 16, 242, 0.25);
+    /* เอฟเฟกต์เมื่อมีการกด (สัมผัส) */
+    .h-btn-footer:active {
+      background-color: #0056b3; /* สีเข้มขึ้นเมื่อกด */
+      transform: scale(0.99); /* ยุบตัวเล็กน้อยให้รู้สึกเหมือนกดจริง */
     }
 
-    .status-badge-select:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-      background-image: none; /* ซ่อนลูกศรถ้ากดไม่ได้ */
+    /* เพิ่มไอคอนให้ขยับเล็กน้อยเพื่อดึงดูดสายตา */
+    .h-btn-footer i {
+      font-size: 1.1rem;
+      transition: transform 0.2s;
     }
+    /* ==== จบ ประวัติ โหมดมือถือ =======*/
 
-    /* สีตามสถานะต่างๆ */
-    .status-empty { background-color: #f1f3f5; color: #6c757d; border-color: #dee2e6; }
-    .status-pending { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
-    .status-success { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
-    .status-danger { background-color: #f8d7da; color: #842029; border-color: #f5c2c7; }
-
-    [v-cloak] { display: none; }
+    /* แบบฟอร์มบันทึกข้อมูล สไตล์การ์ดเลือกหน่วยงานสำหรับสิทธิ์ Multi/Viewer (Mobile) */
+    .multi-unit-card {
+        background: #fff;
+        border: 2px solid #edf2f7;
+        border-radius: 12px;
+        padding: 12px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-align: center;
+        position: relative;
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .multi-unit-card.selected {
+        border-color: var(--primary-color);
+        background-color: #f3e5f5;
+    }
+    .multi-unit-card .unit-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #333;
+    }
+    .multi-unit-card .unit-line {
+        font-size: 0.65rem;
+        color: #666;
+    }
+    .multi-unit-card .check-icon {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        color: var(--primary-color);
+    }
+    /*===== จบ แสดงแบบฟอร์ม โหมดมือถือ =====*/
   </style>
 
 </head>
 
 <body>
+
   <div id="app" v-cloak>
     
     <!-- Navbar -->
@@ -1332,11 +2266,8 @@
       <div class="row justify-content-center">
 
         <div class="container-fluid">
-          <div v-if="!isReady" class="text-center py-5">
-            <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
-            <p class="mt-3 text-muted fw-bold">กำลังโหลดระบบ...</p>
-          </div>
-          <div v-else class="main-card mb-4" >
+
+          <div class="main-card mb-4" >
 
             <!-- Header Section -->
             <div class="form-header-banner" v-if="currentView === 'form'">
@@ -2320,7 +3251,7 @@
                         <div class="camera-card border rounded-4 p-4 shadow-sm text-center">
                             <!-- วงกลมพรีวิว -->
                             <div class="camera-circle-wrapper mb-3">
-                                <video v-show="isCameraActive" 
+                                <video v-if="isCameraActive" 
                                       id="webcam" 
                                       autoplay 
                                       playsinline 
@@ -3231,7 +4162,7 @@
                           <tbody>
 
                             <template v-for="q in (evalDay === 1 ? day1Questions : day2Questions)" :key="q.id">
-                              <tr >
+                              <tr>
                                 <td colspan="2" class="p-3 p-md-4 border-0">
                                   <div class="d-flex flex-column flex-md-row align-items-center align-items-md-center gap-3">
                                     
@@ -3865,97 +4796,103 @@
       </button>
     </div>
 
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <script src="https://unpkg.com/webcam-easy/dist/webcam-easy.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.11.0/dist/sweetalert2.all.min.js"></script>
-  
-  <!-- Vue 3 -->
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
-
-  <!-- ThailandJS Libs -->
-  <script src="https://earthchie.github.io/jquery.Thailand.js/jquery.Thailand.js/dependencies/JQL.min.js"></script>
-  <script src="https://earthchie.github.io/jquery.Thailand.js/jquery.Thailand.js/dependencies/typeahead.bundle.js"></script>
-  <script src="https://earthchie.github.io/jquery.Thailand.js/jquery.Thailand.js/dist/jquery.Thailand.min.js"></script>
-  <!-- Charts JS -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  </div> <!-- End App -->
 
   <script>
-    /** 
-     * 🛑 สำคัญมาก: เปลี่ยน URL ด้านล่างนี้เป็น URL ของ Web App ที่ได้จาก Google Apps Script 
-     * (ต้องลงท้ายด้วย /exec)
-     */
+    // 🛑 1. เปลี่ยน URL ตรงนี้เป็น URL ของ Web App ที่คุณ Deploy จาก Google Apps Script (ลงท้ายด้วย /exec)
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
-  
+
     const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
-  
+
     createApp({
       setup() {
-        // --- 🟢 ส่วนที่ 2: ประกาศตัวแปร และค่าเริ่มต้น (ป้องกัน Error undefined) ---
-        const loading = ref(true);
+        // --- 🟢 ส่วนที่ 1: ประกาศตัวแปรทั้งหมด (Refs) ---
+        const isReady = ref(false);
+        const loading = ref(false);
+        const loadingScanner = ref(false);
+        const loadingUpload = ref(false);
+        const loadingEval = ref(false);
+        const loadingSchedule = ref(false);
         const currentView = ref('form');
         const step = ref(1);
-        
-        // 🚩 ตั้งค่าเริ่มต้นเป็น Array ว่างเสมอ
-        const day1Questions = ref([]);
-        const day2Questions = ref([]);
-        const scheduleData = ref({ day1: [], day2: [] });
-        const subItems = ref([
-          { id: 1, text: 'หัวข้อเรื่องน่าสนใจ' },
-          { id: 2, text: 'ความเหมาะสมของเนื้อหา' },
-          { id: 3, text: 'ความรู้ที่ได้รับเป็นประโยชน์' },
-          { id: 4, text: 'ความเหมาะสมของสื่อการบรรยาย' },
-          { id: 5, text: 'ระยะเวลาเหมาะสม' }
-        ]);
-  
-        const adminSearch = ref(''); 
-        const adminData = ref([]);
-        const filterRegType = ref('');
-        const searchQuery = ref('');
-        const searchResult = ref(null);
-        const COL = ref({ ID: "ID", FNAME: "ชื่อ", LNAME: "นามสกุล", IMAGE: "รูปภาพ" });
-        const REG_STATUS = ref({});
-        
+        const isEditMode = ref(false);
         const isAdminLoggedIn = ref(false);
         const userRole = ref('');
-        const login = ref({ user: '', pass: '' });
         const showPassword = ref(false);
-        const currentPage = ref(1);
-        const itemsPerPage = 15;
-        const savingRows = ref({});
-        const scannedUser = ref(null);
-        const scanDay = ref('1');
-        const isScanning = ref(false);
-        let html5QrCode = null;
-  
-        // แบบฟอร์มลงทะเบียน
-        const form = ref({
-          rowNumber: null, timestamp: '', email: '', title_Name: 'นางสาว',
-          firstName: '', lastName: '', phoneNumber: '', proLicense: '',
-          foodType: 'อาหารทั่วไป', status_Register: '', internalPosition: 'พยาบาล',
-          workGroup: '', department: '', affiliation: '', workPlace: '',
-          name_Receipt: '', address: '', taxpayer_ID: '', slipImage: null
-        });
-  
+        
+        // ข้อมูลจาก Sheet
+        const COL = ref({});
+        const REG_STATUS = ref({});
+        const adminData = ref([]);
+        const originalAdminData = ref([]);
         const workGroupData = ref({});
         const currentDepts = ref([]);
         const prefixOptions = ref([]);
         const affiliationOptions = ref([]);
         const professionOptions = ref([]);
+        
+        // ฟอร์ม
+        const login = ref({ user: '', pass: '' });
+        const searchQuery = ref('');
+        const searchResult = ref(null);
+        const adminSearch = ref('');
+        const searchAdminQuery = ref('');
+        const filterRegType = ref('');
+        const currentPage = ref(1);
+        const itemsPerPage = 15;
+        const savingRows = ref({});
+
+        const form = ref({
+          rowNumber: null, timestamp: '', email: '', title_Name: 'นางสาว',
+          firstName: '', lastName: '', phoneNumber: '', proLicense: '',
+          foodType: 'อาหารทั่วไป', status_Register: '', internalPosition: 'พยาบาล',
+          workGroup: '', department: '', affiliation: '', workPlace: '',
+          name_Receipt: '', taxpayer_ID: '', address: '',
+          address_subdistrict: '', address_district: '', address_province: '', address_postcode: ''
+        });
+
+        const editForm = ref({});
+        const originalForm = ref(null);
+
+        // วันเวลาและเงื่อนไข
         const deadlineTimestamp = ref(null);
         const externalDeadline = ref(null);
         const assessmentTimer = ref(null);
         const certDeadline = ref(null);
         const isTimerLoaded = ref(false);
-  
-        // --- 🟢 ส่วนที่ 3: ระบบเชื่อมต่อ API (Bridge) ---
-        const callApi = async (action, data = {}) => {
+        const isAssessmentTimerLoaded = ref(false);
+
+        // แบบประเมิน
+        const evalDay = ref(1);
+        const evalForm = ref({ origin: '', gift: '', overallRating: '', nextTopic: '', feedback: '' });
+        const day1Questions = ref([]);
+        const day2Questions = ref([]);
+        const subItems = [
+          { id: 1, text: 'หัวข้อเรื่องน่าสนใจ' },
+          { id: 2, text: 'ความเหมาะสมของเนื้อหา' },
+          { id: 3, text: 'ความรู้ที่ได้รับเป็นประโยชน์' },
+          { id: 4, text: 'ความเหมาะสมของสื่อการบรรยาย' },
+          { id: 5, text: 'ระยะเวลาเหมาะสม' }
+        ];
+
+        // กำหนดการและสแกน
+        const scheduleData = ref({ day1: [], day2: [] });
+        const downloadCount = ref(0);
+        const scanDay = ref('1');
+        const isScanning = ref(false);
+        const scannedUser = ref(null);
+        let html5QrCode = null;
+
+        // กล้องและรูปภาพ
+        const isCameraActive = ref(false);
+        const profilePreview = ref(null);
+        const cameraZoom = ref(1.0);
+        let webcam = null;
+        let cropper = null;
+        const cropModal = ref(null);
+
+        // --- 🟢 ส่วนที่ 2: ฟังก์ชันติดต่อ API ---
+        const api = async (action, data = {}) => {
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
@@ -3968,152 +4905,246 @@
                 return { success: false, message: "เชื่อมต่อฐานข้อมูลไม่ได้" };
             }
         };
-  
-        // --- 🟢 ส่วนที่ 4: Logic การทำงาน ---
+
+        // --- 🟢 ส่วนที่ 3: Logic การทำงานทั้งหมด ---
+
         onMounted(async () => {
             loading.value = true;
-            const res = await callApi('loadInitialData');
+            const res = await api('loadInitialData');
             if (res) {
-                COL.value = res.COL || COL.value;
-                REG_STATUS.value = res.REG_STATUS || {};
-                workGroupData.value = res.workGroups || {};
-                prefixOptions.value = res.prefixes || [];
-                affiliationOptions.value = res.affiliations || [];
-                professionOptions.value = res.professions || [];
+                COL.value = res.COL;
+                REG_STATUS.value = res.REG_STATUS;
+                workGroupData.value = res.workGroups;
+                prefixOptions.value = res.prefixes;
+                affiliationOptions.value = res.affiliations;
+                professionOptions.value = res.professions;
                 deadlineTimestamp.value = res.deadlines.reg;
                 externalDeadline.value = res.deadlines.external;
                 assessmentTimer.value = res.deadlines.assessment;
                 certDeadline.value = res.deadlines.cert;
                 isTimerLoaded.value = true;
+                isAssessmentTimerLoaded.value = true;
+                isReady.value = true;
             }
-            
-            // โหลดข้อมูลเสริมอื่นๆ ป้องกันหน้าจอขาว
-            const evalRes = await callApi('getAssessmentConfig');
-            if(evalRes?.success) {
-              day1Questions.value = evalRes.day1;
-              day2Questions.value = evalRes.day2;
-            }
-            
-            loading.value = false;
+            const modalEl = document.getElementById('cropModal');
+            if (modalEl) cropModal.value = new bootstrap.Modal(modalEl);
             initThailandJS();
             checkLocalSession();
+            loading.value = false;
         });
-  
+
+        const checkLocalSession = () => {
+          const s = localStorage.getItem('nursing_admin_session');
+          if (s) {
+            const d = JSON.parse(s);
+            isAdminLoggedIn.value = true;
+            login.value.user = d.user;
+            userRole.value = d.role;
+          }
+        };
+
         const handleSearch = async () => {
             if (!searchQuery.value) return;
             loading.value = true;
-            const res = await callApi('searchUser', { query: searchQuery.value });
+            const res = await api('searchUser', { query: searchQuery.value });
             loading.value = false;
-            if (res?.success) searchResult.value = res.data;
-            else Swal.fire("ไม่พบข้อมูล", "", "info");
+            if (res.success) {
+                searchResult.value = res.data;
+                setTimeout(() => document.getElementById('search-result-section')?.scrollIntoView({ behavior: 'smooth' }), 100);
+            } else Swal.fire("ไม่พบข้อมูล", res.message, "info");
         };
-  
+
         const submitForm = async () => {
             loading.value = true;
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             const action = isEditMode.value ? 'updateForm' : 'processForm';
-            const res = await callApi(action, { ...form.value, profilePreview: profilePreview.value });
+            const res = await api(action, { ...form.value, profilePreview: profilePreview.value });
+            if (res.success) {
+                Swal.fire("สำเร็จ", res.message, "success").then(() => { resetForm(); currentView.value = 'form'; });
+            } else Swal.fire("ล้มเหลว", res.message, "error");
             loading.value = false;
-            if (res?.success) {
-                Swal.fire("สำเร็จ", res.message, "success");
-                resetForm();
-            }
         };
-  
+
         const handleAdminLogin = async () => {
+            if (!login.value.pass) return;
             loading.value = true;
-            const res = await callApi('checkAdminLogin', { password: login.value.pass });
+            const res = await api('checkAdminLogin', { password: login.value.pass });
             loading.value = false;
-            if (res?.success) {
+            if (res.success) {
                 isAdminLoggedIn.value = true;
-                userRole.value = res.role;
                 login.value.user = res.username;
+                userRole.value = res.role;
+                localStorage.setItem('nursing_admin_session', JSON.stringify({ user: res.username, role: res.role }));
                 loadAdminTable();
-            } else {
-                Swal.fire("รหัสผ่านไม่ถูกต้อง", "", "error");
-            }
+            } else Swal.fire("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error");
         };
-  
+
         const loadAdminTable = async () => {
             loading.value = true;
-            const res = await callApi('getAdminAllData');
-            if (res) {
-                adminData.value = res;
-                originalAdminData.value = JSON.parse(JSON.stringify(res));
-            }
+            const res = await api('getAdminAllData');
+            adminData.value = res;
+            originalAdminData.value = JSON.parse(JSON.stringify(res));
             loading.value = false;
         };
-  
-        // --- 🟢 ส่วนที่ 5: Computed สำหรับจัดการตาราง Admin ---
-        const filteredAdminData = computed(() => {
-            if (!adminSearch.value && !filterRegType.value) return adminData.value;
-            const q = adminSearch.value.toLowerCase().trim();
-            return adminData.value.filter(item => {
-                const matchSearch = !q || (
-                    String(item[COL.value.FNAME]).toLowerCase().includes(q) ||
-                    String(item[COL.value.ID]).toLowerCase().includes(q)
-                );
-                const matchType = !filterRegType.value || item[COL.value.REG_TYPE] === filterRegType.value;
-                return matchSearch && matchType;
-            });
-        });
-  
-        const paginatedAdminData = computed(() => {
-            const start = (currentPage.value - 1) * itemsPerPage;
-            return filteredAdminData.value.slice(start, start + itemsPerPage);
-        });
-  
-        const totalPages = computed(() => Math.ceil(filteredAdminData.value.length / itemsPerPage));
-  
-        // --- ฟังก์ชันช่วยเหลืออื่นๆ ---
-        const selectMenu = (v) => { currentView.value = v; if (v === 'dashboard' && isAdminLoggedIn.value) loadAdminTable(); };
-        const resetForm = () => { isEditMode.value = false; step.value = 1; form.value = { title_Name: 'นางสาว', foodType: 'อาหารทั่วไป' }; profilePreview.value = null; };
-        const checkLocalSession = () => { const s = localStorage.getItem('nursing_admin_session'); if(s) { const d = JSON.parse(s); isAdminLoggedIn.value = true; login.value.user = d.user; userRole.value = d.role; } };
-  
-        // --- กล้องและรูปภาพ ---
-        const isCameraActive = ref(false);
-        const profilePreview = ref(null);
-        let webcam = null;
-        let cropper = null;
-        const startWebcam = async () => { isCameraActive.value = true; await nextTick(); webcam = new Webcam(document.getElementById('webcam'), 'user', document.getElementById('canvas')); await webcam.start(); };
-        const stopWebcam = () => { if(webcam) webcam.stop(); isCameraActive.value = false; };
-        const capturePhoto = () => { 
-          const c = document.getElementById('canvas'); 
-          const v = document.getElementById('webcam');
-          c.width = v.videoWidth; c.height = v.videoHeight;
-          c.getContext('2d').drawImage(v, 0, 0);
-          openCropModal(c.toDataURL('image/jpeg'));
+
+        const saveAdminUpdate = async (item) => {
+            savingRows.value[item.rowNumber] = true;
+            const res = await api('updateAdminStatus', { rowNumber: item.rowNumber, item: item });
+            if (res.success) {
+              Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 800, showConfirmButton: false });
+              loadAdminTable();
+            }
+            savingRows.value[item.rowNumber] = false;
+        };
+
+        const confirmDelete = (rowNum) => {
+          Swal.fire({ title: 'ลบข้อมูล?', text: "ไม่สามารถย้อนกลับได้", icon: 'warning', showCancelButton: true }).then(async (r) => {
+            if (r.isConfirmed) {
+              const res = await api('deleteRegistration', { rowNumber: rowNum });
+              if (res.success) loadAdminTable();
+            }
+          });
+        };
+
+        // --- แบบประเมิน ---
+        const fetchAssessmentConfig = async () => {
+          loadingEval.value = true;
+          const res = await api('getAssessmentConfig');
+          if (res.success) { day1Questions.value = res.day1; day2Questions.value = res.day2; }
+          loadingEval.value = false;
+        };
+
+        const submitEvaluation = async (e) => {
+          e.preventDefault();
+          loading.value = true;
+          const res = await api('saveAssessment', { ...evalForm.value, evalDay: evalDay.value });
+          if (res.success) {
+            Swal.fire("สำเร็จ", "ขอบคุณสำหรับการประเมิน", "success");
+            currentView.value = 'form';
+          }
+          loading.value = false;
+        };
+
+        // --- กำหนดการ ---
+        const navToSchedule = async () => {
+          currentView.value = 'schedule';
+          loadingSchedule.value = true;
+          const res = await api('getSchedule');
+          if (res.success) scheduleData.value = res.data;
+          loadingSchedule.value = false;
+        };
+
+        // --- สแกน QR ---
+        const startScanner = () => {
+          isScanning.value = true;
+          setTimeout(() => {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+            (txt) => { processAttendance(txt); stopScanner(); });
+          }, 500);
+        };
+
+        const stopScanner = () => { if (html5QrCode) { html5QrCode.stop(); html5QrCode = null; } isScanning.value = false; };
+
+        const processAttendance = async (txt) => {
+          loadingScanner.value = true;
+          const res = await api('recordAttendance', { text: txt, day: scanDay.value });
+          if (res.success) {
+            Swal.fire("สำเร็จ", res.message, "success");
+            loadAdminTable();
+          } else Swal.fire("ล้มเหลว", res.message, "error");
+          loadingScanner.value = false;
+        };
+
+        // --- รูปภาพและกล้อง ---
+        const startWebcam = async () => {
+          isCameraActive.value = true;
+          await nextTick();
+          webcam = new Webcam(document.getElementById('webcam'), 'user', document.getElementById('canvas'));
+          await webcam.start();
+        };
+
+        const capturePhoto = () => {
+          const canvas = document.getElementById('canvas');
+          const video = document.getElementById('webcam');
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          openCropModal(canvas.toDataURL('image/jpeg'));
           stopWebcam();
         };
+
         const openCropModal = (src) => {
-          const img = document.getElementById('imageToCrop');
-          img.src = src;
-          const m = new bootstrap.Modal(document.getElementById('cropModal'));
-          m.show();
-          if(cropper) cropper.destroy();
-          setTimeout(() => { cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1 }); }, 300);
+          document.getElementById('imageToCrop').src = src;
+          cropModal.value.show();
+          setTimeout(() => {
+            cropper = new Cropper(document.getElementById('imageToCrop'), { aspectRatio: 1, viewMode: 1 });
+          }, 300);
         };
+
         const applyCrop = () => {
           profilePreview.value = cropper.getCroppedCanvas({ width: 400, height: 400 }).toDataURL('image/jpeg');
-          bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
+          cropModal.value.hide();
         };
-        const retakePhoto = () => { profilePreview.value = null; startWebcam(); };
-  
+
+        const stopWebcam = () => { if(webcam) webcam.stop(); isCameraActive.value = false; };
+
+        // --- ฟังก์ชันช่วยเหลืออื่นๆ ---
+        const selectMenu = (v) => { 
+          currentView.value = v; 
+          if(v === 'AssessmentForm') fetchAssessmentConfig();
+        };
+        const resetForm = () => { 
+          isEditMode.value = false; step.value = 1; profilePreview.value = null;
+          form.value = { title_Name: 'นางสาว', foodType: 'อาหารทั่วไป', internalPosition: 'พยาบาล' };
+        };
+        const formatThaiDate = (v, thai) => { if(!v) return '-'; const d = new Date(v); return d.toLocaleDateString('th-TH', { day:'numeric', month:'short', year: thai ? 'numeric' : '2-digit' }); };
+
+        // Computed
+        const filteredAdminData = computed(() => {
+          return adminData.value.filter(i => {
+            const mType = !filterRegType.value || i[COL.value.REG_TYPE] === filterRegType.value;
+            const mQuery = !searchAdminQuery.value || JSON.stringify(i).toLowerCase().includes(searchAdminQuery.value.toLowerCase());
+            return mType && mQuery;
+          });
+        });
+        const paginatedAdminData = computed(() => filteredAdminData.value.slice((currentPage.value-1)*itemsPerPage, currentPage.value*itemsPerPage));
+        const totalPages = computed(() => Math.ceil(filteredAdminData.value.length / itemsPerPage));
+        const canUserEdit = computed(() => isAdminLoggedIn.value || (deadlineTimestamp.value && Date.now() < deadlineTimestamp.value));
+        const isExternalClosed = computed(() => externalDeadline.value && Date.now() > externalDeadline.value);
+        const isCertTimeOpen = computed(() => isAdminLoggedIn.value || (certDeadline.value && Date.now() >= certDeadline.value));
+        const canDownload = (i) => i[COL.value.CERT_URL] && i[COL.value.CERT_URL] !== '-';
+        const isRowChanged = (i) => JSON.stringify(i) !== JSON.stringify(originalAdminData.value.find(o => o.rowNumber === i.rowNumber));
+
         return {
-            currentView, step, loading, isAdminLoggedIn, userRole, login, showPassword,
-            COL, REG_STATUS, form, adminSearch, filterRegType, adminData, filteredAdminData, paginatedAdminData, totalPages, currentPage,
-            searchQuery, searchResult, day1Questions, day2Questions, subItems, scheduleData,
-            prefixOptions, affiliationOptions, professionOptions, workGroupData, currentDepts,
-            onWorkGroupChange: () => { currentDepts.value = workGroupData.value[form.value.workGroup] || []; },
-            handleSearch, submitForm, handleAdminLogin, selectMenu, resetForm,
-            isCameraActive, profilePreview, startWebcam, stopWebcam, capturePhoto, applyCrop, retakePhoto,
-            formatPhone: (e) => { let v = e.target.value.replace(/\D/g, ""); if (v.length > 3 && v.length <= 6) v = v.slice(0, 3) + "-" + v.slice(3); else if (v.length > 6) v = v.slice(0, 3) + "-" + v.slice(3, 6) + "-" + v.slice(6, 10); form.value.phoneNumber = v; },
-            scrollToTop: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
-            scrollToBottom: () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-        };
+          isReady, loading, currentView, step, isEditMode, form, editForm, isAdminLoggedIn, userRole, login,
+          COL, REG_STATUS, prefixOptions, workGroupData, currentDepts, affiliationOptions, professionOptions,
+          searchQuery, searchResult, adminSearch, searchAdminQuery, filterRegType, paginatedAdminData, currentPage, totalPages,
+          day1Questions, day2Questions, evalDay, evalForm, subItems, loadingEval,
+          scheduleData, loadingSchedule, downloadCount, isScanning, scanDay, scannedUser,
+          isCameraActive, profilePreview, cameraZoom, deadlineTimestamp, externalDeadline, assessmentTimer, certDeadline,
+          api, handleSearch, submitForm, handleAdminLogin, logoutAdmin, selectMenu, resetForm,
+          onWorkGroupChange: () => currentDepts.value = workGroupData.value[form.value.workGroup] || [],
+          prepareEdit: (i) => { isEditMode.value = true; form.value = {...i}; profilePreview.value = i[COL.value.IMAGE]; step.value = 1; },
+          formatThaiDate, canUserEdit, isExternalClosed, isCertTimeOpen, canDownload, isRowChanged,
+          saveAdminUpdate, confirmDelete, openAdminEditModal: (i) => { editForm.value = {...i}; new bootstrap.Modal('#adminEditModal').show(); },
+          submitAdminEdit: async () => { const res = await api('updateForm', editForm.value); if(res.success) loadAdminTable(); },
+          changePage: (p) => currentPage.value = p,
+          startWebcam, stopWebcam, capturePhoto, applyCrop, retakePhoto: () => { profilePreview.value = null; startWebcam(); },
+          handleFileUpload: (e) => { const reader = new FileReader(); reader.onload = (ev) => openCropModal(ev.target.result); reader.readAsDataURL(e.target.files[0]); },
+          handleSlipUpload: (e) => { const reader = new FileReader(); reader.onload = (ev) => form.value.slipImage = ev.target.result; reader.readAsDataURL(e.target.files[0]); },
+          startScanner, stopScanner, changeDay: (d) => evalDay.value = d, submitEvaluation,
+          navToSchedule, handleDownload: () => window.open('https://drive.google.com/file/d/your_id/view'),
+          openSpeakerModal: (s) => { document.getElementById('modalImageExpanded').src = s.img; document.getElementById('speakerDetailModal').style.display='flex'; },
+          closeSpeakerModal: () => document.getElementById('speakerDetailModal').style.display='none',
+          formatPhone: (e) => { let v = e.target.value.replace(/\D/g,''); form.value.phoneNumber = v.length > 6 ? v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6) : v; },
+          scrollToTop: () => window.scrollTo({top:0, behavior:'smooth'}),
+          scrollToBottom: () => window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'}),
+          hasImage: (img) => img && img !== '-',
+          OPTIONAL_POSITIONS
+        }
       }
     }).mount('#app');
-  
-    // ThailandJS
+
     function initThailandJS() {
         if (typeof $.Thailand !== 'undefined') {
             $.Thailand({
@@ -4131,4 +5162,5 @@
   </script>
 
 </body>
+
 </html>
