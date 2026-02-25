@@ -59,24 +59,68 @@
             }
         }
 
-        async function scanQR() {
-            const result = await liff.scanCodeV2();
-            if (result.value) {
-                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                const res = await callGAS('recordAttendance', { text: result.value, day: day, staffInfo: staff });
-                Swal.close();
-                if (res.success) {
-                    document.getElementById('result').classList.remove('hidden');
-                    document.getElementById('u-name').innerText = res.user.name;
-                    document.getElementById('u-id').innerText = "ID: " + res.user.id;
-                    document.getElementById('u-time').innerText = "เช็คอินแล้ว: " + res.user.time;
-                    document.getElementById('u-img').src = res.user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-                    Swal.fire("สำเร็จ", res.user.name, "success");
-                } else {
-                    Swal.fire("ผิดพลาด", res.message, "error");
-                }
-            }
+// แก้ไขเฉพาะส่วน Script ใน index.html ให้เรียกใช้งานข้อมูลให้ครบ
+async function scanQR() {
+    const result = await liff.scanCodeV2();
+    if (result.value) {
+        processAttendance(result.value, false);
+    }
+}
+
+async function processAttendance(qrText, confirmSkip) {
+    Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+    
+    const res = await callGAS('recordAttendance', { 
+        text: qrText, 
+        day: day, 
+        confirmSkip: confirmSkip, 
+        staffInfo: staff 
+    });
+    
+    Swal.close();
+    
+    if (res.success) {
+        // แสดงผลลัพธ์
+        document.getElementById('result').classList.remove('hidden');
+        document.getElementById('u-name').innerText = res.user.name;
+        document.getElementById('u-id').innerText = "ID: " + res.user.id;
+        document.getElementById('u-dept').innerText = res.user.dept || "ไม่ระบุหน่วยงาน";
+        document.getElementById('u-time').innerText = "สำเร็จเมื่อ: " + res.user.time;
+        document.getElementById('u-img').src = res.user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        
+        Swal.fire("สำเร็จ", res.user.name, "success");
+        updateHistory(); // อัปเดตรายชื่อล่าสุดทันที
+    } else if (res.requireConfirm) {
+        // กรณีข้ามวัน ให้ขึ้น Pop-up ถาม
+        const confirmRes = await Swal.fire({
+            title: 'ยังไม่ได้เช็คชื่อวันที่ 1',
+            text: res.message,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'ใช่, บันทึกวันที่ 2 เลย'
+        });
+        if (confirmRes.isConfirmed) {
+            processAttendance(qrText, true);
         }
+    } else {
+        Swal.fire("พบปัญหา", res.message, "error");
+    }
+}
+
+// ฟังก์ชันดึงรายชื่อล่าสุดมาโชว์ที่หน้าจอ
+async function updateHistory() {
+    const res = await callGAS('getRecentRecords', { day: day });
+    const list = document.getElementById('historyList'); // ตรวจสอบว่ามี id="historyList" ใน HTML
+    if (res.success && res.records.length > 0) {
+        list.innerHTML = res.records.map(rec => `
+            <div class="flex items-center gap-3 p-3 bg-white border-b">
+                <div class="text-xs font-bold text-indigo-500">${rec.id}</div>
+                <div class="flex-grow text-sm font-medium">${rec.name}</div>
+                <div class="text-[10px] text-slate-400">${rec.time}</div>
+            </div>
+        `).join('');
+    }
+}
 
         function changeDay(d) {
             day = d;
