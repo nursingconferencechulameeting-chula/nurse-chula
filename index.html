@@ -130,20 +130,29 @@
                     liff.login();
                 } else {
                     const profile = await liff.getProfile();
+                    
+                    // ปรับการเรียก Fetch ให้ข้ามปัญหา CORS บนมือถือ
                     const res = await fetch(GAS_URL, { 
-                        method: 'POST', 
+                        method: 'POST',
+                        mode: 'no-cors', // เพิ่มโหมดนี้หากยังมีปัญหา แต่ปกติ GAS ไม่ต้องใช้ถ้าตั้งค่า Anyone
+                        headers: { 'Content-Type': 'text/plain' }, // ใช้ text/plain แทน application/json เพื่อเลี่ยง CORS preflight
                         body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: profile.userId } }) 
                     });
-                    const result = await res.json();
+
+                    // เนื่องจาก GAS จะ Redirect (302) เราต้องเรียกซ้ำหากไม่มีข้อมูลออกมา
+                    // วิธีที่ชัวร์ที่สุดสำหรับ GAS คือใช้เทคนิคเรียกแบบปกติแต่จัดการ Error
+                    const result = await fetch(GAS_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: profile.userId } }) 
+                    }).then(r => r.json());
 
                     if (result.isAllowed) {
                         staff = result;
                         document.getElementById('auth-overlay').classList.add('hidden');
                         document.getElementById('main-content').classList.remove('hidden');
-                        document.getElementById('staff-name').innerText = `เจ้าหน้าที่: ${result.name} (${result.role})`;
+                        document.getElementById('staff-name').innerText = `เจ้าหน้าที่: ${result.name}`;
                         
-                        // ปรับ UI ตามอุปกรณ์
-                        if (liff.isInClient() && liff.getOS() !== "web") {
+                        if (liff.isInClient()) {
                             document.getElementById('btn-scan-line').classList.remove('hidden');
                             document.getElementById('pc-scanner-area').classList.add('hidden');
                         }
@@ -153,7 +162,9 @@
                     }
                 }
             } catch (e) {
-                Swal.fire("Error", "ไม่สามารถเชื่อมต่อระบบได้", "error");
+                console.error(e);
+                // หากค้างที่หน้าจอนี้ ให้แสดง Error ออกมาดู
+                document.getElementById('auth-overlay').innerHTML = `<p class='p-4 text-red-500'>เกิดข้อผิดพลาด: ${e.message}<br>กรุณารีเฟรชหรือเปิดใหม่</p>`;
             }
         }
 
