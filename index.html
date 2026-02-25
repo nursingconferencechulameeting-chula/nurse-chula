@@ -179,6 +179,28 @@
             const val = document.getElementById('manual-input').value.trim();
             if (val) { record(val, false); document.getElementById('manual-input').value = ''; }
         }
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            // 1. สำหรับหน้า Login
+            const staffInput = document.getElementById('staff-id');
+            if (staffInput) {
+                staffInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        login();
+                    }
+                });
+            }
+        
+            // 2. สำหรับหน้ากรอก ID ด้วยมือ (Manual Input)
+            const manualInput = document.getElementById('manual-input');
+            if (manualInput) {
+                manualInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        handleManual();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
