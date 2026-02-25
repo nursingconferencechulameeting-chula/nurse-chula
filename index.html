@@ -19,7 +19,7 @@
         /* แก้ไขหน้า Login */
         #login-screen { position: fixed; inset: 0; background: #2d3436; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* Navbar - แก้ไขจุดที่ 1: เพิ่ม z-index เพื่อไม่ให้ประวัติเลื่อนมาทับ */
+        /* Navbar - แก้ไขจุดที่ 1: เพิ่ม z-index ป้องกันประวัติทับเมนู */
         .navbar { background: white; border-bottom: 1px solid #edf2f7; height: 75px; z-index: 1050 !important; position: relative; }
         .staff-badge { background: #6366f1; color: white; padding: 8px 15px; border-radius: 12px; font-weight: 700; text-transform: uppercase; }
         
@@ -52,7 +52,7 @@
 </head>
 <body>
 
-    <!-- Login Screen - แก้ไขจุดที่ 2: ปุ่ม Enter ทำงานผ่าน onsubmit -->
+    <!-- Login Screen - แก้ไขจุดที่ 2: ใช้ Form และ button type="submit" เพื่อให้ Enter ทำงาน -->
     <div id="login-screen">
         <form onsubmit="login(event)" class="bg-white p-5 rounded-5 shadow-lg text-center w-100" style="max-width: 380px;">
             <div class="staff-badge d-inline-block mb-3">STAFF LOGIN</div>
@@ -126,7 +126,6 @@
         let day = 1, staff = null, isScanning = false, currentStream = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        // --- Login Function ---
         async function login(event) {
             if(event) event.preventDefault();
             const id = document.getElementById('staff-id').value.trim();
@@ -146,7 +145,6 @@
             } catch (e) { Swal.fire('Error', 'การเชื่อมต่อล้มเหลว', 'error'); }
         }
 
-        // --- Manual Input Function ---
         function handleManual(event) {
             if(event) event.preventDefault();
             const val = document.getElementById('manual-input').value.trim();
@@ -223,7 +221,7 @@
                             let displayId = r.id.toString(); 
                             if(displayId.length < 3) displayId = displayId.padStart(3, '0');
                             
-                            // แก้ไขจุดที่ 3: แสดงแต่ตัวเลข ID
+                            // แก้ไขจุดที่ 3: แสดงเฉพาะเลข ID (ลบ ID- ออก)
                             return `
                             <div class="history-card shadow-sm">
                                 <div class="id-circle">${displayId}</div>
