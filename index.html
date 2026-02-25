@@ -2,123 +2,271 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LINE QR Check-in</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Scanner Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    <!-- เรียกใช้ jsQR -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Prompt', sans-serif; background: #f0f2f5; }
-        .btn-scan { background: #00b900; color: white; transition: 0.3s; }
-        .btn-scan:active { transform: scale(0.95); background: #009900; }
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        .scanner-container { position: relative; width: 100%; max-width: 400px; margin: auto; aspect-ratio: 1/1; overflow: hidden; border-radius: 2rem; }
+        #canvas { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* เส้นกรอบสแกนแบบล้ำๆ */
+        .scan-outline {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 70%; height: 70%; border: 2px solid rgba(255,255,255,0.3); border-radius: 1.5rem;
+        }
+        .scan-corner {
+            position: absolute; width: 30px; height: 30px; border: 4px solid #4f46e5;
+        }
+        .top-left { top: -2px; left: -2px; border-right: 0; border-bottom: 0; border-top-left-radius: 1rem; }
+        .top-right { top: -2px; right: -2px; border-left: 0; border-bottom: 0; border-top-right-radius: 1rem; }
+        .bottom-left { bottom: -2px; left: -2px; border-right: 0; border-top: 0; border-bottom-left-radius: 1rem; }
+        .bottom-right { bottom: -2px; right: -2px; border-left: 0; border-top: 0; border-bottom-right-radius: 1rem; }
+        
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(to right, transparent, #4f46e5, transparent);
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0% } 100% { top: 100% } }
+        
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        .day-active { background: #4f46e5 !important; color: white !important; }
     </style>
 </head>
-<body class="p-4 flex flex-col items-center justify-center min-h-screen">
+<body class="min-h-screen">
 
-    <div id="loader" class="text-center">
-        <div class="inline-block w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-        <p class="mt-2 text-green-600 font-bold">กำลังโหลดระบบ LINE...</p>
+    <!-- Login Overlay -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center animate-in zoom-in duration-300">
+            <div class="text-4xl mb-4">🛡️</div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Staff Access</h2>
+            <input type="password" id="staff-id-input" placeholder="กรอกรหัสเจ้าหน้าที่" class="w-full px-6 py-4 bg-slate-100 rounded-2xl mb-4 text-center font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+            <button onclick="login()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-all">เข้าสู่ระบบ</button>
+        </div>
     </div>
 
-    <div id="app" class="hidden w-full max-w-md bg-white p-6 rounded-3xl shadow-xl">
-        <div class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">ระบบเช็คชื่อ</h1>
-            <p id="staffName" class="text-green-600 font-bold text-sm">Staff: --</p>
-        </div>
-
-        <button onclick="openLineScanner()" class="btn-scan w-full py-6 rounded-2xl font-bold text-xl mb-6 shadow-lg flex items-center justify-center gap-3">
-            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M24 10.3c0-4.5-4.5-8.3-10.1-8.3S3.8 5.8 3.8 10.3c0 4 3.6 7.4 8.5 8.1l-.6 3.6s-.1.4.2.5c.2.1.4 0 .4 0l4.2-2.5c4.5-1.1 7.5-4.5 7.5-9.7z"/></svg>
-            สแกนด้วยกล้อง LINE
-        </button>
-
-        <div class="flex gap-2">
-            <input type="text" id="manualId" placeholder="ID" class="flex-grow border p-4 rounded-xl text-center font-bold outline-none focus:ring-2 focus:ring-green-500">
-            <button onclick="handleManual()" class="bg-gray-800 text-white px-6 rounded-xl font-bold">บันทึก</button>
-        </div>
-        
-        <div id="result" class="hidden mt-6 p-4 border-2 border-green-100 rounded-2xl bg-green-50 flex items-center gap-4">
-            <img id="resImg" class="w-16 h-16 rounded-lg object-cover bg-white">
-            <div>
-                <p id="resName" class="font-bold text-gray-800 text-lg"></p>
-                <p id="resTime" class="text-xs text-green-600 font-bold"></p>
+    <nav class="glass sticky top-0 z-50 border-b border-slate-200 px-6 py-4">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">QR</div>
+                <div>
+                    <h1 class="font-bold text-slate-800 text-sm">Meeting Check-in</h1>
+                    <p id="display-staff-name" class="text-[10px] text-indigo-500 font-bold uppercase tracking-widest">Auth Required</p>
+                </div>
+            </div>
+            <div class="flex bg-slate-200/50 p-1 rounded-xl">
+                <button onclick="changeDay(1)" id="day1-btn" class="day-active px-4 py-2 rounded-lg text-[10px] font-bold transition-all">DAY 1</button>
+                <button onclick="changeDay(2)" id="day2-btn" class="px-4 py-2 rounded-lg text-[10px] font-bold transition-all">DAY 2</button>
             </div>
         </div>
-    </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Scanner Card -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-200 overflow-hidden">
+                <div class="scanner-container bg-slate-900">
+                    <canvas id="canvas" hidden></canvas>
+                    <div id="placeholder" class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm flex-col gap-4">
+                        <div class="w-12 h-12 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
+                        รอเปิดกล้อง...
+                    </div>
+                    <!-- Viewfinder UI -->
+                    <div id="viewfinder" class="hidden absolute inset-0">
+                        <div class="scan-outline">
+                            <div class="scan-corner top-left"></div>
+                            <div class="scan-corner top-right"></div>
+                            <div class="scan-corner bottom-left"></div>
+                            <div class="scan-corner bottom-right"></div>
+                            <div class="scan-line"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                    <input type="text" id="manual-id" placeholder="พิมพ์ ID ที่นี่..." class="flex-grow px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-center">
+                    <button onclick="handleManual()" class="bg-slate-800 text-white px-8 rounded-2xl font-bold active:scale-95 transition-all">บันทึก</button>
+                </div>
+            </div>
+
+            <!-- Profile Card -->
+            <div id="result-card" class="hidden animate-in slide-in-from-bottom-5 duration-500 bg-white rounded-[2.5rem] p-6 shadow-xl border-2 border-indigo-50 flex items-center gap-6">
+                <img id="res-img" src="" class="w-24 h-24 rounded-2xl object-cover bg-slate-100 border-2 border-white shadow-md">
+                <div>
+                    <h3 id="res-name" class="text-xl font-bold text-slate-800">--</h3>
+                    <p id="res-dept" class="text-slate-500 text-xs mb-2">--</p>
+                    <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold border border-emerald-100">เช็คอิน: <span id="res-time">--</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Card -->
+        <div class="lg:col-span-5">
+            <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col h-[500px]">
+                <div class="p-6 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center">
+                    รายชื่อล่าสุด
+                    <span id="list-count" class="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-1 rounded-full">0</span>
+                </div>
+                <div id="history-list" class="p-4 space-y-3 overflow-y-auto flex-grow">
+                    <p class="text-center py-10 text-slate-300 italic text-sm">ไม่มีข้อมูล</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ซ่อน Video สำหรับดึงภาพมาลง Canvas -->
+    <video id="video" playsinline hidden></video>
 
     <script>
-        const LIFF_ID = "2009224948-SqUmr0cv";
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwiWK2OGyfZO8HyVKizYST4sCjgmkKMa5bZGT8Uh2uwLMa0GU9heiXDbq6epcRsZfov/exec";
-        let staffInfo = null;
+        let currentDay = 1, staffInfo = null, isProcessing = false;
+        
+        const video = document.getElementById("video");
+        const canvasElement = document.getElementById("canvas");
+        const canvas = canvasElement.getContext("2d");
+        const viewfinder = document.getElementById("viewfinder");
+        const placeholder = document.getElementById("placeholder");
 
-        async function initLIFF() {
+        // --- ระบบ Login ---
+        async function login() {
+            const id = document.getElementById('staff-id-input').value.trim();
+            if (!id) return;
+            Swal.fire({ title: 'กำลังตรวจสอบ...', didOpen: () => Swal.showLoading() });
+            
             try {
-                await liff.init({ liffId: LIFF_ID });
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaff', id: id }) });
+                const result = await res.json();
+                Swal.close();
+
+                if (result.isAllowed) {
+                    staffInfo = result;
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('display-staff-name').innerText = result.name;
+                    startCamera(); // เริ่มกล้องทันทีหลัง Login
+                    fetchHistory();
+                } else {
+                    Swal.fire('Error', 'รหัสเจ้าหน้าที่ไม่ถูกต้อง', 'error');
                 }
-                const profile = await liff.getProfile();
+            } catch (e) { Swal.fire('Error', 'ติดต่อ Server ไม่ได้', 'error'); }
+        }
+
+        // --- ระบบกล้องด้วย jsQR ---
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(stream) {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                requestAnimationFrame(tick);
+            });
+        }
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                placeholder.hidden = true;
+                canvasElement.hidden = false;
+                viewfinder.classList.remove('hidden');
+
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
                 
-                // ใช้ POST แบบง่ายที่สุดเพื่อเลี่ยง Failed to fetch
+                var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code && !isProcessing) {
+                    isProcessing = true;
+                    drawRect(code.location); // วาดกรอบสีเหลืองตอนเจอ QR
+                    processData(code.data);
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function drawRect(loc) {
+            canvas.beginPath();
+            canvas.lineWidth = 4;
+            canvas.strokeStyle = "#fbbf24";
+            canvas.moveTo(loc.topLeftCorner.x, loc.topLeftCorner.y);
+            canvas.lineTo(loc.topRightCorner.x, loc.topRightCorner.y);
+            canvas.lineTo(loc.bottomRightCorner.x, loc.bottomRightCorner.y);
+            canvas.lineTo(loc.bottomLeftCorner.x, loc.bottomLeftCorner.y);
+            canvas.closePath();
+            canvas.stroke();
+        }
+
+        async function processData(qrText) {
+            new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3').play().catch(e=>{});
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: profile.userId } })
+                    body: JSON.stringify({ action: 'record', data: { qrText, day: currentDay } })
                 });
-                const data = await res.json();
+                const result = await res.json();
+                Swal.close();
 
-                if (data.isAllowed) {
-                    staffInfo = data;
-                    document.getElementById('loader').classList.add('hidden');
-                    document.getElementById('app').classList.remove('hidden');
-                    document.getElementById('staffName').innerText = "เจ้าหน้าที่: " + data.name;
+                if (result.success) {
+                    showResult(result.user);
+                    fetchHistory();
                 } else {
-                    document.body.innerHTML = `<div class='text-center p-10 bg-white rounded-3xl shadow-lg mx-4'>
-                        <h2 class='text-red-500 font-bold text-xl mb-4'>ไม่มีสิทธิ์เข้าใช้งาน</h2>
-                        <p class='text-sm text-gray-400 mb-4'>ID ของคุณคือ:</p>
-                        <p class='bg-gray-100 p-3 rounded-lg font-mono text-[10px] break-all'>${profile.userId}</p>
-                    </div>`;
+                    Swal.fire('แจ้งเตือน', result.message, 'warning');
                 }
-            } catch (err) {
-                Swal.fire("Error", "Failed to connect: " + err.message, "error");
+            } catch (e) { Swal.fire('Error', 'บันทึกไม่สำเร็จ', 'error'); }
+            
+            // รอ 2 วินาทีก่อนเริ่มสแกนใหม่
+            setTimeout(() => { isProcessing = false; }, 2000);
+        }
+
+        function showResult(u) {
+            document.getElementById('result-card').classList.remove('hidden');
+            document.getElementById('res-name').innerText = u.name;
+            document.getElementById('res-dept').innerText = u.dept || "ทั่วไป";
+            document.getElementById('res-time').innerText = u.time;
+            document.getElementById('res-img').src = u.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        }
+
+        async function fetchHistory() {
+            const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getHistory', day: currentDay }) });
+            const result = await res.json();
+            const list = document.getElementById('history-list');
+            if (result.success && result.list.length > 0) {
+                document.getElementById('list-count').innerText = result.list.length;
+                list.innerHTML = result.list.map(r => `
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">${r.id.toString().slice(-3)}</div>
+                        <div class="flex-grow">
+                            <p class="text-xs font-bold text-slate-700">${r.name}</p>
+                            <p class="text-[9px] text-slate-400 uppercase tracking-tighter">${r.time}</p>
+                        </div>
+                    </div>
+                `).join('');
             }
         }
 
-        async function openLineScanner() {
-            try {
-                const result = await liff.scanCodeV2();
-                if (result.value) processCheckin(result.value);
-            } catch (e) { console.log("User closed scanner"); }
-        }
-
-        async function processCheckin(id) {
-            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-            try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: id, day: 1, staffInfo: staffInfo } })
-                });
-                const data = await res.json();
-                Swal.close();
-
-                if (data.success) {
-                    document.getElementById('result').classList.remove('hidden');
-                    document.getElementById('resName').innerText = data.user.name;
-                    document.getElementById('resTime').innerText = "สแกนสำเร็จ: " + data.user.time;
-                    document.getElementById('resImg').src = data.user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-                    Swal.fire("สำเร็จ", data.user.name, "success");
-                } else {
-                    Swal.fire("ไม่สำเร็จ", data.message, "error");
-                }
-            } catch (err) { Swal.fire("Error", "Failed to fetch", "error"); }
+        function changeDay(d) {
+            currentDay = d;
+            document.getElementById('day1-btn').classList.toggle('day-active', d === 1);
+            document.getElementById('day2-btn').classList.toggle('day-active', d === 2);
+            fetchHistory();
         }
 
         function handleManual() {
-            const id = document.getElementById('manualId').value;
-            if(id) processCheckin(id);
+            const val = document.getElementById('manual-id').value.trim();
+            if (val && !isProcessing) {
+                isProcessing = true;
+                processData(val);
+                document.getElementById('manual-id').value = '';
+            }
         }
-
-        window.onload = initLIFF;
     </script>
 </body>
 </html>
