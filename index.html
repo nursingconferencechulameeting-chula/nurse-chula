@@ -227,24 +227,79 @@
             }
         }
 
+        // คำสั่งตรวจสอบ และส่งไปบันทึก
         async function onScanSuccess(decodedText) {
             if (isProcessing) return;
             isProcessing = true;
             showProcessing(true);
+            
+            // เรียกฟังก์ชันส่งข้อมูล (แยกออกมาเพื่อให้เรียกซ้ำได้กรณีต้องการยืนยัน)
+            await sendAttendanceData(decodedText, false);
+        }
+
+        async function sendAttendanceData(decodedText, confirmSkip = false) {
             try {
-                const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: decodedText, day: selectedDay } }) });
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: 'recordAttendance', 
+                        data: { 
+                            text: decodedText, 
+                            day: selectedDay,
+                            confirmSkip: confirmSkip // ส่งค่ายืนยัน (เริ่มต้นเป็น false)
+                        } 
+                    }) 
+                });
+                
                 const result = await response.json();
+
                 if (result.success) {
                     playTone('beepSuccess');
                     showUserData(result.user);
                     updateHistory();
-                } else {
+                    showProcessing(false);
+                    setTimeout(() => { isProcessing = false; }, 2000);
+                } 
+                else if (result.requireConfirm) {
+                    // --- กรณีตรวจพบว่าวันที่ 2 แต่ไม่ได้ลงวันที่ 1 ---
+                    showProcessing(false); // ปิดหน้าจอโหลดชั่วคราวเพื่อให้กด Popup ได้
                     playTone('beepError');
+
+                    const confirmResult = await Swal.fire({
+                        title: 'ตรวจพบข้อมูลไม่ครบ',
+                        text: result.message,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4f46e5',
+                        cancelButtonColor: '#64748b',
+                        confirmButtonText: 'ยืนยันลงชื่อวันที่ 2',
+                        cancelButtonText: 'ยกเลิก'
+                    });
+
+                    if (confirmResult.isConfirmed) {
+                        showProcessing(true); // เปิดหน้าจอโหลดใหม่
+                        await sendAttendanceData(decodedText, true); // ส่งค่าเดิมแต่เปลี่ยน confirmSkip เป็น true
+                    } else {
+                        isProcessing = false;
+                    }
+                } 
+                else {
+                    // กรณี Error อื่นๆ เช่น ชำระเงิน หรือ สแกนซ้ำ
+                    playTone('beepError');
+                    showProcessing(false);
                     const isPayment = result.message.includes("ชำระเงิน");
-                    Swal.fire({ icon: isPayment ? 'warning' : 'error', title: isPayment ? 'ปัญหาการชำระเงิน' : 'ล้มเหลว', text: result.message });
+                    Swal.fire({ 
+                        icon: isPayment ? 'warning' : 'error', 
+                        title: isPayment ? 'ปัญหาการชำระเงิน' : 'เกิดข้อผิดพลาด', 
+                        text: result.message 
+                    });
+                    setTimeout(() => { isProcessing = false; }, 2000);
                 }
-            } catch (err) { Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'); }
-            finally { showProcessing(false); setTimeout(() => { isProcessing = false; }, 2000); }
+            } catch (err) { 
+                showProcessing(false);
+                Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'); 
+                isProcessing = false;
+            }
         }
 
         async function handleFileUpload(event) {
