@@ -19,12 +19,12 @@
         /* แก้ไขหน้า Login */
         #login-screen { position: fixed; inset: 0; background: #2d3436; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* Navbar */
-        .navbar { background: white; border-bottom: 1px solid #edf2f7; height: 75px; }
+        /* Navbar - แก้ไขจุดที่ 1: เพิ่ม z-index เพื่อไม่ให้ประวัติเลื่อนมาทับ */
+        .navbar { background: white; border-bottom: 1px solid #edf2f7; height: 75px; z-index: 1050 !important; position: relative; }
         .staff-badge { background: #6366f1; color: white; padding: 8px 15px; border-radius: 12px; font-weight: 700; text-transform: uppercase; }
         
         /* Container หลัก */
-        .main-scroll-area { height: calc(100vh - 75px); overflow-y: auto; padding: 15px; }
+        .main-scroll-area { height: calc(100vh - 75px); overflow-y: auto; padding: 15px; position: relative; z-index: 1; }
         
         /* Scanner Card */
         .card-custom { background: white; border-radius: 2.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; }
@@ -34,7 +34,7 @@
         /* ปรับปรุง Input Group ให้ปุ่มไม่เพี้ยน */
         .manual-input-group { background: #f8fafc; border-radius: 1.5rem; padding: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
         .manual-input-group input { border: none; background: transparent; padding: 12px; text-align: center; font-weight: 600; flex-grow: 1; outline: none; min-width: 0; }
-        .manual-input-group btn { border-radius: 1.2rem !important; font-weight: 700; }
+        .manual-input-group button { border-radius: 1.2rem !important; font-weight: 700; }
 
         /* รายการสแกนล่าสุด (History) */
         .history-card { background: white; border-radius: 1.5rem; padding: 15px; margin-bottom: 12px; border: 1px solid #f1f5f9; display: flex; align-items: center; transition: 0.2s; }
@@ -52,7 +52,7 @@
 </head>
 <body>
 
-    <!-- Login Screen -->
+    <!-- Login Screen - แก้ไขจุดที่ 2: ปุ่ม Enter ทำงานผ่าน onsubmit -->
     <div id="login-screen">
         <form onsubmit="login(event)" class="bg-white p-5 rounded-5 shadow-lg text-center w-100" style="max-width: 380px;">
             <div class="staff-badge d-inline-block mb-3">STAFF LOGIN</div>
@@ -96,7 +96,7 @@
                 <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger w-100 py-3 rounded-4 fw-bold fs-5 shadow d-none">หยุดสแกน</button>
             </div>
 
-            <!-- Manual Input (แก้ปุ่มล้น + แก้ Enter) -->
+            <!-- Manual Input -->
             <form onsubmit="handleManual(event)" class="card-custom p-4">
                 <div class="manual-input-group">
                     <input type="text" id="manual-input" placeholder="กรอกรหัส ID..." autocomplete="off">
@@ -113,7 +113,6 @@
             </div>
 
             <div id="history-box">
-                <!-- Data list -->
                 <p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>
             </div>
 
@@ -127,7 +126,7 @@
         let day = 1, staff = null, isScanning = false, currentStream = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        // --- แก้ไขปุ่ม Enter (Login) ---
+        // --- Login Function ---
         async function login(event) {
             if(event) event.preventDefault();
             const id = document.getElementById('staff-id').value.trim();
@@ -147,7 +146,7 @@
             } catch (e) { Swal.fire('Error', 'การเชื่อมต่อล้มเหลว', 'error'); }
         }
 
-        // --- แก้ไขปุ่ม Enter (Manual) ---
+        // --- Manual Input Function ---
         function handleManual(event) {
             if(event) event.preventDefault();
             const val = document.getElementById('manual-input').value.trim();
@@ -221,13 +220,13 @@
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
                     if(result.records.length > 0) {
                         box.innerHTML = result.records.map(r => {
-                            // --- แก้ไขการแสดงผล ID ให้สวยงาม (ตัวอย่าง r.id = 009) ---
                             let displayId = r.id.toString(); 
                             if(displayId.length < 3) displayId = displayId.padStart(3, '0');
                             
+                            // แก้ไขจุดที่ 3: แสดงแต่ตัวเลข ID
                             return `
                             <div class="history-card shadow-sm">
-                                <div class="id-circle">ID-${displayId}</div>
+                                <div class="id-circle">${displayId}</div>
                                 <div class="history-info">
                                     <h6>${r.name}</h6>
                                     <small><i class="fa-regular fa-clock me-1"></i> ${r.time}</small>
