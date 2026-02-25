@@ -3,294 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart QR Check-in System (LIFF)</title>
+    <title>Smart QR Check-in System (PC & Mobile)</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background: #f8fafc; color: #1e293b; }
-        .glass-nav { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid #e2e8f0; }
-        .day-tab { color: #64748b; background: transparent; transition: all 0.2s; }
-        .day-tab.active { background: #4f46e5 !important; color: #ffffff !important; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2); }
-        #loading-overlay, #auth-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        .loader-ring { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top: 5px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        body { font-family: 'Prompt', sans-serif; background: #f1f5f9; }
+        .day-tab.active { background: #4f46e5 !important; color: white !important; }
+        #reader { width: 100%; border-radius: 1.5rem; overflow: hidden; border: none !important; }
+        #reader video { border-radius: 1.5rem; object-fit: cover; }
         .hidden { display: none !important; }
     </style>
 </head>
+<body class="min-h-screen pb-10">
 
-<body class="min-h-screen">
-    <div id="auth-overlay">
-        <div class="loader-ring"></div>
-        <p class="text-indigo-600 font-bold animate-pulse">กำลังตรวจสอบสิทธิ์เข้าใช้งาน...</p>
+    <div id="auth-overlay" class="fixed inset-0 bg-white z-[1000] flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-indigo-600 font-bold tracking-wide">กำลังตรวจสอบสิทธิ์...</p>
     </div>
 
-    <div id="main-content" class="hidden">
-        <nav class="glass-nav sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="bg-indigo-600 p-2 rounded-xl shadow-md text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                    </div>
-                    <div>
-                        <span class="text-xl font-bold text-indigo-900 block leading-tight">Smart Check-in</span>
-                        <span id="staff-info" class="text-[10px] text-indigo-500 font-semibold uppercase tracking-widest">Checking...</span>
-                    </div>
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                 </div>
-
-                <div class="grid grid-cols-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner w-full md:w-auto">
-                    <button onclick="selectDay(1)" id="btn-day-1" class="day-tab active px-8 py-2 rounded-xl text-sm font-bold">วันที่ 1</button>
-                    <button onclick="selectDay(2)" id="btn-day-2" class="day-tab px-8 py-2 rounded-xl text-sm font-bold">วันที่ 2</button>
+                <div>
+                    <h1 class="font-bold text-slate-800 leading-tight">ระบบเช็คชื่อประชุม</h1>
+                    <p id="staff-name" class="text-[10px] text-indigo-500 font-bold uppercase tracking-tighter">Staff Checking...</p>
                 </div>
             </div>
-        </nav>
+            <div class="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+                <button onclick="selectDay(1)" id="btn-day-1" class="day-tab active flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all">วันที่ 1</button>
+                <button onclick="selectDay(2)" id="btn-day-2" class="day-tab flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all">วันที่ 2</button>
+            </div>
+        </div>
+    </nav>
 
-        <main class="max-w-7xl mx-auto p-4 md:p-8">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div class="lg:col-span-7 flex flex-col gap-6">
-                    <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border-4 border-indigo-50 relative overflow-hidden">
-                        <div id="loading-overlay" class="hidden">
-                            <div class="loader-ring"></div>
-                            <p class="text-indigo-600 font-bold">กำลังประมวลผล...</p>
-                        </div>
+    <main id="main-content" class="max-w-6xl mx-auto p-4 md:p-6 hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <div class="lg:col-span-7 space-y-6">
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <span class="w-2 h-5 bg-indigo-500 rounded-full"></span> บันทึกเข้างาน
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 gap-3">
+                        <button id="btn-scan-line" onclick="scanByLine()" class="hidden flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white py-5 rounded-2xl font-bold shadow-lg shadow-emerald-100 transition-all active:scale-95">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 10.3c0-4.5-4.5-8.3-10.1-8.3S3.8 5.8 3.8 10.3c0 4 3.6 7.4 8.5 8.1l-.6 3.6s-.1.4.2.5c.2.1.4 0 .4 0l4.2-2.5c4.5-1.1 7.5-4.5 7.5-9.7z"/></svg>
+                            สแกนด้วยกล้อง LINE
+                        </button>
 
-                        <div class="space-y-4">
-                            <button onclick="scanByLine()" class="flex items-center justify-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white py-6 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full text-xl">
-                                📷 สแกนด้วยกล้อง LINE
+                        <div id="pc-scanner-area" class="space-y-3">
+                            <div id="reader" class="bg-slate-50 border-2 border-dashed border-slate-200"></div>
+                            <button id="btn-webcam" onclick="startWebcam()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold hover:bg-slate-900 transition-all">
+                                เปิดกล้อง Webcam
                             </button>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button onclick="document.getElementById('file-input').click()" class="bg-slate-100 text-slate-600 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all">อัปโหลดรูป</button>
-                                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
-                                <input type="text" id="manualIdInput" placeholder="กรอก ID เอง" class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center font-bold focus:border-indigo-400 outline-none">
-                            </div>
-                            <button onclick="handleManualSubmit()" class="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg">บันทึกข้อมูล</button>
                         </div>
-                    </div>
 
-                    <div id="resultContainer" class="hidden animate-in fade-in zoom-in duration-300">
-                        <div class="bg-white rounded-[2.5rem] p-6 shadow-2xl border-2 border-indigo-50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-                            <img id="userImg" src="" class="w-32 h-32 md:w-44 md:h-44 rounded-[2.5rem] object-cover bg-slate-100 border-4 border-white shadow-xl">
-                            <div class="text-center md:text-left space-y-4">
-                                <div>
-                                    <h2 id="resName" class="text-2xl md:text-4xl font-bold text-slate-800">--</h2>
-                                    <p id="resId" class="text-indigo-600 font-bold text-sm mt-1 uppercase tracking-widest">ID: --</p>
-                                </div>
-                                <div class="flex flex-wrap justify-center md:justify-start gap-2">
-                                    <div class="bg-slate-50 px-4 py-2 rounded-2xl text-sm border text-slate-600" id="resDept">--</div>
-                                    <div class="bg-green-50 text-green-700 px-4 py-2 rounded-2xl text-sm font-bold border border-green-100" id="resTime">--</div>
-                                </div>
-                            </div>
+                        <div class="relative py-2 flex items-center">
+                            <div class="flex-grow border-t border-slate-200"></div>
+                            <span class="flex-shrink mx-4 text-slate-400 text-xs font-medium">หรือกรอกข้อมูลเอง</span>
+                            <div class="flex-grow border-t border-slate-200"></div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <input type="text" id="manualId" placeholder="กรอกเลข ID" class="flex-grow px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl font-mono font-bold text-center focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            <button onclick="handleManual()" class="bg-indigo-600 text-white px-8 rounded-2xl font-bold hover:bg-indigo-700 active:scale-95 transition-all shadow-lg shadow-indigo-100">บันทึก</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="lg:col-span-5">
-                    <div class="bg-white rounded-[2.5rem] shadow-xl border h-full flex flex-col overflow-hidden max-h-[600px]">
-                        <div class="p-6 border-b flex justify-between items-center bg-slate-50/50">
-                            <h3 class="font-bold text-slate-700">รายชื่อล่าสุด</h3>
-                            <span id="recordCount" class="bg-indigo-600 text-white px-3 py-1 rounded-xl text-xs font-bold">0</span>
-                        </div>
-                        <div id="historyList" class="p-4 space-y-4 overflow-y-auto flex-grow bg-slate-50/20">
-                            <div class="text-center py-20 text-slate-300 italic">ยังไม่มีข้อมูล</div>
+                <div id="resultCard" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div class="bg-indigo-600 rounded-[2rem] p-1 shadow-xl overflow-hidden">
+                        <div class="bg-white rounded-[1.9rem] p-6 flex flex-col md:flex-row items-center gap-6">
+                            <img id="uImg" src="" class="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover shadow-md border-4 border-slate-50">
+                            <div class="text-center md:text-left space-y-2">
+                                <h2 id="uName" class="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">--</h2>
+                                <div class="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold font-mono" id="uId">ID: --</div>
+                                <p class="text-slate-500 text-sm" id="uDept">--</p>
+                                <div class="pt-2">
+                                    <span class="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold border border-emerald-100" id="uTime">เช็คอินสำเร็จ: --</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
 
-    <audio id="beepSuccess" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
-    <audio id="beepError" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
-    <div id="reader-hidden" style="display:none"></div>
+            <div class="lg:col-span-5">
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 flex flex-col h-[600px] sticky top-24">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                        <h3 class="font-bold text-slate-700">รายชื่อล่าสุด</h3>
+                        <span id="count" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
+                    </div>
+                    <div id="history" class="p-4 space-y-3 overflow-y-auto flex-grow custom-scrollbar">
+                        <p class="text-center text-slate-400 py-20 italic">กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <audio id="snd-ok" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+    <audio id="snd-err" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwiWK2OGyfZO8HyVKizYST4sCjgmkKMa5bZGT8Uh2uwLMa0GU9heiXDbq6epcRsZfov/exec";
         const LIFF_ID = "2009224948-SqUmr0cv";
-        let selectedDay = 1;
-        let isProcessing = false;
-        let currentStaff = null;
+        let day = 1, staff = null, isWork = false, html5QrScanner = null;
 
-        // --- 1. ระบบเริ่มต้นและตรวจสอบสิทธิ์ ---
-        async function initializeLiff() {
+        // --- ระบบเริ่มต้น ---
+        async function init() {
             try {
                 await liff.init({ liffId: LIFF_ID });
                 if (!liff.isLoggedIn()) {
                     liff.login();
                 } else {
-                    const context = liff.getContext();
                     const profile = await liff.getProfile();
+                    const context = liff.getContext();
                     const accessId = (context && context.groupId) ? context.groupId : profile.userId;
 
-                    const response = await fetch(GAS_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: accessId } })
-                    });
-                    const result = await response.json();
+                    const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: accessId } }) });
+                    const result = await res.json();
 
                     if (result.isAllowed) {
-                        currentStaff = { name: result.name, role: result.role };
+                        staff = result;
                         document.getElementById('auth-overlay').classList.add('hidden');
                         document.getElementById('main-content').classList.remove('hidden');
-                        document.getElementById('staff-info').innerText = `Staff: ${result.name}`;
+                        document.getElementById('staff-name').innerText = `เจ้าหน้าที่: ${result.name}`;
+                        
+                        // ปรับ UI ตามอุปกรณ์
+                        if (liff.isInClient()) {
+                            document.getElementById('btn-scan-line').classList.remove('hidden');
+                            document.getElementById('pc-scanner-area').classList.add('hidden');
+                        }
                         updateHistory();
                     } else {
-                        renderAccessDenied(accessId);
+                        renderNoAccess(accessId);
                     }
-                }
-            } catch (err) {
-                console.error("Auth Error:", err);
-                Swal.fire("System Error", "ไม่สามารถเข้าถึงฐานข้อมูลได้", "error");
-            }
-        }
-
-        function renderAccessDenied(id) {
-            document.getElementById('auth-overlay').innerHTML = `
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-rose-100 max-w-sm mx-4">
-                    <div class="text-rose-500 mb-4 text-6xl">🚫</div>
-                    <h1 class="text-2xl font-bold text-slate-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h1>
-                    <p class="text-slate-500 mb-4 text-sm">คุณไม่มีรายชื่อในฐานข้อมูลเจ้าหน้าที่</p>
-                    <div class="bg-slate-100 p-4 rounded-2xl mb-6 break-all">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ID ของคุณ</p>
-                        <p class="text-sm font-mono text-indigo-600">${id}</p>
-                    </div>
-                    <button onclick="copyAndClose('${id}')" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">คัดลอก ID และปิดแอป</button>
-                </div>`;
-        }
-
-        async function copyAndClose(id) {
-            await navigator.clipboard.writeText(id);
-            Swal.fire("คัดลอกแล้ว", "กรุณาส่ง ID นี้ให้แอดมิน", "success").then(() => liff.closeWindow());
-        }
-
-        // --- 2. การสแกนและการบันทึกข้อมูล ---
-        async function scanByLine() {
-            if (!liff.isInClient()) return Swal.fire("แจ้งเตือน", "กรุณาเปิดในแอป LINE", "warning");
-            try {
-                const result = await liff.scanCodeV2();
-                if (result.value) onScanSuccess(result.value);
-            } catch (err) { console.log("Scan cancelled"); }
-        }
-
-        async function onScanSuccess(text) {
-            if (isProcessing) return;
-            isProcessing = true;
-            showProcessing(true);
-            await sendAttendanceData(text, false);
-        }
-
-        async function sendAttendanceData(text, confirmSkip) {
-            try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        action: 'recordAttendance', 
-                        data: { 
-                            text: text, 
-                            day: selectedDay, 
-                            confirmSkip: confirmSkip,
-                            staffInfo: currentStaff 
-                        } 
-                    })
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    playTone('beepSuccess');
-                    showUserData(result.user);
-                    updateHistory();
-                    Swal.fire({ icon: 'success', title: 'เช็คอินสำเร็จ', timer: 1500, showConfirmButton: false });
-                } else if (result.requireConfirm) {
-                    const confirmRes = await Swal.fire({
-                        title: 'แจ้งเตือน', text: result.message, icon: 'warning',
-                        showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก'
-                    });
-                    if (confirmRes.isConfirmed) {
-                        return await sendAttendanceData(text, true); // รีเคอร์ซีฟเพื่อบันทึกแบบข้ามวัน
-                    }
-                } else {
-                    playTone('beepError');
-                    Swal.fire("พบปัญหา", result.message, "error");
                 }
             } catch (e) {
-                Swal.fire("Error", "เชื่อมต่อฐานข้อมูลล้มเหลว", "error");
-            } finally {
-                showProcessing(false);
-                isProcessing = false;
+                console.error(e);
+                Swal.fire("Error", "ไม่สามารถเชื่อมต่อระบบได้", "error");
             }
         }
 
-        // --- 3. การแสดงผล UI ---
-        function showProcessing(isWorking) {
-            document.getElementById('loading-overlay').classList.toggle('hidden', !isWorking);
+        // --- ฟังก์ชันสแกนและส่งข้อมูล ---
+        async function scanByLine() {
+            try {
+                const result = await liff.scanCodeV2();
+                if (result.value) processCheckin(result.value, false);
+            } catch (e) { console.log("User cancel"); }
         }
 
-        function showUserData(user) {
-            document.getElementById('resultContainer').classList.remove('hidden');
-            document.getElementById('resName').innerText = user.name;
-            document.getElementById('resId').innerText = "ID: " + user.id;
-            document.getElementById('resDept').innerText = user.dept || "ไม่ระบุหน่วยงาน";
-            document.getElementById('resTime').innerText = "เวลาเช็คอิน: " + user.time;
-            document.getElementById('userImg').src = user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-            // Scroll to view
-            document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth' });
+        function startWebcam() {
+            document.getElementById('btn-webcam').classList.add('hidden');
+            html5QrScanner = new Html5Qrcode("reader");
+            html5QrScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (text) => {
+                    html5QrScanner.stop();
+                    document.getElementById('btn-webcam').classList.remove('hidden');
+                    processCheckin(text, false);
+                }
+            );
         }
 
-        async function selectDay(day) {
-            selectedDay = day;
-            document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
-            document.getElementById(`btn-day-${day}`).classList.add('active');
-            updateHistory();
+        async function processCheckin(qrText, confirm) {
+            if (isWork) return;
+            isWork = true;
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day: day, confirmSkip: confirm, staffInfo: staff } })
+                });
+                const result = await res.json();
+                Swal.close();
+
+                if (result.success) {
+                    playSnd('snd-ok');
+                    showResult(result.user);
+                    updateHistory();
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
+                } else if (result.requireConfirm) {
+                    const c = await Swal.fire({ title: 'แจ้งเตือน', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'บันทึกเลย' });
+                    if (c.isConfirmed) { isWork = false; processCheckin(qrText, true); return; }
+                } else {
+                    playSnd('snd-err');
+                    Swal.fire("ไม่สำเร็จ", result.message, "error");
+                }
+            } catch (e) {
+                Swal.fire("Error", "ส่งข้อมูลไม่สำเร็จ", "error");
+            } finally { isWork = false; }
+        }
+
+        // --- ส่วนเสริม UI ---
+        function showResult(u) {
+            document.getElementById('resultCard').classList.remove('hidden');
+            document.getElementById('uName').innerText = u.name;
+            document.getElementById('uId').innerText = "ID: " + u.id;
+            document.getElementById('uDept').innerText = u.dept || "ทั่วไป";
+            document.getElementById('uTime').innerText = "สแกนเมื่อ: " + u.time;
+            document.getElementById('uImg').src = u.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+            window.scrollTo({ top: document.getElementById('resultCard').offsetTop - 100, behavior: 'smooth' });
         }
 
         async function updateHistory() {
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } }) });
-                const result = await res.json();
-                const list = document.getElementById('historyList');
-                if (result.success && result.records.length > 0) {
-                    list.innerHTML = result.records.map(rec => `
-                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-200 transition-colors">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-600">
-                                ${rec.id.toString().slice(-3)}
-                            </div>
-                            <div class="flex-grow">
-                                <p class="text-sm font-bold text-slate-800">${rec.name}</p>
-                                <p class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter italic">Checked at ${rec.time}</p>
-                            </div>
-                        </div>`).join('');
-                    document.getElementById('recordCount').innerText = result.records.length;
-                } else {
-                    list.innerHTML = `<div class="text-center py-10 text-slate-300 italic">ยังไม่มีข้อมูลของวันที่เลือก</div>`;
-                    document.getElementById('recordCount').innerText = '0';
-                }
-            } catch (e) { console.error("History Update Error"); }
+            const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: day } }) });
+            const result = await res.json();
+            const list = document.getElementById('history');
+            if (result.success && result.records.length > 0) {
+                list.innerHTML = result.records.map(r => `
+                    <div class="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl hover:shadow-md transition-all">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">${r.id.toString().slice(-3)}</div>
+                        <div class="flex-grow min-w-0">
+                            <p class="text-sm font-bold text-slate-700 truncate">${r.name}</p>
+                            <p class="text-[10px] text-slate-400 font-medium tracking-tight">เวลา ${r.time}</p>
+                        </div>
+                    </div>`).join('');
+                document.getElementById('count').innerText = result.records.length;
+            } else {
+                list.innerHTML = `<div class="text-center py-20 text-slate-300 italic">ไม่มีข้อมูลของวันนี้</div>`;
+            }
         }
 
-        async function handleManualSubmit() {
-            let input = document.getElementById('manualIdInput').value.trim();
-            if (!input) return;
-            onScanSuccess(input);
-            document.getElementById('manualIdInput').value = '';
+        function selectDay(d) {
+            day = d;
+            document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-day-${d}`).classList.add('active');
+            updateHistory();
         }
 
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            showProcessing(true);
-            const html5QrCode = new Html5Qrcode("reader-hidden");
-            try {
-                const decodedText = await html5QrCode.scanFile(file, true);
-                onScanSuccess(decodedText);
-            } catch (err) {
-                Swal.fire("ไม่พบ QR Code", "รูปภาพไม่ชัดเจนหรือไม่มีข้อมูล QR", "error");
-            } finally { showProcessing(false); }
+        function handleManual() {
+            const val = document.getElementById('manualId').value.trim();
+            if (val) { processCheckin(val, false); document.getElementById('manualId').value = ''; }
         }
 
-        function playTone(id) { document.getElementById(id).play().catch(e => { }); }
+        function playSnd(id) { document.getElementById(id).play().catch(e => { }); }
 
-        window.onload = initializeLiff;
+        function renderNoAccess(id) {
+            document.getElementById('auth-overlay').innerHTML = `<div class="p-8 bg-white rounded-3xl shadow-xl max-w-xs border-2 border-rose-50">
+                <div class="text-5xl mb-4">🔒</div>
+                <h1 class="text-xl font-bold mb-2">ไม่มีสิทธิ์ใช้งาน</h1>
+                <p class="text-slate-500 text-sm mb-6">เฉพาะเจ้าหน้าที่ที่มีรายชื่อในระบบเท่านั้น</p>
+                <p class="text-[10px] text-slate-400 font-bold mb-1 uppercase tracking-widest">ID ของคุณ</p>
+                <div class="bg-slate-100 p-3 rounded-xl font-mono text-xs text-indigo-600 break-all mb-6">${id}</div>
+                <button onclick="navigator.clipboard.writeText('${id}'); liff.closeWindow();" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold">คัดลอก ID และปิด</button>
+            </div>`;
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
