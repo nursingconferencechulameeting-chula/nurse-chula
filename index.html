@@ -60,9 +60,15 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <button id="start-btn" onclick="toggleScanner(true)" class="col-span-2 md:col-span-1 bg-emerald-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-emerald-100 active:scale-95 transition-all">เริ่มสแกน</button>
-                            <button onclick="toggleScanner(false)" class="col-span-2 md:col-span-1 bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold active:scale-95">หยุด</button>
+                        <div class="flex justify-center">
+                            <button id="start-btn" onclick="toggleScanner(true)" 
+                                class="w-full bg-emerald-500 text-white py-5 rounded-2xl font-bold shadow-lg shadow-emerald-100 active:scale-95 transition-all">
+                                เริ่มสแกน QR Code
+                            </button>
+                            <button id="stop-btn" onclick="toggleScanner(false)" 
+                                class="hidden w-full bg-red-500 text-white py-5 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all">
+                                หยุดทำงาน
+                            </button>
                         </div>
                     </div>
 
@@ -89,23 +95,16 @@
     <video id="video" playsinline hidden></video>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwiWK2OGyfZO8HyVKizYST4sCjgmkKMa5bZGT8Uh2uwLMa0GU9heiXDbq6epcRsZfov/exec"; // แทนที่ด้วย URL ของคุณ
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwiWK2OGyfZO8HyVKizYST4sCjgmkKMa5bZGT8Uh2uwLMa0GU9heiXDbq6epcRsZfov/exec";
         let day = 1, staff = null, isScanning = false, currentStream = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        // LOGIN LOGIC
+        // LOGIN
         async function login() {
             const id = document.getElementById('staff-id').value.trim();
             if (!id) return;
-            
-            const btn = document.getElementById('login-btn');
-            const spinner = document.getElementById('login-spinner');
-            const text = document.getElementById('login-text');
-
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            text.innerText = "กำลังเข้าสู่ระบบ...";
-
+            const btn = document.getElementById('login-btn'), spinner = document.getElementById('login-spinner'), text = document.getElementById('login-text');
+            btn.disabled = true; spinner.classList.remove('hidden'); text.innerText = "กำลังเข้าสู่ระบบ...";
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', id }) });
                 const result = await res.json();
@@ -116,39 +115,42 @@
                     fetchHistory();
                 } else { Swal.fire('Error', 'ไม่พบรายชื่อ', 'error'); }
             } catch (e) { Swal.fire('Error', 'เชื่อมต่อระบบไม่ได้', 'error'); }
-            finally {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                text.innerText = "เข้าสู่ระบบ";
-            }
+            finally { btn.disabled = false; spinner.classList.add('hidden'); text.innerText = "เข้าสู่ระบบ"; }
         }
 
-        // ENTER KEY BINDING
         document.getElementById('staff-id').onkeydown = e => { if(e.keyCode == 13) login(); };
         document.getElementById('manual-input').onkeydown = e => { if(e.keyCode == 13) handleManual(); };
 
-        // SCANNER LOGIC
+        // 1. SCANNER LOGIC - สลับปุ่มทำงาน
         async function toggleScanner(start) {
             const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const placeholder = document.getElementById('placeholder');
+
             if (start) {
                 if (isScanning) return;
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                     video.srcObject = currentStream; video.play();
                     isScanning = true;
-                    document.getElementById('placeholder').hidden = true;
+                    
+                    // สลับการแสดงผลปุ่ม
+                    startBtn.classList.add('hidden');
+                    stopBtn.classList.remove('hidden');
+                    placeholder.hidden = true;
                     canvas.hidden = false;
-                    startBtn.innerText = "กำลังค้นหา QR...";
-                    startBtn.classList.replace('bg-emerald-500', 'bg-indigo-600');
+                    
                     requestAnimationFrame(tick);
                 } catch (e) { Swal.fire('Error', 'ไม่พบกล้อง', 'error'); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
+                
+                // สลับการแสดงผลปุ่มกลับ
+                startBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
                 canvas.hidden = true;
-                document.getElementById('placeholder').hidden = false;
-                startBtn.innerText = "เริ่มสแกน";
-                startBtn.classList.replace('bg-indigo-600', 'bg-emerald-500');
+                placeholder.hidden = false;
             }
         }
 
@@ -166,13 +168,16 @@
             if (isScanning) requestAnimationFrame(tick);
         }
 
-        // RECORD & HISTORY (Logic เดิมที่ทำงานได้ดีอยู่แล้ว)
+        // 2. ปรับการส่งข้อมูลให้รองรับ Logic ค้นหาแบบยืดหยุ่น (ฝั่ง Backend จัดการ Normalize ต่อ)
         async function record(qrText, confirm) {
             Swal.fire({ title: 'บันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirm, staffInfo: staff } })
+                    body: JSON.stringify({ 
+                        action: 'recordAttendance', 
+                        data: { text: qrText, day: day, confirmSkip: confirm, staffInfo: staff } 
+                    })
                 });
                 const result = await res.json();
                 Swal.close();
