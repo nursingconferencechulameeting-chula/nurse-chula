@@ -20,10 +20,10 @@
 <body class="h-screen overflow-hidden flex flex-col">
 
     <div id="login-screen" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-6">
-        <div class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-sm text-center">
-            <h2 class="text-2xl font-bold mb-6">Staff Login</h2>
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-sm text-center">
+            <h2 class="text-2xl font-bold mb-6 text-slate-800">Staff Login</h2>
             <input type="password" id="staff-id" placeholder="รหัสเจ้าหน้าที่" class="w-full px-4 py-4 bg-slate-100 rounded-xl mb-4 text-center font-bold outline-none focus:ring-2 focus:ring-indigo-500">
-            <button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
+            <button id="login-btn" onclick="login()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all">
                 <span id="login-text">เข้าสู่ระบบ</span>
                 <div id="login-spinner" class="spinner hidden"></div>
             </button>
@@ -32,12 +32,12 @@
 
     <div class="flex-grow flex flex-col overflow-hidden">
         
-        <header class="bg-white border-b px-6 py-4 flex justify-between items-center shrink-0">
+        <header class="bg-white border-b px-6 py-4 flex justify-between items-center shrink-0 shadow-sm z-10">
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-indigo-600 rounded-lg text-white font-bold">QR</div>
                 <div>
                     <h1 class="font-bold text-slate-800 text-sm md:text-lg">ระบบเช็คชื่อ</h1>
-                    <p id="ui-staff" class="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">Loading...</p>
+                    <p id="ui-staff" class="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">กำลังรอการเข้าสู่ระบบ...</p>
                 </div>
             </div>
             <div class="flex bg-slate-100 p-1 rounded-xl">
@@ -48,7 +48,7 @@
 
         <main class="flex-grow overflow-hidden flex flex-col md:flex-row">
             
-            <div class="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 overflow-y-auto">
+            <div class="w-full md:w-3/5 lg:w-2/3 p-4 md:p-8 overflow-y-auto bg-slate-50">
                 <div class="max-w-xl mx-auto space-y-6">
                     
                     <div class="bg-white p-4 rounded-[2rem] shadow-sm border">
@@ -56,36 +56,34 @@
                             <canvas id="canvas" hidden></canvas>
                             <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-3">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                <span class="text-xs">กล้องปิดอยู่</span>
+                                <span class="text-xs font-bold">กล้องปิดอยู่</span>
                             </div>
                         </div>
 
                         <div class="flex justify-center">
-                            <button id="start-btn" onclick="toggleScanner(true)" 
-                                class="w-full bg-emerald-500 text-white py-5 rounded-2xl font-bold shadow-lg shadow-emerald-100 active:scale-95 transition-all">
+                            <button id="start-btn" onclick="toggleScanner(true)" class="w-full bg-emerald-500 text-white py-5 rounded-2xl font-bold shadow-lg shadow-emerald-100 active:scale-95 transition-all">
                                 เริ่มสแกน QR Code
                             </button>
-                            <button id="stop-btn" onclick="toggleScanner(false)" 
-                                class="hidden w-full bg-red-500 text-white py-5 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all">
+                            <button id="stop-btn" onclick="toggleScanner(false)" class="hidden w-full bg-red-500 text-white py-5 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all">
                                 หยุดทำงาน
                             </button>
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border flex items-center gap-3">
+                    <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border flex items-center gap-3">
                         <input type="text" id="manual-input" placeholder="หรือกรอกรหัสด้วยมือ..." class="flex-grow bg-slate-50 border-none p-4 rounded-xl font-bold text-center focus:ring-2 focus:ring-indigo-500 outline-none">
-                        <button onclick="handleManual()" class="bg-slate-800 text-white px-8 py-4 rounded-xl font-bold">บันทึก</button>
+                        <button onclick="handleManual()" class="bg-slate-800 text-white px-8 py-4 rounded-xl font-bold hover:bg-black transition-all">บันทึก</button>
                     </div>
                 </div>
             </div>
 
-            <div class="w-full md:w-2/5 lg:w-1/3 bg-white border-t md:border-t-0 md:border-l flex flex-col">
-                <div class="p-6 border-b flex justify-between items-center shrink-0">
-                    <h3 class="font-bold text-slate-700">รายการล่าสุด</h3>
-                    <span id="ui-count" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">0 คน</span>
+            <div class="w-full md:w-2/5 lg:w-1/3 bg-white border-t md:border-t-0 md:border-l flex flex-col shadow-2xl">
+                <div class="p-6 border-b flex justify-between items-center shrink-0 bg-slate-50/50">
+                    <h3 class="font-bold text-slate-700 uppercase tracking-tight text-sm">รายการล่าสุด</h3>
+                    <span id="ui-count" class="bg-indigo-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">0 คน</span>
                 </div>
-                <div id="history-box" class="flex-grow overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-                    <p class="text-center py-10 text-slate-400 text-sm">ยังไม่มีข้อมูล</p>
+                <div id="history-box" class="flex-grow overflow-y-auto p-4 space-y-3 bg-white">
+                    <p class="text-center py-10 text-slate-300 text-sm italic">ยังไม่มีข้อมูล</p>
                 </div>
             </div>
 
@@ -105,6 +103,7 @@
             if (!id) return;
             const btn = document.getElementById('login-btn'), spinner = document.getElementById('login-spinner'), text = document.getElementById('login-text');
             btn.disabled = true; spinner.classList.remove('hidden'); text.innerText = "กำลังเข้าสู่ระบบ...";
+
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', id }) });
                 const result = await res.json();
@@ -113,15 +112,12 @@
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${result.name}`;
                     fetchHistory();
-                } else { Swal.fire('Error', 'ไม่พบรายชื่อ', 'error'); }
-            } catch (e) { Swal.fire('Error', 'เชื่อมต่อระบบไม่ได้', 'error'); }
+                } else { Swal.fire('Error', 'ไม่พบรายชื่อในระบบ', 'error'); }
+            } catch (e) { Swal.fire('Error', 'ไม่สามารถเชื่อมต่อ Server ได้', 'error'); }
             finally { btn.disabled = false; spinner.classList.add('hidden'); text.innerText = "เข้าสู่ระบบ"; }
         }
 
-        document.getElementById('staff-id').onkeydown = e => { if(e.keyCode == 13) login(); };
-        document.getElementById('manual-input').onkeydown = e => { if(e.keyCode == 13) handleManual(); };
-
-        // 1. SCANNER LOGIC - สลับปุ่มทำงาน
+        // TOGGLE SCANNER (สลับปุ่ม เริ่ม/หยุด)
         async function toggleScanner(start) {
             const startBtn = document.getElementById('start-btn');
             const stopBtn = document.getElementById('stop-btn');
@@ -134,23 +130,24 @@
                     video.srcObject = currentStream; video.play();
                     isScanning = true;
                     
-                    // สลับการแสดงผลปุ่ม
+                    // สลับปุ่ม
                     startBtn.classList.add('hidden');
                     stopBtn.classList.remove('hidden');
-                    placeholder.hidden = true;
-                    canvas.hidden = false;
                     
+                    placeholder.classList.add('hidden');
+                    canvas.hidden = false;
                     requestAnimationFrame(tick);
-                } catch (e) { Swal.fire('Error', 'ไม่พบกล้อง', 'error'); }
+                } catch (e) { Swal.fire('Error', 'ไม่สามารถเปิดกล้องได้', 'error'); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
                 
-                // สลับการแสดงผลปุ่มกลับ
+                // สลับปุ่มกลับ
                 startBtn.classList.remove('hidden');
                 stopBtn.classList.add('hidden');
+                
                 canvas.hidden = true;
-                placeholder.hidden = false;
+                placeholder.classList.remove('hidden');
             }
         }
 
@@ -160,35 +157,29 @@
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) { 
-                    toggleScanner(false); 
-                    record(code.data, false); 
-                }
+                if (code) { toggleScanner(false); record(code.data, false); }
             }
             if (isScanning) requestAnimationFrame(tick);
         }
 
-        // 2. ปรับการส่งข้อมูลให้รองรับ Logic ค้นหาแบบยืดหยุ่น (ฝั่ง Backend จัดการ Normalize ต่อ)
+        // การบันทึก และ แสดงประวัติ
         async function record(qrText, confirm) {
-            Swal.fire({ title: 'บันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ 
-                        action: 'recordAttendance', 
-                        data: { text: qrText, day: day, confirmSkip: confirm, staffInfo: staff } 
-                    })
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirm, staffInfo: staff } })
                 });
                 const result = await res.json();
                 Swal.close();
                 if (result.success) {
                     fetchHistory();
-                    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: result.user.name, timer: 1500 });
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
                 } else if (result.requireConfirm) {
                     const c = await Swal.fire({ title: 'ยืนยัน', text: result.message, icon: 'warning', showCancelButton: true });
                     if (c.isConfirmed) record(qrText, true);
-                } else { Swal.fire('Error', result.message, 'error'); }
-            } catch (e) { Swal.fire('Error', 'เชื่อมต่อล้มเหลว', 'error'); }
+                } else { Swal.fire('ล้มเหลว', result.message, 'error'); }
+            } catch (e) { Swal.fire('Error', 'ล้มเหลวในการส่งข้อมูล', 'error'); }
         }
 
         async function fetchHistory() {
@@ -199,11 +190,11 @@
                 if (result.success && result.records.length > 0) {
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
                     box.innerHTML = result.records.map(r => `
-                        <div class="flex items-center gap-3 p-4 bg-white rounded-2xl border shadow-sm">
-                            <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-xs">${r.id.toString().slice(-3)}</div>
+                        <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition-all hover:bg-white">
+                            <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-[10px]">${r.id.toString().slice(-3)}</div>
                             <div class="flex-grow">
-                                <p class="text-xs font-bold">${r.name}</p>
-                                <p class="text-[10px] text-slate-400 uppercase">${r.time}</p>
+                                <p class="text-xs font-bold text-slate-800">${r.name}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">${r.time}</p>
                             </div>
                         </div>`).join('');
                 }
@@ -221,6 +212,9 @@
             const val = document.getElementById('manual-input').value.trim();
             if (val) { record(val, false); document.getElementById('manual-input').value = ''; }
         }
+
+        document.getElementById('staff-id').onkeydown = e => { if(e.keyCode == 13) login(); };
+        document.getElementById('manual-input').onkeydown = e => { if(e.keyCode == 13) handleManual(); };
     </script>
 </body>
 </html>
