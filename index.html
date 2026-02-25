@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>QR Check-in System</title>
+    <title>QR Check-in System (Multi-Device)</title>
     
-    <!-- Bootstrap 5 & Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -14,102 +13,115 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
     <style>
+        :root { --nav-height: 75px; }
         body { font-family: 'Prompt', sans-serif; background-color: #f8f9fa; color: #334155; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        #login-screen { position: fixed; inset: 0; background: #2d3436; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        /* หน้าจอ Login */
+        #login-screen { position: fixed; inset: 0; background: #2d3436; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* แก้ไขจุดที่ 1: Navbar ล็อคด้านบนสุด */
-        .navbar { background: white; border-bottom: 1px solid #edf2f7; height: 75px; z-index: 1050; position: relative; }
-        .staff-badge { background: #6366f1; color: white; padding: 8px 15px; border-radius: 12px; font-weight: 700; text-transform: uppercase; }
-        
-        /* แก้ไขจุดที่ 2: โหมด PC แยกซ้ายขวา */
-        .content-wrapper { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
-        .main-scroll-area { flex: 1; overflow-y: auto; padding: 15px; }
-        .history-sidebar { width: 400px; background: white; border-left: 1px solid #edf2f7; display: flex; flex-direction: column; }
-        .history-list { flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; }
+        /* Navbar คงที่ด้านบนสุด */
+        .navbar { background: white; border-bottom: 1px solid #edf2f7; height: var(--nav-height); z-index: 2000; position: relative; flex-shrink: 0; }
+        .staff-badge { background: #6366f1; color: white; padding: 6px 12px; border-radius: 10px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
 
-        @media (max-width: 992px) {
-            .content-wrapper { flex-direction: column; overflow-y: auto; }
-            .history-sidebar { width: 100%; border-left: none; border-top: 1px solid #edf2f7; }
-            body { overflow: auto; }
+        /* ระบบจัดวางแยก PC/มือถือ */
+        .content-container { display: flex; flex: 1; overflow: hidden; height: calc(100vh - var(--nav-height)); }
+
+        /* ฝั่งควบคุม (Scanner) */
+        .control-panel { flex: 1; overflow-y: auto; padding: 20px; background: #f8f9fa; }
+        
+        /* ฝั่งประวัติ (Sidebar สำหรับ PC) */
+        .history-panel { width: 400px; background: white; border-left: 1px solid #edf2f7; display: flex; flex-direction: column; flex-shrink: 0; }
+        .history-body { flex: 1; overflow-y: auto; padding: 15px; background: #f1f5f9; }
+
+        /* ปรับปรุงเมื่อเป็นหน้าจอมือถือ */
+        @media (max-width: 991px) {
+            body { overflow-y: auto; height: auto; }
+            .content-container { flex-direction: column; height: auto; overflow: visible; }
+            .control-panel { flex: none; width: 100%; overflow: visible; padding: 15px; }
+            .history-panel { width: 100%; border-left: none; border-top: 2px solid #edf2f7; height: auto; min-height: 500px; }
+            .history-body { overflow: visible; }
         }
 
-        .card-custom { background: white; border-radius: 2.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 1.5rem; overflow: hidden; }
-        .scanner-view { position: relative; width: 100%; aspect-ratio: 1/1; background: #1a1c1e; border-radius: 2rem; overflow: hidden; margin-bottom: 1rem; }
+        /* UI Card */
+        .card-custom { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 1.2rem; overflow: hidden; }
+        .scanner-view { position: relative; width: 100%; aspect-ratio: 1/1; background: #1a1c1e; border-radius: 1.5rem; overflow: hidden; margin-bottom: 1rem; }
         canvas { width: 100%; height: 100%; object-fit: cover; }
 
-        .manual-input-group { background: #f8fafc; border-radius: 1.5rem; padding: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
-        .manual-input-group input { border: none; background: transparent; padding: 12px; text-align: center; font-weight: 600; flex-grow: 1; outline: none; min-width: 0; }
-        .manual-input-group button { border-radius: 1.2rem !important; font-weight: 700; }
+        .manual-input-group { background: #f8fafc; border-radius: 1.2rem; padding: 6px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
+        .manual-input-group input { border: none; background: transparent; padding: 10px; text-align: center; font-weight: 600; flex-grow: 1; outline: none; }
 
-        .history-card { background: white; border-radius: 1.5rem; padding: 15px; margin-bottom: 12px; border: 1px solid #f1f5f9; display: flex; align-items: center; }
-        .id-circle { width: 55px; height: 55px; background: #eef2ff; color: #4f46e5; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; margin-right: 15px; flex-shrink: 0; }
-        .history-info h6 { margin: 0; font-weight: 700; font-size: 1rem; color: #1e293b; }
-        .btn-check-success { color: #10b981; margin-left: auto; font-size: 1.2rem; }
+        /* ประวัติรายการ */
+        .history-item { background: white; border-radius: 1.2rem; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
+        .id-num { width: 45px; height: 45px; background: #eef2ff; color: #4f46e5; border-radius: 0.8rem; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; margin-right: 12px; flex-shrink: 0; }
+        .check-icon { color: #10b981; margin-left: auto; }
     </style>
 </head>
 <body>
 
-    <!-- Login Screen (Enter ใช้งานได้ผ่าน form submit) -->
+    <!-- Login Form ( Enter ใช้งานได้) -->
     <div id="login-screen">
         <form onsubmit="login(event)" class="bg-white p-5 rounded-5 shadow-lg text-center w-100" style="max-width: 380px;">
             <div class="staff-badge d-inline-block mb-3">STAFF LOGIN</div>
-            <h4 class="fw-bold mb-4">เข้าสู่ระบบเจ้าหน้าที่</h4>
+            <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
             <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 mb-3 border-0 bg-light fw-bold" placeholder="กรอกรหัสเจ้าหน้าที่" required autofocus>
-            <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow-sm">ยืนยันตัวตน</button>
+            <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow-sm">ลงชื่อเข้าใช้งาน</button>
         </form>
     </div>
 
-    <!-- Header -->
-    <nav class="navbar sticky-top">
+    <!-- Header Navbar -->
+    <nav class="navbar shadow-sm">
         <div class="container-fluid px-3">
             <div class="d-flex align-items-center">
-                <div class="staff-badge me-2" style="font-size: 0.8rem;">STAFF</div>
+                <div class="staff-badge me-2">STAFF</div>
                 <div>
                     <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">QR Check-in</h6>
-                    <small id="ui-staff" class="text-primary fw-bold" style="font-size: 0.7rem;">เจ้าหน้าที่: LOADING...</small>
+                    <small id="ui-staff" class="text-primary fw-bold" style="font-size: 0.7rem;">กำลังโหลดข้อมูล...</small>
                 </div>
             </div>
-            <div class="btn-group bg-light p-1 rounded-3">
+            <div class="btn-group bg-light p-1 rounded-3 shadow-sm">
                 <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-3 fw-bold">วันที่ 1</button>
                 <button onclick="changeDay(2)" id="day2-btn" class="btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted">วันที่ 2</button>
             </div>
         </div>
     </nav>
 
-    <!-- Content Wrapper แยก PC/Mobile -->
-    <div class="content-wrapper">
-        <main class="main-scroll-area">
-            <div class="card-custom p-4 shadow-sm">
-                <div class="scanner-view">
+    <!-- Main Content แยกส่วนกันชัดเจน -->
+    <div class="content-container">
+        
+        <!-- ฝั่งควบคุม (ซ้ายบน) -->
+        <main class="control-panel">
+            <div class="card-custom p-4 shadow-sm mx-auto" style="max-width: 550px;">
+                <div class="scanner-view shadow-inner">
                     <canvas id="canvas" hidden></canvas>
-                    <div id="placeholder" class="h-100 d-flex flex-column align-items-center justify-content-center text-white opacity-50">
-                        <i class="fa-solid fa-camera fa-2x mb-2"></i>
-                        <span class="small fw-bold">กล้องปิดอยู่</span>
+                    <div id="placeholder" class="h-100 d-flex flex-column align-items-center justify-content-center text-white opacity-25">
+                        <i class="fa-solid fa-camera fa-3x mb-2"></i>
+                        <span class="fw-bold small">CAMERA READY</span>
                     </div>
                 </div>
                 <button id="start-btn" onclick="toggleScanner(true)" class="btn btn-success w-100 py-3 rounded-4 fw-bold fs-5 shadow">เริ่มสแกน QR Code</button>
                 <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger w-100 py-3 rounded-4 fw-bold fs-5 shadow d-none">หยุดสแกน</button>
             </div>
 
-            <form onsubmit="handleManual(event)" class="card-custom p-4 shadow-sm">
-                <div class="manual-input-group">
-                    <input type="text" id="manual-input" placeholder="กรอกรหัส ID..." autocomplete="off">
-                    <button type="submit" class="btn btn-dark px-4 py-2">บันทึก</button>
+            <!-- ช่องกรอก ID ( Enter ใช้งานได้) -->
+            <form onsubmit="handleManual(event)" class="card-custom p-4 shadow-sm mx-auto" style="max-width: 550px;">
+                <div class="manual-input-group shadow-sm">
+                    <input type="text" id="manual-input" placeholder="กรอกรหัส ID นักเรียน..." autocomplete="off">
+                    <button type="submit" class="btn btn-dark px-4 py-2 rounded-3 fw-bold">บันทึก</button>
                 </div>
             </form>
         </main>
 
-        <!-- Sidebar สำหรับ PC และส่วนล่างสำหรับมือถือ -->
-        <aside class="history-sidebar">
+        <!-- ฝั่งประวัติ (ขวาล่าง) -->
+        <aside class="history-panel shadow-sm">
             <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center sticky-top">
-                <h6 class="fw-bold mb-0">รายการสแกนล่าสุด</h6>
-                <span id="ui-count" class="badge bg-primary rounded-pill px-3 py-2 fw-bold">0 คน</span>
+                <h6 class="fw-bold mb-0 text-dark">รายการสแกนล่าสุด</h6>
+                <span id="ui-count" class="badge bg-indigo rounded-pill px-3 py-2 fw-bold" style="background-color: #6366f1;">0 คน</span>
             </div>
-            <div id="history-box" class="history-list">
-                <p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>
+            <div id="history-box" class="history-body">
+                <p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลในวันนี้</p>
             </div>
         </aside>
+
     </div>
 
     <video id="video" playsinline hidden></video>
@@ -119,11 +131,14 @@
         let day = 1, staff = null, isScanning = false, currentStream = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
+        // ระบบ Login รองรับ Enter
         async function login(event) {
             if(event) event.preventDefault();
-            const id = document.getElementById('staff-id').value.trim();
+            const idInput = document.getElementById('staff-id');
+            const id = idInput.value.trim();
             if (!id) return;
-            Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            Swal.fire({ title: 'กำลังตรวจสอบสิทธิ์...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', id }) });
                 const result = await res.json();
@@ -133,10 +148,14 @@
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${result.name}`;
                     fetchHistory();
-                } else { Swal.fire('Error', 'รหัสไม่ถูกต้อง', 'error'); }
-            } catch (e) { Swal.fire('Error', 'การเชื่อมต่อล้มเหลว', 'error'); }
+                } else { 
+                    Swal.fire('Error', 'ไม่พบรหัสเจ้าหน้าที่นี้ในระบบ', 'error'); 
+                    idInput.value = '';
+                }
+            } catch (e) { Swal.fire('Error', 'เชื่อมต่อล้มเหลว', 'error'); }
         }
 
+        // ระบบกรอก ID รองรับ Enter
         function handleManual(event) {
             if(event) event.preventDefault();
             const val = document.getElementById('manual-input').value.trim();
@@ -153,7 +172,7 @@
                     startBtn.classList.add('d-none'); stopBtn.classList.remove('d-none');
                     document.getElementById('placeholder').classList.add('d-none');
                     canvas.hidden = false; requestAnimationFrame(tick);
-                } catch (e) { Swal.fire('Error', 'เปิดกล้องไม่ได้', 'error'); }
+                } catch (e) { Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
@@ -168,13 +187,18 @@
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) { if(navigator.vibrate) navigator.vibrate(100); toggleScanner(false); record(code.data, false); return; }
+                if (code) { 
+                    if(navigator.vibrate) navigator.vibrate(100);
+                    toggleScanner(false); 
+                    record(code.data, false); 
+                    return;
+                }
             }
             if (isScanning) requestAnimationFrame(tick);
         }
 
         async function record(qrText, confirm) {
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
@@ -186,7 +210,7 @@
                     fetchHistory();
                     Swal.fire({ icon: 'success', title: 'สำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
                 } else if (result.requireConfirm) {
-                    const c = await Swal.fire({ title: 'ยืนยัน', text: result.message, icon: 'warning', showCancelButton: true });
+                    const c = await Swal.fire({ title: 'แจ้งเตือน', text: result.message, icon: 'warning', showCancelButton: true });
                     if (c.isConfirmed) record(qrText, true);
                 } else { Swal.fire('Error', result.message, 'error'); }
             } catch (e) { Swal.fire('Error', 'เชื่อมต่อล้มเหลว', 'error'); }
@@ -201,19 +225,21 @@
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
                     if(result.records.length > 0) {
                         box.innerHTML = result.records.map(r => {
+                            // โชว์เฉพาะ ID 3 หลัก ไม่เอา ID-
                             let displayId = r.id.toString().padStart(3, '0');
-                            // แก้ไขจุดที่ 3: แสดงเฉพาะตัวเลข ID
                             return `
-                            <div class="history-card shadow-sm mb-3">
-                                <div class="id-circle">${displayId}</div>
-                                <div class="history-info">
-                                    <h6>${r.name}</h6>
+                            <div class="history-item shadow-sm">
+                                <div class="id-num">${displayId}</div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h6 class="mb-0 fw-bold text-dark text-truncate">${r.name}</h6>
                                     <small class="text-muted"><i class="fa-regular fa-clock me-1"></i> ${r.time}</small>
                                 </div>
-                                <i class="fa-solid fa-circle-check btn-check-success"></i>
+                                <i class="fa-solid fa-circle-check fa-lg check-icon"></i>
                             </div>`;
                         }).join('');
-                    } else { box.innerHTML = `<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>`; }
+                    } else {
+                        box.innerHTML = `<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลในวันนี้</p>`;
+                    }
                 }
             } catch (e) {}
         }
