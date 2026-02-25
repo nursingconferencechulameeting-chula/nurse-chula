@@ -111,6 +111,22 @@
                     </div>
                 </div>
 
+                <!-- เพิ่มลงชือด้วย ID -->
+                <div class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 order-2">
+                    <div class="flex gap-2">
+                        <div class="relative flex-grow">
+                            <span class="absolute inset-y-0 left-4 flex items-center text-slate-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </span>
+                            <input type="text" id="manualIdInput" placeholder="กรอก ID เช่น NS-009 หรือ 9" 
+                                class="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700">
+                        </div>
+                        <button onclick="handleManualSubmit()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 rounded-2xl font-bold transition-all active:scale-95">
+                            บันทึก
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 2. ปุ่ม สแกน / อัพโหลด (ย้ายลงมาต่อจากช่องสแกน) -->
                 <div class="grid grid-cols-2 gap-4 order-2">
                     <button id="toggleScannerBtn" onclick="toggleScanner()" class="flex flex-col sm:flex-row items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full text-sm sm:text-base">
@@ -161,190 +177,181 @@
     <audio id="beepSuccess" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
     <audio id="beepError" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
 
-    <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
-        let html5QrCode;
-        let selectedDay = 1;
-        let isScannerOpen = false;
-        let isProcessing = false;
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzfOu3S0v5_u0XJi-IdwTIx6HecySKswYFt05wjfCBbu5pyEYy2LPsFSUkL7d4dmdVK/exec"; 
+    let html5QrCode;
+    let selectedDay = 1;
+    let isScannerOpen = false;
+    let isProcessing = false;
 
-        async function selectDay(day) {
-            if (isProcessing) return;
-            selectedDay = day;
-            const btn1 = document.getElementById('btn-day-1');
-            const btn2 = document.getElementById('btn-day-2');
-            const loader = document.getElementById(`loader-day-${day}`);
-            btn1.disabled = true; btn2.disabled = true;
-            loader.classList.remove('hidden');
-            document.querySelectorAll('.day-tab').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`btn-day-${day}`).classList.add('active');
-            await updateHistory();
-            btn1.disabled = false; btn2.disabled = false;
-            loader.classList.add('hidden');
+    // 1. เลือกวันที่
+    async function selectDay(day) {
+        if (isProcessing) return;
+        selectedDay = day;
+        const btn1 = document.getElementById('btn-day-1');
+        const btn2 = document.getElementById('btn-day-2');
+        const loader = document.getElementById(`loader-day-${day}`);
+        btn1.disabled = true; btn2.disabled = true;
+        loader.classList.remove('hidden');
+        document.querySelectorAll('.day-tab').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-day-${day}`).classList.add('active');
+        await updateHistory();
+        btn1.disabled = false; btn2.disabled = false;
+        loader.classList.add('hidden');
+    }
+
+    // 2. ควบคุมการเปิด/ปิดกล้อง
+    async function toggleScanner() {
+        const btn = document.getElementById('toggleScannerBtn');
+        const text = document.getElementById('text-scan');
+        const icon = document.getElementById('icon-scan');
+        const scanUI = document.getElementById('scan-ui');
+        const placeholder = document.getElementById('scan-placeholder');
+        
+        if (isScannerOpen) {
+            if (html5QrCode) await html5QrCode.stop();
+            btn.className = "flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full text-sm sm:text-base";
+            text.innerText = "เปิดกล้องสแกน";
+            icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>`;
+            placeholder.classList.remove('hidden');
+            scanUI.classList.add('hidden');
+            isScannerOpen = false;
+        } else {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+                btn.className = "flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full text-sm sm:text-base";
+                text.innerText = "ปิดการสแกน";
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>`;
+                placeholder.classList.add('hidden');
+                scanUI.classList.remove('hidden');
+                isScannerOpen = true;
+            } catch (e) { Swal.fire('Error', 'ไม่สามารถเปิดกล้องได้', 'error'); }
+        }
+    }
+
+    // 3. จัดการเมื่อกดปุ่มบันทึก ID (Manual)
+    async function handleManualSubmit() {
+        let input = document.getElementById('manualIdInput').value.trim();
+        if (!input) return Swal.fire("แจ้งเตือน", "กรุณากรอก ID", "warning");
+
+        let formattedId = "";
+        // ถ้ากรอกแต่ตัวเลข
+        if (!isNaN(input) && input !== "") {
+            formattedId = "NS-" + input.toString().padStart(3, '0');
+        } else {
+            formattedId = input.toUpperCase();
         }
 
-        async function toggleScanner() {
-            const btn = document.getElementById('toggleScannerBtn');
-            const text = document.getElementById('text-scan');
-            const icon = document.getElementById('icon-scan');
-            const scanUI = document.getElementById('scan-ui');
-            const placeholder = document.getElementById('scan-placeholder');
-            if (isScannerOpen) {
-                if (html5QrCode) await html5QrCode.stop();
-                btn.className = "flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full text-sm sm:text-base";
-                text.innerText = "เปิดกล้องสแกน";
-                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>`;
-                placeholder.classList.remove('hidden');
-                scanUI.classList.add('hidden');
-                isScannerOpen = false;
-            } else {
-                html5QrCode = new Html5Qrcode("reader");
-                const config = { fps: 25, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-                try {
-                    await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
-                    btn.className = "flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-4 px-6 rounded-3xl font-bold shadow-xl transition-all active:scale-95 w-full text-sm sm:text-base";
-                    text.innerText = "ปิดการสแกน";
-                    icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>`;
-                    placeholder.classList.add('hidden');
-                    scanUI.classList.remove('hidden');
-                    isScannerOpen = true;
-                } catch (e) { Swal.fire('Error', 'ไม่สามารถเปิดกล้องได้', 'error'); }
-            }
-        }
+        if (isProcessing) return;
+        isProcessing = true;
+        showProcessing(true);
 
-        function showProcessing(isWorking) {
-            const overlay = document.getElementById('loading-overlay');
-            const scanBtn = document.getElementById('toggleScannerBtn');
-            const uploadBtn = document.querySelector('button[onclick*="file-input"]');
-            if (isWorking) {
-                overlay.style.display = 'flex';
-                scanBtn.classList.add('opacity-50', 'pointer-events-none');
-                uploadBtn.classList.add('opacity-50', 'pointer-events-none');
-            } else {
-                overlay.style.display = 'none';
-                scanBtn.classList.remove('opacity-50', 'pointer-events-none');
-                uploadBtn.classList.remove('opacity-50', 'pointer-events-none');
-            }
-        }
+        await sendAttendanceData(formattedId, false);
+        document.getElementById('manualIdInput').value = '';
+    }
 
-        // คำสั่งตรวจสอบ และส่งไปบันทึก
-        async function onScanSuccess(decodedText) {
-            if (isProcessing) return;
-            isProcessing = true;
-            showProcessing(true);
+    // 4. เมื่อสแกน QR สำเร็จ
+    async function onScanSuccess(decodedText) {
+        if (isProcessing) return;
+        isProcessing = true;
+        showProcessing(true);
+        await sendAttendanceData(decodedText, false);
+    }
+
+    // 5. ฟังก์ชันส่งข้อมูลไป GAS (หัวใจหลัก)
+    async function sendAttendanceData(decodedText, confirmSkip = false) {
+        try {
+            const response = await fetch(GAS_URL, { 
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    action: 'recordAttendance', 
+                    data: { text: decodedText, day: selectedDay, confirmSkip: confirmSkip } 
+                }) 
+            });
             
-            // เรียกฟังก์ชันส่งข้อมูล (แยกออกมาเพื่อให้เรียกซ้ำได้กรณีต้องการยืนยัน)
-            await sendAttendanceData(decodedText, false);
-        }
+            const result = await response.json();
 
-        async function sendAttendanceData(decodedText, confirmSkip = false) {
-            try {
-                const response = await fetch(GAS_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ 
-                        action: 'recordAttendance', 
-                        data: { 
-                            text: decodedText, 
-                            day: selectedDay,
-                            confirmSkip: confirmSkip // ส่งค่ายืนยัน (เริ่มต้นเป็น false)
-                        } 
-                    }) 
-                });
-                
-                const result = await response.json();
-
-                if (result.success) {
-                    playTone('beepSuccess');
-                    showUserData(result.user);
-                    updateHistory();
-                    showProcessing(false);
-                    setTimeout(() => { isProcessing = false; }, 2000);
-                } 
-                else if (result.requireConfirm) {
-                    // --- กรณีตรวจพบว่าวันที่ 2 แต่ไม่ได้ลงวันที่ 1 ---
-                    showProcessing(false); // ปิดหน้าจอโหลดชั่วคราวเพื่อให้กด Popup ได้
-                    playTone('beepError');
-
-                    const confirmResult = await Swal.fire({
-                        title: 'ตรวจพบข้อมูลไม่ครบ',
-                        text: result.message,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#4f46e5',
-                        cancelButtonColor: '#64748b',
-                        confirmButtonText: 'ยืนยันลงชื่อวันที่ 2',
-                        cancelButtonText: 'ยกเลิก'
-                    });
-
-                    if (confirmResult.isConfirmed) {
-                        showProcessing(true); // เปิดหน้าจอโหลดใหม่
-                        await sendAttendanceData(decodedText, true); // ส่งค่าเดิมแต่เปลี่ยน confirmSkip เป็น true
-                    } else {
-                        isProcessing = false;
-                    }
-                } 
-                else {
-                    // กรณี Error อื่นๆ เช่น ชำระเงิน หรือ สแกนซ้ำ
-                    playTone('beepError');
-                    showProcessing(false);
-                    const isPayment = result.message.includes("ชำระเงิน");
-                    Swal.fire({ 
-                        icon: isPayment ? 'warning' : 'error', 
-                        title: isPayment ? 'ปัญหาการชำระเงิน' : 'เกิดข้อผิดพลาด', 
-                        text: result.message 
-                    });
-                    setTimeout(() => { isProcessing = false; }, 2000);
-                }
-            } catch (err) { 
+            if (result.success) {
+                playTone('beepSuccess');
+                showUserData(result.user);
+                updateHistory();
                 showProcessing(false);
-                Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'); 
-                isProcessing = false;
+                setTimeout(() => { isProcessing = false; }, 2000);
+            } 
+            else if (result.requireConfirm) {
+                showProcessing(false);
+                playTone('beepError');
+                const confirmRes = await Swal.fire({
+                    title: 'ยืนยันลงชื่อ',
+                    text: result.message,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ตกลง (บันทึกเลย)',
+                    cancelButtonText: 'ยกเลิก'
+                });
+
+                if (confirmRes.isConfirmed) {
+                    showProcessing(true);
+                    await sendAttendanceData(decodedText, true); // ส่งซ้ำพร้อมยืนยัน
+                } else {
+                    isProcessing = false;
+                }
+            } 
+            else {
+                playTone('beepError');
+                showProcessing(false);
+                Swal.fire('พบปัญหา', result.message, result.message.includes('ชำระเงิน') ? 'warning' : 'error');
+                setTimeout(() => { isProcessing = false; }, 1500);
             }
+        } catch (err) { 
+            showProcessing(false);
+            Swal.fire('Error', 'การเชื่อมต่อผิดพลาด', 'error'); 
+            isProcessing = false;
         }
+    }
 
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            showProcessing(true);
-            const scanner = new Html5Qrcode("reader");
-            try { const decodedText = await scanner.scanFile(file, true); isProcessing = false; onScanSuccess(decodedText); }
-            catch (err) { showProcessing(false); Swal.fire('Error', 'ไม่พบ QR Code', 'error'); }
-            event.target.value = '';
-        }
+    // ฟังก์ชันเสริม (UI & Sound)
+    function showProcessing(isWorking) {
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.display = isWorking ? 'flex' : 'none';
+    }
 
-        function showUserData(user) {
-            document.getElementById('resultContainer').classList.remove('hidden');
-            document.getElementById('resName').innerText = user.name;
-            document.getElementById('resId').innerText = "ID: " + user.id;
-            document.getElementById('resDept').innerText = user.dept;
-            document.getElementById('resTime').innerText = "สำเร็จ: " + user.time;
-            document.getElementById('userImg').src = user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-            const badge = document.getElementById('regBadge');
-            const isEx = user.regType && user.regType.includes("ภายนอก");
-            badge.className = `absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${isEx ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`;
-            badge.innerText = isEx ? "External" : "Internal";
-        }
+    function showUserData(user) {
+        document.getElementById('resultContainer').classList.remove('hidden');
+        document.getElementById('resName').innerText = user.name;
+        document.getElementById('resId').innerText = "ID: " + user.id;
+        document.getElementById('resDept').innerText = user.dept;
+        document.getElementById('resTime').innerText = "สำเร็จ: " + user.time;
+        document.getElementById('userImg').src = user.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        const badge = document.getElementById('regBadge');
+        const isEx = user.regType && user.regType.includes("ภายนอก");
+        badge.className = `absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${isEx ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`;
+        badge.innerText = isEx ? "External" : "Internal";
+    }
 
-        async function updateHistory() {
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } }) });
-                const result = await res.json();
-                const list = document.getElementById('historyList');
-                if (result.success && result.records.length > 0) {
-                    list.innerHTML = result.records.map(rec => `
-                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-600 shrink-0">${rec.id.toString().slice(-3)}</div>
-                            <div class="flex-grow"><p class="text-sm font-bold text-slate-800">${rec.name}</p><p class="text-[10px] text-slate-400 font-medium">${rec.time}</p></div>
-                            <div class="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
-                        </div>
-                    `).join('');
-                    document.getElementById('recordCount').innerText = result.records.length;
-                } else { list.innerHTML = `<div class="text-center py-10 text-slate-300 italic">ไม่มีข้อมูล</div>`; document.getElementById('recordCount').innerText = '0'; }
-            } catch (e) { console.log(e); }
-        }
+    async function updateHistory() {
+        try {
+            const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } }) });
+            const result = await res.json();
+            const list = document.getElementById('historyList');
+            if (result.success && result.records.length > 0) {
+                list.innerHTML = result.records.map(rec => `
+                    <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-600 shrink-0">${rec.id.toString().slice(-3)}</div>
+                        <div class="flex-grow"><p class="text-sm font-bold text-slate-800">${rec.name}</p><p class="text-[10px] text-slate-400 font-medium">${rec.time}</p></div>
+                        <div class="text-emerald-500 bg-emerald-50 p-1.5 rounded-lg"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                    </div>
+                `).join('');
+                document.getElementById('recordCount').innerText = result.records.length;
+            } else { list.innerHTML = `<div class="text-center py-10 text-slate-300 italic">ไม่มีข้อมูล</div>`; document.getElementById('recordCount').innerText = '0'; }
+        } catch (e) { console.log(e); }
+    }
 
-        function playTone(id) { const a = document.getElementById(id); if(a) { a.currentTime = 0; a.play().catch(e => {}); } }
-        window.onload = () => { updateHistory(); setInterval(updateHistory, 30000); };
-    </script>
+    function playTone(id) { const a = document.getElementById(id); if(a) { a.currentTime = 0; a.play().catch(e => {}); } }
+    
+    window.onload = () => { updateHistory(); setInterval(updateHistory, 30000); };
+</script>
 </body>
 </html>
