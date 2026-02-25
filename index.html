@@ -124,47 +124,72 @@
         let day = 1, staff = null, isWork = false, html5QrScanner = null;
 
         async function init() {
+            const overlay = document.getElementById('auth-overlay');
+            const statusText = overlay.querySelector('p'); // ดึงตัวอักษรเพื่อบอกสถานะ
+
             try {
+                // 1. เริ่มต้น LIFF
+                statusText.innerText = "กำลังเชื่อมต่อ LINE...";
                 await liff.init({ liffId: LIFF_ID });
+
                 if (!liff.isLoggedIn()) {
                     liff.login();
-                } else {
-                    const profile = await liff.getProfile();
+                    return;
+                }
+
+                // 2. ดึง Profile (ถ้าค้างตรงนี้ ให้เช็คสิทธิ์ Profile ใน LINE Console)
+                statusText.innerText = "กำลังดึงข้อมูลโปรไฟล์...";
+                const profile = await liff.getProfile();
+                const userId = profile.userId;
+                
+                // 3. ตรวจสอบสิทธิ์กับ Google Script (GAS)
+                statusText.innerText = "กำลังตรวจสอบสิทธิ์เจ้าหน้าที่...";
+                
+                const res = await fetch(GAS_URL, { 
+                    method: 'POST',
+                    headers: {
+                        // ไม่ใช้ application/json เพื่อเลี่ยง Preflight request (CORS)
+                        'Content-Type': 'text/plain;charset=utf-8' 
+                    },
+                    body: JSON.stringify({ 
+                        action: 'checkStaffPrivilege', 
+                        data: { userId: userId } 
+                    })
+                });
+
+                if (!res.ok) throw new Error("ไม่สามารถติดต่อ Server ได้");
+
+                const result = await res.json();
+
+                if (result.isAllowed) {
+                    staff = result;
+                    overlay.classList.add('hidden'); // ปิดหน้า Loading
+                    document.getElementById('main-content').classList.remove('hidden');
+                    document.getElementById('staff-name').innerText = `เจ้าหน้าที่: ${result.name}`;
                     
-                    // ปรับการเรียก Fetch ให้ข้ามปัญหา CORS บนมือถือ
-                    const res = await fetch(GAS_URL, { 
-                        method: 'POST',
-                        mode: 'no-cors', // เพิ่มโหมดนี้หากยังมีปัญหา แต่ปกติ GAS ไม่ต้องใช้ถ้าตั้งค่า Anyone
-                        headers: { 'Content-Type': 'text/plain' }, // ใช้ text/plain แทน application/json เพื่อเลี่ยง CORS preflight
-                        body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: profile.userId } }) 
-                    });
-
-                    // เนื่องจาก GAS จะ Redirect (302) เราต้องเรียกซ้ำหากไม่มีข้อมูลออกมา
-                    // วิธีที่ชัวร์ที่สุดสำหรับ GAS คือใช้เทคนิคเรียกแบบปกติแต่จัดการ Error
-                    const result = await fetch(GAS_URL, { 
-                        method: 'POST', 
-                        body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: profile.userId } }) 
-                    }).then(r => r.json());
-
-                    if (result.isAllowed) {
-                        staff = result;
-                        document.getElementById('auth-overlay').classList.add('hidden');
-                        document.getElementById('main-content').classList.remove('hidden');
-                        document.getElementById('staff-name').innerText = `เจ้าหน้าที่: ${result.name}`;
-                        
-                        if (liff.isInClient()) {
-                            document.getElementById('btn-scan-line').classList.remove('hidden');
-                            document.getElementById('pc-scanner-area').classList.add('hidden');
-                        }
-                        updateHistory();
+                    // เช็คว่าอยู่ใน LINE Client หรือไม่
+                    if (liff.isInClient()) {
+                        document.getElementById('btn-scan-line').classList.remove('hidden');
+                        document.getElementById('pc-scanner-area').classList.add('hidden');
                     } else {
-                        renderNoAccess(profile.userId);
+                        document.getElementById('btn-scan-line').classList.add('hidden');
+                        document.getElementById('pc-scanner-area').classList.remove('hidden');
                     }
+                    updateHistory();
+                } else {
+                    // กรณี ID ไม่มีสิทธิ์ (รวมถึง ID: U4001e7371a7fe555653c758b7f53375e ถ้าไม่ได้ใส่ใน Sheet)
+                    renderNoAccess(userId);
                 }
             } catch (e) {
                 console.error(e);
-                // หากค้างที่หน้าจอนี้ ให้แสดง Error ออกมาดู
-                document.getElementById('auth-overlay').innerHTML = `<p class='p-4 text-red-500'>เกิดข้อผิดพลาด: ${e.message}<br>กรุณารีเฟรชหรือเปิดใหม่</p>`;
+                overlay.innerHTML = `
+                    <div class="p-6 bg-white rounded-3xl shadow-xl border-2 border-red-50 mx-4 text-center">
+                        <div class="text-red-500 text-4xl mb-4">⚠️</div>
+                        <p class="text-slate-800 font-bold mb-2">เกิดข้อผิดพลาด</p>
+                        <p class="text-slate-500 text-xs mb-6">${e.message}</p>
+                        <button onclick="location.reload()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">ลองใหม่อีกครั้ง</button>
+                    </div>
+                `;
             }
         }
 
