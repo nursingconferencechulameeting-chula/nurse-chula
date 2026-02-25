@@ -125,11 +125,8 @@
 
         async function init() {
             const overlay = document.getElementById('auth-overlay');
-            const statusText = overlay.querySelector('p'); // ดึงตัวอักษรเพื่อบอกสถานะ
-
             try {
                 // 1. เริ่มต้น LIFF
-                statusText.innerText = "กำลังเชื่อมต่อ LINE...";
                 await liff.init({ liffId: LIFF_ID });
 
                 if (!liff.isLoggedIn()) {
@@ -137,19 +134,16 @@
                     return;
                 }
 
-                // 2. ดึง Profile (ถ้าค้างตรงนี้ ให้เช็คสิทธิ์ Profile ใน LINE Console)
-                statusText.innerText = "กำลังดึงข้อมูลโปรไฟล์...";
+                // 2. ดึง Profile (ถ้าค้างตรงนี้ ให้เช็ค Scope: profile ใน LINE Console)
                 const profile = await liff.getProfile();
                 const userId = profile.userId;
-                
-                // 3. ตรวจสอบสิทธิ์กับ Google Script (GAS)
-                statusText.innerText = "กำลังตรวจสอบสิทธิ์เจ้าหน้าที่...";
-                
-                const res = await fetch(GAS_URL, { 
+
+                // 3. ตรวจสอบสิทธิ์ (แก้ไขวิธีเรียกเพื่อเลี่ยง Failed to fetch)
+                const res = await fetch(GAS_URL, {
                     method: 'POST',
+                    mode: 'cors', // เพิ่มโหมด cors
                     headers: {
-                        // ไม่ใช้ application/json เพื่อเลี่ยง Preflight request (CORS)
-                        'Content-Type': 'text/plain;charset=utf-8' 
+                        'Content-Type': 'text/plain;charset=utf-8' // ใช้ text/plain เพื่อเลี่ยงการตรวจสอบ CORS ที่เข้มงวดบนมือถือ
                     },
                     body: JSON.stringify({ 
                         action: 'checkStaffPrivilege', 
@@ -157,40 +151,68 @@
                     })
                 });
 
-                if (!res.ok) throw new Error("ไม่สามารถติดต่อ Server ได้");
-
                 const result = await res.json();
 
                 if (result.isAllowed) {
                     staff = result;
-                    overlay.classList.add('hidden'); // ปิดหน้า Loading
+                    overlay.classList.add('hidden');
                     document.getElementById('main-content').classList.remove('hidden');
                     document.getElementById('staff-name').innerText = `เจ้าหน้าที่: ${result.name}`;
                     
-                    // เช็คว่าอยู่ใน LINE Client หรือไม่
+                    // แสดงปุ่มสแกนเฉพาะใน LINE
                     if (liff.isInClient()) {
                         document.getElementById('btn-scan-line').classList.remove('hidden');
                         document.getElementById('pc-scanner-area').classList.add('hidden');
-                    } else {
-                        document.getElementById('btn-scan-line').classList.add('hidden');
-                        document.getElementById('pc-scanner-area').classList.remove('hidden');
                     }
                     updateHistory();
                 } else {
-                    // กรณี ID ไม่มีสิทธิ์ (รวมถึง ID: U4001e7371a7fe555653c758b7f53375e ถ้าไม่ได้ใส่ใน Sheet)
                     renderNoAccess(userId);
                 }
             } catch (e) {
                 console.error(e);
                 overlay.innerHTML = `
-                    <div class="p-6 bg-white rounded-3xl shadow-xl border-2 border-red-50 mx-4 text-center">
-                        <div class="text-red-500 text-4xl mb-4">⚠️</div>
-                        <p class="text-slate-800 font-bold mb-2">เกิดข้อผิดพลาด</p>
-                        <p class="text-slate-500 text-xs mb-6">${e.message}</p>
+                    <div class="p-6 bg-white rounded-3xl shadow-xl text-center mx-4">
+                        <p class="text-red-500 font-bold mb-2">Failed to fetch (Mobile)</p>
+                        <p class="text-[10px] text-slate-400 mb-4">ID: ${LIFF_ID}</p>
                         <button onclick="location.reload()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">ลองใหม่อีกครั้ง</button>
-                    </div>
-                `;
+                    </div>`;
             }
+        }
+
+        // แก้ไขฟังก์ชันบันทึกข้อมูลให้รองรับมือถือ
+        async function processCheckin(qrText, confirm) {
+            if (isWork) return;
+            isWork = true;
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'recordAttendance', 
+                        data: { text: qrText, day: day, confirmSkip: confirm, staffInfo: staff } 
+                    })
+                });
+                const result = await res.json();
+                Swal.close();
+
+                if (result.success) {
+                    playSnd('snd-ok');
+                    showResult(result.user);
+                    updateHistory();
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
+                } else if (result.requireConfirm) {
+                    const c = await Swal.fire({ title: 'ยืนยัน', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'บันทึกเลย' });
+                    if (c.isConfirmed) { isWork = false; processCheckin(qrText, true); return; }
+                } else {
+                    playSnd('snd-err');
+                    Swal.fire("ไม่สำเร็จ", result.message, "error");
+                }
+            } catch (e) {
+                Swal.fire("Error", "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่", "error");
+            } finally { isWork = false; }
         }
 
         async function scanByLine() {
