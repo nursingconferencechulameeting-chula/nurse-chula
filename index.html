@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart QR Check-in System (LIFF)</title>
+    <title>Smart QR Check-in System</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -36,8 +36,8 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                     </div>
                     <div>
-                        <span class="text-xl font-bold text-indigo-900 block">QR Check-in</span>
-                        <span id="staff-info" class="text-[10px] text-indigo-500 font-medium uppercase tracking-wider">Staff Only</span>
+                        <span class="text-xl font-bold text-indigo-900 block">Smart Check-in</span>
+                        <span id="staff-info" class="text-[10px] text-indigo-500 font-medium uppercase tracking-wider">กำลังระบุตัวตน...</span>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shadow-inner w-full md:w-auto">
@@ -64,20 +64,18 @@
                                 <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
                                 <input type="text" id="manualIdInput" placeholder="กรอก ID เอง" class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center font-bold">
                             </div>
-                            <button onclick="handleManualSubmit()" class="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold">บันทึก ID ที่กรอก</button>
+                            <button onclick="handleManualSubmit()" class="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold">บันทึกข้อมูล</button>
                         </div>
                     </div>
 
                     <div id="resultContainer" class="hidden">
                         <div class="bg-white rounded-[2.5rem] p-6 shadow-2xl border-2 border-indigo-50 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
                             <img id="userImg" src="" class="w-32 h-32 md:w-44 md:h-44 rounded-[2.5rem] object-cover bg-slate-100 border-4 border-white shadow-xl">
-                            <div class="text-center md:text-left space-y-4">
-                                <h2 id="resName" class="text-2xl md:text-4xl font-bold text-slate-800">--</h2>
-                                <p id="resId" class="text-indigo-600 font-bold text-sm uppercase">ID: --</p>
-                                <div class="flex flex-wrap justify-center md:justify-start gap-2">
-                                    <div class="bg-slate-50 px-4 py-2 rounded-2xl text-sm border" id="resDept">--</div>
-                                    <div class="bg-green-50 text-green-700 px-4 py-2 rounded-2xl text-sm font-bold border" id="resTime">--</div>
-                                </div>
+                            <div class="text-center md:text-left space-y-2">
+                                <h2 id="resName" class="text-2xl md:text-3xl font-bold text-slate-800">--</h2>
+                                <p id="resId" class="text-indigo-600 font-bold">ID: --</p>
+                                <div class="bg-slate-50 px-4 py-1 rounded-xl text-sm border inline-block" id="resDept">--</div>
+                                <p class="text-green-600 font-bold" id="resTime">--</p>
                             </div>
                         </div>
                     </div>
@@ -89,7 +87,7 @@
                             <h3 class="font-bold text-slate-700">รายชื่อล่าสุด</h3>
                             <span id="recordCount" class="bg-indigo-600 text-white px-3 py-1 rounded-xl text-xs font-bold">0</span>
                         </div>
-                        <div id="historyList" class="p-4 space-y-4 overflow-y-auto flex-grow bg-slate-50/20">
+                        <div id="historyList" class="p-4 space-y-3 overflow-y-auto flex-grow bg-slate-50/20">
                             <div class="text-center py-20 text-slate-300 italic">ยังไม่มีข้อมูล</div>
                         </div>
                     </div>
@@ -103,21 +101,33 @@
     <div id="reader-hidden" style="display:none"></div>
 
     <script>
+        // *** แก้ไขตรงนี้: ใส่ URL ของ Google Apps Script (Web App) ***
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwiWK2OGyfZO8HyVKizYST4sCjgmkKMa5bZGT8Uh2uwLMa0GU9heiXDbq6epcRsZfov/exec";
-        const LIFF_ID = "2009224948-SqUmr0cv";
+        const LIFF_ID = "2009224948-SqUmr0cv"; 
+
         let selectedDay = 1;
         let isProcessing = false;
         let currentStaff = null;
 
-        // ฟังก์ชันกลางสำหรับเรียก Backend (แก้ปัญหาเรื่องมือถือบล็อก)
+        // เรียก Backend ผ่าน Fetch API
         async function callGAS(payload) {
             const response = await fetch(GAS_URL, {
                 method: 'POST',
+                mode: 'no-cors', // สำคัญ: เพื่อให้ส่งข้ามโดเมนได้
                 body: JSON.stringify(payload)
             });
-            return await response.json();
+            // เนื่องจากใช้ no-cors เราจะไม่สามารถอ่าน JSON ได้โดยตรง 
+            // แต่เนื่องจาก Backend เราทำ Header ปลดล็อคไว้แล้ว ให้ลองใช้แบบปกติก่อน:
+            try {
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+                return await res.json();
+            } catch (e) {
+                console.log("Fallback mode active");
+                return { success: false, message: "เชื่อมต่อล้มเหลว ตรวจสอบการ Deploy Backend" };
+            }
         }
 
+        // เริ่มต้น LIFF
         async function initializeLiff() {
             try {
                 await liff.init({ liffId: LIFF_ID });
@@ -125,126 +135,113 @@
                     liff.login();
                 } else {
                     const profile = await liff.getProfile();
-                    const context = liff.getContext();
-                    const accessId = (context && context.groupId) ? context.groupId : profile.userId;
-
-                    const result = await callGAS({ action: 'checkStaffPrivilege', data: { userId: accessId } });
+                    // ตรวจสอบสิทธิ์ Staff
+                    const res = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'checkStaffPrivilege', data: { userId: profile.userId } })
+                    });
+                    const result = await res.json();
 
                     if (result.isAllowed) {
                         currentStaff = { name: result.name, role: result.role };
                         document.getElementById('auth-overlay').classList.add('hidden');
                         document.getElementById('main-content').classList.remove('hidden');
-                        document.getElementById('staff-info').innerText = `Staff: ${result.name}`;
+                        document.getElementById('staff-info').innerText = `เจ้าหน้าที่: ${result.name}`;
                         updateHistory();
                     } else {
-                        renderAccessDenied(accessId);
+                        renderAccessDenied(profile.userId);
                     }
                 }
             } catch (err) {
-                console.error(err);
-                Swal.fire("Error", "ไม่สามารถเริ่มระบบได้: " + err.message, "error");
+                Swal.fire("System Error", "ไม่สามารถเชื่อมต่อได้: " + err.message, "error");
             }
         }
 
-        async function sendAttendanceData(text, confirmSkip) {
+        // บันทึกการเข้างาน
+        async function sendAttendanceData(text, confirmSkip = false) {
             if (isProcessing) return;
             isProcessing = true;
             showProcessing(true);
             try {
-                const result = await callGAS({ 
-                    action: 'recordAttendance', 
-                    data: { text, day: selectedDay, confirmSkip, staffInfo: currentStaff } 
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'recordAttendance',
+                        data: { text, day: selectedDay, confirmSkip, staffInfo: currentStaff }
+                    })
                 });
+                const result = await res.json();
 
                 if (result.success) {
                     playTone('beepSuccess');
                     showUserData(result.user);
                     updateHistory();
-                    Swal.fire({ icon: 'success', title: 'เช็คอินสำเร็จ', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1000, showConfirmButton: false });
                 } else if (result.requireConfirm) {
                     const confirmRes = await Swal.fire({
                         title: 'ยืนยัน', text: result.message, icon: 'warning',
-                        showCancelButton: true, confirmButtonText: 'บันทึกเลย'
+                        showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก'
                     });
                     if (confirmRes.isConfirmed) {
-                        isProcessing = false; // ปลดล็อคชั่วคราวเพื่อส่งใหม่
+                        isProcessing = false;
                         await sendAttendanceData(text, true);
                     }
                 } else {
                     playTone('beepError');
-                    Swal.fire("พบปัญหา", result.message, "error");
+                    Swal.fire("ผิดพลาด", result.message, "error");
                 }
             } catch (e) {
-                Swal.fire("Error", "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้", "error");
+                Swal.fire("Error", "ไม่สามารถส่งข้อมูลได้", "error");
             } finally {
                 showProcessing(false);
                 isProcessing = false;
             }
         }
 
-        async function scanByLine() {
-            if (!liff.isInClient()) return Swal.fire("แจ้งเตือน", "กรุณาเปิดใน LINE", "warning");
-            try {
-                const result = await liff.scanCodeV2();
-                if (result.value) sendAttendanceData(result.value, false);
-            } catch (err) { console.log("Scan cancelled"); }
+        // ฟังก์ชันเสริมอื่นๆ
+        function scanByLine() {
+            if (!liff.isInClient()) return Swal.fire("แจ้งเตือน", "กรุณาใช้ในแอป LINE", "warning");
+            liff.scanCodeV2().then(result => {
+                if (result.value) sendAttendanceData(result.value);
+            }).catch(err => console.log(err));
         }
 
-        async function handleManualSubmit() {
+        function handleManualSubmit() {
             const input = document.getElementById('manualIdInput').value.trim();
             if (input) {
-                await sendAttendanceData(input, false);
+                sendAttendanceData(input);
                 document.getElementById('manualIdInput').value = '';
             }
         }
 
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            showProcessing(true);
-            const html5QrCode = new Html5Qrcode("reader-hidden");
-            try {
-                const decodedText = await html5QrCode.scanFile(file, true);
-                sendAttendanceData(decodedText, false);
-            } catch (err) {
-                Swal.fire("Error", "ไม่พบ QR Code ในรูปภาพ", "error");
-            } finally { showProcessing(false); }
-        }
-
         async function updateHistory() {
             try {
-                const result = await callGAS({ action: 'getRecentRecords', data: { day: selectedDay } });
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getRecentRecords', data: { day: selectedDay } })
+                });
+                const result = await res.json();
                 const list = document.getElementById('historyList');
                 if (result.success && result.records.length > 0) {
                     list.innerHTML = result.records.map(rec => `
-                        <div class="flex items-center gap-4 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-xs text-indigo-600">${rec.id.toString().slice(-3)}</div>
-                            <div class="flex-grow"><p class="text-sm font-bold text-slate-800">${rec.name}</p><p class="text-[10px] text-slate-400">${rec.time}</p></div>
+                        <div class="flex items-center gap-4 p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center font-bold text-indigo-600">${rec.id.toString().slice(-3)}</div>
+                            <div class="flex-grow"><p class="text-sm font-bold">${rec.name}</p><p class="text-[10px] text-slate-400">${rec.time}</p></div>
                         </div>`).join('');
                     document.getElementById('recordCount').innerText = result.records.length;
-                } else {
-                    list.innerHTML = `<div class="text-center py-10 text-slate-300 italic">ไม่มีข้อมูล</div>`;
-                    document.getElementById('recordCount').innerText = '0';
                 }
             } catch (e) {}
         }
 
         function renderAccessDenied(id) {
             document.getElementById('auth-overlay').innerHTML = `
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-rose-100 max-w-sm mx-4">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border-2 border-rose-100 mx-4">
                     <div class="text-rose-500 mb-4 text-6xl">🚫</div>
-                    <h1 class="text-2xl font-bold text-slate-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h1>
-                    <div class="bg-slate-100 p-4 rounded-2xl mb-6 break-all">
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ID ของคุณ</p>
-                        <p class="text-sm font-mono text-indigo-600">${id}</p>
-                    </div>
-                    <button onclick="copyAndClose('${id}')" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">คัดลอก ID และปิดแอป</button>
+                    <h1 class="text-2xl font-bold mb-2">ไม่มีสิทธิ์เข้าถึง</h1>
+                    <p class="text-sm text-slate-500 mb-6">กรุณาส่ง ID ด้านล่างนี้ให้ผู้ดูแลระบบ</p>
+                    <div class="bg-slate-100 p-4 rounded-2xl mb-6 font-mono text-sm break-all">${id}</div>
+                    <button onclick="liff.closeWindow()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">ปิดหน้าต่าง</button>
                 </div>`;
-        }
-
-        async function copyAndClose(id) {
-            await navigator.clipboard.writeText(id);
-            Swal.fire("คัดลอกแล้ว", "กรุณาส่ง ID ให้แอดมิน", "success").then(() => liff.closeWindow());
         }
 
         function showProcessing(s) { document.getElementById('loading-overlay').classList.toggle('hidden', !s); }
@@ -253,7 +250,7 @@
             document.getElementById('resName').innerText = u.name;
             document.getElementById('resId').innerText = "ID: " + u.id;
             document.getElementById('resDept').innerText = u.dept || "-";
-            document.getElementById('resTime').innerText = "เวลา: " + u.time;
+            document.getElementById('resTime').innerText = "ลงชื่อเมื่อ: " + u.time;
             document.getElementById('userImg').src = u.img || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
         }
         function playTone(id) { document.getElementById(id).play().catch(() => {}); }
