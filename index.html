@@ -3,269 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart QR Check-in (Font Awesome Edition)</title>
+    <title>Smart QR Check-in (Mobile Fixed)</title>
     
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- jsQR -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
     <style>
-        body { 
-            font-family: 'Prompt', sans-serif; 
-            background-color: #f0f2f5; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-
-        /* Login Screen */
-        #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            z-index: 2000; display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Layout Structure */
-        .main-container { display: flex; height: calc(100vh - 72px); }
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; color: #334155; }
         
-        /* Scanner Area */
-        .scanner-section { flex: 1; overflow-y: auto; padding: 1.5rem; }
-        .scanner-box { 
-            position: relative; width: 100%; max-width: 500px; 
-            aspect-ratio: 1/1; background: #000; border-radius: 24px; 
-            overflow: hidden; margin: 0 auto;
-            border: 8px solid #fff; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        /* ปรับระดับความสูงให้พอดีทั้ง PC/Mobile */
+        @media (min-width: 992px) {
+            body { height: 100vh; overflow: hidden; }
+            .main-wrapper { height: calc(100vh - 72px); display: flex; }
+            .scroll-area { overflow-y: auto; flex: 1; }
+            .sidebar-area { width: 400px; border-left: 1px solid #e2e8f0; background: #fff; }
+        }
+
+        /* Scanner Box */
+        .scanner-container {
+            width: 100%; max-width: 450px; aspect-ratio: 1/1;
+            background: #0f172a; border-radius: 2rem; overflow: hidden;
+            position: relative; margin: 0 auto; border: 6px solid #fff;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
         }
         canvas { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Scanning Animation */
-        .scanner-line {
+        /* Animation เส้นสแกน */
+        .scan-line {
             position: absolute; top: 0; left: 0; width: 100%; height: 3px;
-            background: #ff0000; box-shadow: 0 0 15px 2px #ff0000;
-            animation: scanLine 2.5s infinite linear; display: none; z-index: 10;
+            background: #ef4444; box-shadow: 0 0 15px #ef4444;
+            animation: moveLine 2.5s infinite linear; display: none; z-index: 10;
         }
-        @keyframes scanLine { 0% { top: 0; } 100% { top: 100%; } }
+        @keyframes moveLine { 0% { top: 0; } 100% { top: 100%; } }
 
-        /* Sidebar History */
-        .history-sidebar { 
-            width: 420px; background: #fff; border-left: 1px solid #e2e8f0;
-            display: flex; flex-direction: column; 
+        /* การปรับแต่ง UI Components */
+        .card-custom { border: none; border-radius: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+        .btn-indigo { background-color: #6366f1; color: white; border-radius: 1rem; font-weight: 600; }
+        .btn-indigo:hover { background-color: #4f46e5; color: white; }
+        
+        /* History Item (จุดที่แก้รหัสเพี้ยน) */
+        .history-card {
+            background: #fff; border: 1px solid #f1f5f9; border-radius: 1.25rem;
+            padding: 0.75rem; display: flex; align-items: center; gap: 0.75rem;
+            margin-bottom: 0.75rem; transition: transform 0.2s;
         }
-        .history-content { flex: 1; overflow-y: auto; padding: 1.25rem; background-color: #f8fafc; }
-
-        /* Custom Styles */
-        .btn-indigo { background-color: #4f46e5; color: white; border-radius: 14px; transition: 0.3s; }
-        .btn-indigo:hover { background-color: #4338ca; color: white; transform: translateY(-2px); }
-        .card-custom { border: none; border-radius: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .history-card { 
-            background: white; border-radius: 18px; padding: 15px; 
-            margin-bottom: 12px; border: 1px solid #edf2f7;
-            transition: all 0.2s;
-        }
-        .history-card:hover { transform: scale(1.02); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-
-        /* Mobile Adjustments */
-        @media (max-width: 992px) {
-            body { overflow: auto; }
-            .main-container { flex-direction: column; height: auto; }
-            .history-sidebar { width: 100%; height: auto; min-height: 500px; border-left: none; }
-            .scanner-section { padding: 1rem; }
-            .scanner-box { max-width: 100%; border-width: 4px; }
+        .id-badge {
+            min-width: 60px; height: 45px; background: #eff6ff; color: #2563eb;
+            border-radius: 0.75rem; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
 
-    <!-- Login Overlay -->
-    <div id="login-screen">
-        <div class="bg-white p-5 rounded-5 shadow-lg text-center" style="width: 380px;">
-            <div class="mb-4">
-                <div class="bg-primary d-inline-block p-4 rounded-4 shadow-sm text-white mb-3">
-                    <i class="fa-solid fa-qrcode fa-3x"></i>
-                </div>
-                <h3 class="fw-bold">Staff Login</h3>
-                <p class="text-muted small">กรุณาระบุรหัสเจ้าหน้าที่เพื่อเริ่มใช้งาน</p>
-            </div>
-            <div class="mb-4">
-                <div class="input-group input-group-lg bg-light rounded-4 overflow-hidden border-0">
-                    <span class="input-group-text bg-light border-0"><i class="fa-solid fa-lock text-muted"></i></span>
-                    <input type="password" id="staff-id" class="form-control bg-light border-0 fw-bold text-center ps-0" placeholder="รหัสเจ้าหน้าที่">
-                </div>
-            </div>
-            <button onclick="login()" class="btn btn-indigo w-100 py-3 fw-bold fs-5 shadow">
-                <i class="fa-solid fa-right-to-bracket me-2"></i> เข้าสู่ระบบ
-            </button>
-        </div>
-    </div>
-
-    <!-- Header Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-white bg-white border-bottom sticky-top shadow-sm" style="height: 72px;">
-        <div class="container-fluid px-md-4">
-            <a class="navbar-brand d-flex align-items-center" href="#">
-                <div class="bg-primary text-white p-2 rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                    <i class="fa-solid fa-bolt fs-5"></i>
-                </div>
+    <!-- Header -->
+    <nav class="navbar bg-white border-bottom sticky-top py-2">
+        <div class="container-fluid px-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary text-white p-2 rounded-3 fw-bold me-2" style="font-size: 0.7rem;">STAFF</div>
                 <div>
-                    <span class="fw-bold fs-5 d-block lh-1 text-dark">QR Check-in</span>
-                    <small id="ui-staff" class="text-primary fw-bold small"><i class="fa-solid fa-circle-user me-1"></i> กรุณาเข้าระบบ</small>
+                    <h6 class="mb-0 fw-bold" style="font-size: 0.9rem;">QR Check-in</h6>
+                    <small id="ui-staff" class="text-primary fw-bold" style="font-size: 0.7rem;">EDITOR</small>
                 </div>
-            </a>
-
-            <div class="bg-light p-1 rounded-3 d-flex gap-1">
-                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-4 py-2 fw-bold">
-                    <i class="fa-solid fa-calendar-day me-1"></i> วันที่ 1
-                </button>
-                <button onclick="changeDay(2)" id="day2-btn" class="btn btn-light btn-sm rounded-2 px-4 py-2 fw-bold text-muted">
-                    <i class="fa-solid fa-calendar-day me-1"></i> วันที่ 2
-                </button>
+            </div>
+            <div class="btn-group bg-light p-1 rounded-3">
+                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm">วันที่ 1</button>
+                <button onclick="changeDay(2)" id="day2-btn" class="btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted">วันที่ 2</button>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content Area -->
-    <div class="main-container">
-        
-        <!-- Left: Control Center -->
-        <section class="scanner-section">
-            <div class="container-fluid">
-                <div class="row justify-content-center">
-                    <div class="col-12 col-xl-10">
-                        
-                        <!-- Scanner Card -->
-                        <div class="card card-custom mb-4">
-                            <div class="card-body p-4 text-center">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h6 class="fw-bold text-secondary mb-0">
-                                        <i class="fa-solid fa-camera-retro me-2"></i>เครื่องสแกน QR CODE
-                                    </h6>
-                                    <span id="scan-status" class="badge bg-light text-muted border px-3 py-2 rounded-pill small">
-                                        <i class="fa-solid fa-circle me-1" style="font-size: 8px;"></i> กล้องปิดอยู่
-                                    </span>
-                                </div>
-
-                                <div class="scanner-box mb-4">
-                                    <div id="laser" class="scanner-line"></div>
-                                    <canvas id="canvas" hidden></canvas>
-                                    <div id="placeholder" class="h-100 d-flex flex-column align-items-center justify-content-center bg-dark text-white opacity-25">
-                                        <i class="fa-solid fa-video-slash fa-4x mb-3"></i>
-                                        <span class="fw-bold">พร้อมสแกน...</span>
-                                    </div>
-                                </div>
-
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <button id="start-btn" onclick="toggleScanner(true)" class="btn btn-success w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm">
-                                            <i class="fa-solid fa-play me-2"></i> เริ่มทำงาน (เปิดกล้อง)
-                                        </button>
-                                        <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm d-none">
-                                            <i class="fa-solid fa-stop me-2"></i> หยุดการทำงาน
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+    <div class="main-wrapper">
+        <!-- ฝั่งซ้าย/บน: Scanner -->
+        <div class="scroll-area p-3">
+            <div class="container-fluid p-0">
+                
+                <!-- Scanner Section -->
+                <div class="card card-custom p-3 text-center">
+                    <div class="scanner-container mb-3">
+                        <div id="laser" class="scan-line"></div>
+                        <canvas id="canvas" hidden></canvas>
+                        <div id="placeholder" class="h-100 d-flex flex-column align-items-center justify-content-center text-white opacity-25">
+                            <i class="fa-solid fa-camera fa-3x mb-2"></i>
+                            <span class="small">กล้องปิดอยู่</span>
                         </div>
-
-                        <!-- Manual Entry Card -->
-                        <div class="card card-custom">
-                            <div class="card-body p-4">
-                                <h6 class="fw-bold mb-3 text-secondary small">
-                                    <i class="fa-solid fa-keyboard me-2"></i>กรอกรหัสด้วยตัวเอง (Manual)
-                                </h6>
-                                <div class="input-group input-group-lg bg-light rounded-4 border-0 p-1">
-                                    <input type="text" id="manual-input" class="form-control bg-transparent border-0 fw-bold text-center" placeholder="พิมพ์รหัส ID ที่นี่">
-                                    <button onclick="handleManual()" class="btn btn-dark px-5 rounded-3 fw-bold shadow-sm">
-                                        <i class="fa-solid fa-paper-plane me-2"></i>บันทึก
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
+                    <button id="start-btn" onclick="toggleScanner(true)" class="btn btn-indigo btn-lg w-100 py-3 rounded-4 shadow-sm">
+                        <i class="fa-solid fa-qrcode me-2"></i>เริ่มสแกน QR Code
+                    </button>
+                    <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger btn-lg w-100 py-3 rounded-4 shadow-sm d-none">
+                        หยุดสแกน
+                    </button>
                 </div>
-            </div>
-        </section>
 
-        <!-- Right: Activity History Sidebar -->
-        <aside class="history-sidebar shadow-lg">
-            <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white sticky-top">
-                <div>
-                    <h5 class="fw-bold mb-0 text-dark">ประวัติการสแกน</h5>
-                    <p class="text-muted small mb-0"><i class="fa-solid fa-clock-rotate-left me-1"></i> อัพเดทล่าสุดแบบ Real-time</p>
+                <!-- Manual Input Section (แก้ปัญหาปุ่มหลุดขอบ) -->
+                <div class="card card-custom p-3">
+                    <form onsubmit="handleManual(event)" class="row g-2">
+                        <div class="col-8">
+                            <input type="text" id="manual-input" class="form-control form-control-lg bg-light border-0 rounded-4 text-center fw-bold" placeholder="กรอกรหัส ID...">
+                        </div>
+                        <div class="col-4">
+                            <button type="submit" class="btn btn-dark btn-lg w-100 rounded-4 fw-bold shadow-sm" style="font-size: 1rem;">บันทึก</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="text-end">
-                    <span class="d-block text-muted small fw-bold">เช็คอินแล้ว</span>
-                    <span id="ui-count" class="badge bg-indigo rounded-pill px-3 fs-6">0 คน</span>
-                </div>
-            </div>
-            
-            <div id="history-box" class="history-content">
-                <!-- Data Displayed Here -->
-                <div class="text-center py-5 text-muted">
-                    <i class="fa-solid fa-box-open fa-3x mb-3 opacity-25"></i>
-                    <p class="small italic fw-bold">ยังไม่มีข้อมูลในวันที่เลือก</p>
-                </div>
-            </div>
-        </aside>
 
+            </div>
+        </div>
+
+        <!-- ฝั่งขวา/ล่าง: History -->
+        <div class="sidebar-area d-flex flex-column">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white sticky-top shadow-sm">
+                <h6 class="fw-bold mb-0 text-secondary"><i class="fa-solid fa-list-ul me-2"></i>รายการสแกนล่าสุด</h6>
+                <span id="ui-count" class="badge bg-light text-dark border rounded-pill px-3 py-2">0 คน</span>
+            </div>
+            <div id="history-box" class="p-3 flex-grow-1 overflow-auto">
+                <div class="text-center py-5 text-muted small">ยังไม่มีข้อมูลวันนี้</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Overlay (Enter เพื่อ login) -->
+    <div id="login-screen" class="fixed-top h-100 w-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center p-4" style="z-index: 2000; backdrop-filter: blur(5px);">
+        <form onsubmit="login(event)" class="bg-white p-4 rounded-5 shadow-lg text-center w-100" style="max-width: 350px;">
+            <div class="bg-primary d-inline-block p-3 rounded-4 text-white mb-3">
+                <i class="fa-solid fa-user-shield fa-2x"></i>
+            </div>
+            <h5 class="fw-bold mb-4">Staff Login</h5>
+            <input type="password" id="staff-id" class="form-control form-control-lg bg-light border-0 rounded-4 text-center fw-bold mb-3" placeholder="รหัสเจ้าหน้าที่" autofocus required>
+            <button type="submit" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow">เข้าสู่ระบบ</button>
+        </form>
     </div>
 
     <video id="video" playsinline hidden></video>
 
     <script>
-        // --- CONSTANTS & LOGIC ---
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwiWK2OGyfZO8HyVKizYST4sCjgmkKMa5bZGT8Uh2uwLMa0GU9heiXDbq6epcRsZfov/exec";
         let day = 1, staff = null, isScanning = false, currentStream = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        async function login() {
-            const id = document.getElementById('staff-id').value.trim();
-            if (!id) return;
-            Swal.fire({ title: 'กำลังยืนยันตัวตน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        async function login(e) {
+            if(e) e.preventDefault();
+            const id = document.getElementById('staff-id').value;
+            Swal.fire({ title: 'กำลังโหลด...', didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', id }) });
-                const result = await res.json();
-                Swal.close();
+                const result = await res.json(); Swal.close();
                 if (result.isAllowed) {
                     staff = result;
                     document.getElementById('login-screen').classList.add('d-none');
-                    document.getElementById('ui-staff').innerHTML = `<i class="fa-solid fa-user-check me-1"></i> เจ้าหน้าที่: ${result.name}`;
+                    document.getElementById('ui-staff').innerText = result.name;
                     fetchHistory();
-                } else { 
-                    Swal.fire({ icon: 'error', title: 'ไม่ได้รับอนุญาต', text: 'ไม่พบรหัสเจ้าหน้าที่ในระบบ' }); 
-                }
-            } catch (e) { Swal.fire('Error', 'เชื่อมต่อระบบฐานข้อมูลไม่ได้', 'error'); }
+                } else { Swal.fire('Error', 'รหัสไม่ถูกต้อง', 'error'); }
+            } catch (e) { Swal.fire('Error', 'เชื่อมต่อล้มเหลว', 'error'); }
         }
 
         async function toggleScanner(start) {
             const startBtn = document.getElementById('start-btn'), stopBtn = document.getElementById('stop-btn');
             const placeholder = document.getElementById('placeholder'), laser = document.getElementById('laser');
-            const statusLabel = document.getElementById('scan-status');
-
             if (start) {
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = currentStream; video.play();
-                    isScanning = true;
+                    video.srcObject = currentStream; video.play(); isScanning = true;
                     startBtn.classList.add('d-none'); stopBtn.classList.remove('d-none');
                     placeholder.classList.add('d-none'); laser.style.display = 'block';
-                    statusLabel.className = "badge bg-success text-white px-3 py-2 rounded-pill small";
-                    statusLabel.innerHTML = '<i class="fa-solid fa-circle-dot animate-pulse me-1"></i> กำลังสแกน...';
                     canvas.hidden = false; requestAnimationFrame(tick);
-                } catch (e) { Swal.fire('Error', 'ไม่สามารถเปิดกล้องได้ กรุณาให้สิทธิ์กล้อง', 'error'); }
+                } catch (e) { Swal.fire('Error', 'เปิดกล้องไม่ได้', 'error'); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                isScanning = false;
-                startBtn.classList.remove('d-none'); stopBtn.classList.add('d-none');
-                canvas.hidden = true; placeholder.classList.remove('d-none');
-                laser.style.display = 'none';
-                statusLabel.className = "badge bg-light text-muted border px-3 py-2 rounded-pill small";
-                statusLabel.innerHTML = '<i class="fa-solid fa-circle me-1"></i> กล้องปิดอยู่';
+                isScanning = false; startBtn.classList.remove('d-none'); stopBtn.classList.add('d-none');
+                canvas.hidden = true; placeholder.classList.remove('d-none'); laser.style.display = 'none';
             }
         }
 
@@ -277,8 +187,7 @@
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
                 if (code) { 
                     if(navigator.vibrate) navigator.vibrate(100);
-                    toggleScanner(false); 
-                    record(code.data, false); 
+                    toggleScanner(false); record(code.data, false); 
                     return;
                 }
             }
@@ -286,26 +195,21 @@
         }
 
         async function record(qrText, confirm) {
-            Swal.fire({ 
-                title: 'กำลังประมวลผล...', 
-                html: `<i class="fa-solid fa-spinner fa-spin fa-2x text-primary mb-3"></i><br>ID: <b>${qrText}</b>`,
-                showConfirmButton: false, allowOutsideClick: false 
-            });
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirm, staffInfo: staff } })
                 });
-                const result = await res.json();
-                Swal.close();
+                const result = await res.json(); Swal.close();
                 if (result.success) {
                     fetchHistory();
-                    Swal.fire({ icon: 'success', title: 'เช็คอินสำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', title: 'สำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
                 } else if (result.requireConfirm) {
-                    const c = await Swal.fire({ title: 'ยืนยันบันทึกซ้ำ?', text: result.message, icon: 'warning', showCancelButton: true });
+                    const c = await Swal.fire({ title: 'ยืนยัน?', text: result.message, icon: 'warning', showCancelButton: true });
                     if (c.isConfirmed) record(qrText, true);
-                } else { Swal.fire('ผิดพลาด', result.message, 'error'); }
-            } catch (e) { Swal.fire('Error', 'ไม่สามารถส่งข้อมูลได้', 'error'); }
+                } else { Swal.fire('Error', result.message, 'error'); }
+            } catch (e) { Swal.fire('Error', 'เชื่อมต่อล้มเหลว', 'error'); }
         }
 
         async function fetchHistory() {
@@ -315,44 +219,31 @@
                 const box = document.getElementById('history-box');
                 if (result.success) {
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
-                    if(result.records.length > 0) {
-                        box.innerHTML = result.records.map(r => `
-                            <div class="history-card shadow-sm d-flex align-items-center">
-                                <div class="bg-indigo text-white rounded-3 d-flex align-items-center justify-center fw-bold me-3 shadow-sm" style="width: 48px; height: 48px; font-size: 11px;">
-                                    ${r.id.toString().slice(-4)}
-                                </div>
-                                <div class="flex-grow-1 overflow-hidden">
-                                    <h6 class="mb-0 fw-bold text-dark text-truncate">${r.name}</h6>
-                                    <div class="text-muted small">
-                                        <i class="fa-regular fa-clock me-1"></i>${r.time}
-                                    </div>
-                                </div>
-                                <div class="ms-2">
-                                    <i class="fa-solid fa-circle-check text-success fa-lg"></i>
-                                </div>
-                            </div>`).join('');
-                    } else {
-                        box.innerHTML = `<div class="text-center py-5 text-muted"><i class="fa-solid fa-folder-open fa-3x mb-3 opacity-25"></i><p class="small fw-bold">ไม่พบประวัติของวันนี้</p></div>`;
-                    }
+                    box.innerHTML = result.records.map(r => `
+                        <div class="history-card shadow-sm">
+                            <div class="id-badge text-truncate px-1">ID:${r.id.toString()}</div>
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="fw-bold text-dark small text-truncate">${r.name}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;"><i class="fa-regular fa-clock me-1"></i>${r.time}</div>
+                            </div>
+                            <i class="fa-solid fa-circle-check text-success fa-lg"></i>
+                        </div>`).join('');
                 }
-            } catch (e) { console.error("History fetch failed"); }
+            } catch (e) {}
         }
 
         function changeDay(d) {
             day = d;
-            document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-4 py-2 fw-bold' : 'btn btn-light btn-sm rounded-2 px-4 py-2 fw-bold text-muted';
-            document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-4 py-2 fw-bold' : 'btn btn-light btn-sm rounded-2 px-4 py-2 fw-bold text-muted';
+            document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+            document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
             fetchHistory();
         }
 
-        function handleManual() {
+        function handleManual(e) {
+            if(e) e.preventDefault();
             const val = document.getElementById('manual-input').value.trim();
             if (val) { record(val, false); document.getElementById('manual-input').value = ''; }
         }
-
-        // Key Listeners
-        document.getElementById('staff-id').onkeydown = e => { if(e.keyCode == 13) login(); };
-        document.getElementById('manual-input').onkeydown = e => { if(e.keyCode == 13) handleManual(); };
     </script>
 </body>
 </html>
