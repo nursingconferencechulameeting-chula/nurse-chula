@@ -320,9 +320,20 @@
                     document.getElementById('p-id').innerText = `ID: ${u.id}`;
                     document.getElementById('p-dept').innerText = u.dept || 'ไม่ระบุหน่วยงาน';
                     
+                    // ภายในฟังก์ชัน previewUser(id) ส่วนจัดการสถานะ
                     const stEl = document.getElementById('p-status');
-                    stEl.innerText = u.payStatus || 'ชำระเงินเรียบร้อย';
-                    stEl.className = `fw-bold ${u.payStatus === 'ยังไม่ได้ชำระเงิน' ? 'text-danger' : 'text-success'}`;
+                    const payStatus = u.payStatus ? u.payStatus.toString().trim() : "";
+
+                    if (payStatus === "ชำระเงินเรียบร้อย") {
+                        stEl.innerText = "✅ " + payStatus;
+                        stEl.className = "fw-bold text-success";
+                    } else if (payStatus === "ยังไม่ได้ชำระเงิน" || payStatus === "-") {
+                        stEl.innerText = "⚠️ ยังไม่ได้ชำระเงิน";
+                        stEl.className = "fw-bold text-danger";
+                    } else {
+                        stEl.innerText = payStatus || "ไม่ระบุสถานะ";
+                        stEl.className = "fw-bold text-warning";
+                    }
 
                     document.getElementById('btn-confirm-record').onclick = () => {
                         record(id, true); // เรียกบันทึกจริง
@@ -379,7 +390,7 @@
         }
 
         async function record(qrText, confirmed) {
-            // ปิด Modal ทันทีที่กด เพื่อกันการกดซ้ำหรือ Error ซ้อน
+            // 1. ปิด Modal ทันทีป้องกันการแสดงผลค้าง
             if (previewModal) previewModal.hide();
 
             Swal.fire({ 
@@ -398,10 +409,10 @@
                 });
                 const result = await res.json();
                 
-                Swal.close(); // ปิด Loading
+                Swal.close(); // ปิด Loading ของการบันทึก
 
                 if (result.success) {
-                    // แจ้งสำเร็จอย่างเดียว ไม่ต้องเช็คเงื่อนไขอื่นเพิ่ม
+                    // 2. แสดงแจ้งเตือนสำเร็จเพียงอย่างเดียว
                     Swal.fire({ 
                         icon: 'success', 
                         title: 'บันทึกสำเร็จ', 
@@ -410,18 +421,17 @@
                         showConfirmButton: false 
                     });
 
-                    // 2. แสดง Spinner รอที่ช่องรายการล่าสุดทันที (เพื่อให้เจ้าหน้ารู้ว่ากำลังอัปเดต)
-                    const box = document.getElementById('history-box');
+                    // 3. อัปเดต UI รายการล่าสุดทันที
                     const currentCount = parseInt(document.getElementById('ui-count').innerText) || 0;
                     document.getElementById('ui-count').innerText = `${currentCount + 1} คน`;
 
-                    // 3. หน่วงเวลา 1.5 วินาที แล้วค่อยดึงข้อมูลใหม่ เพื่อรอให้ Google Sheets อัปเดตเสร็จชัวร์ๆ
+                    // หน่วงเวลาเล็กน้อยเพื่อให้ Google Sheets อัปเดตข้อมูลเสร็จก่อนไปดึง History
                     setTimeout(() => {
                         fetchHistory(); 
-                    }, 1500);
+                    }, 1000);
 
                 } else {
-                    // กรณี Error จริงๆ เช่น ลงซ้ำ หรือ หา ID ไม่เจอ
+                    // กรณีเป็นข้อผิดพลาดจริง (เช่น ลงซ้ำ) ให้แสดงคำเตือน
                     Swal.fire({
                         icon: 'warning',
                         title: 'แจ้งเตือน',
