@@ -133,26 +133,41 @@
                 <div class="modal-header border-0 pb-0">
                     <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
                 </div>
+
                 <div class="modal-body text-center p-4">
                     <div class="profile-box">
                         <img id="p-img" src="" style="display: none;">
                         <i id="p-icon" class="fa-solid fa-user-tie"></i>
                     </div>
-                    <h3 id="p-name" class="fw-bold mb-1">-</h3>
+                    <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
                     <p id="p-id" class="text-muted mb-3 fw-bold">ID: -</p>
+                    
                     <div class="bg-light p-3 rounded-4 text-start mb-3">
                         <small class="text-secondary d-block">หน่วยงาน / สังกัด</small>
                         <div id="p-dept" class="fw-bold mb-2">-</div>
-                        <small class="text-secondary d-block">สถานะการชำระเงิน</small>
-                        <div id="p-status" class="fw-bold">-</div>
+
+                        <small class="text-secondary d-block">ตำแหน่งปัจจุบัน</small>
+                        <div id="p-pos" class="fw-bold mb-2">-</div>
+
+                        <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
+                        <div id="p-regType" class="fw-bold mb-2">-</div>
+                        
+                        <div id="pay-status-area">
+                            <hr class="my-2 opacity-10">
+                            <small class="text-secondary d-block">สถานะการชำระเงิน</small>
+                            <div id="p-status" class="fw-bold">-</div>
+                        </div>
                     </div>
+
                     <div class="d-grid gap-2">
                         <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm">
                             <i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน
                         </button>
                         <button class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">ยกเลิก / สแกนใหม่</button>
                     </div>
+                </div>>
                 </div>
+
             </div>
         </div>
     </div>
@@ -283,32 +298,25 @@
 
         // ฟังก์ชันดึงข้อมูลมา Preview ก่อนบันทึก
         async function previewUser(id) {
-            // ล้างข้อมูลเก่าใน Modal ก่อนโชว์ใหม่
+            // ล้างข้อมูลเก่า
             document.getElementById('p-img').src = "";
-            
             Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             
             try {
                 const res = await fetch(GAS_URL, { 
                     method: 'POST', 
                     body: JSON.stringify({ 
-                        action: 'recordAttendance', 
-                        data: { text: id, day, staffInfo: staff, onlyCheck: true } 
+                        action: 'getUserPreview', 
+                        id: id 
                     }) 
                 });
                 const result = await res.json();
                 Swal.close();
 
-                // ถ้าผลลัพธ์บอกว่า "ลงชื่อไปแล้ว" ให้โชว์ Error แล้วจบการทำงานตรงนี้เลย ไม่ต้องโชว์ Modal
-                if (!result.success && result.message.includes("ลงชื่อวันนี้ไปแล้ว")) {
-                    Swal.fire('แจ้งเตือน', result.message, 'warning');
-                    return; 
-                }
-
-                if (result.success || result.requireConfirm || result.isFound) {
-                    const u = result.user || result.tempUser;
+                if (result.success) {
+                    const u = result.user;
                     
-                    // แสดงข้อมูลใน Modal ตามปกติ...
+                    // 1. จัดการรูปภาพหรือไอคอน
                     const img = document.getElementById('p-img'), icon = document.getElementById('p-icon');
                     if (u.img && u.img !== "-" && u.img !== "") { 
                         img.src = u.img; img.style.display = 'block'; icon.style.display = 'none'; 
@@ -316,34 +324,36 @@
                         img.style.display = 'none'; icon.style.display = 'block'; 
                     }
 
+                    // 2. แสดงข้อมูลลงในหน้าจอ
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = `ID: ${u.id}`;
-                    document.getElementById('p-dept').innerText = u.dept || 'ไม่ระบุหน่วยงาน';
-                    
-                    // ภายในฟังก์ชัน previewUser(id) ส่วนจัดการสถานะ
-                    const stEl = document.getElementById('p-status');
-                    const payStatus = u.payStatus ? u.payStatus.toString().trim() : "";
+                    document.getElementById('p-dept').innerText = u.dept || '-';
+                    document.getElementById('p-pos').innerText = u.position || '-'; // แสดงตำแหน่ง
+                    document.getElementById('p-regType').innerText = u.regType || '-';
 
-                    if (payStatus === "ชำระเงินเรียบร้อย") {
-                        stEl.innerText = "✅ " + payStatus;
-                        stEl.className = "fw-bold text-success";
-                    } else if (payStatus === "ยังไม่ได้ชำระเงิน" || payStatus === "-") {
-                        stEl.innerText = "⚠️ ยังไม่ได้ชำระเงิน";
-                        stEl.className = "fw-bold text-danger";
+                    // 3. Logic ซ่อน/แสดง สถานะการเงิน
+                    const payArea = document.getElementById('pay-status-area');
+                    const stEl = document.getElementById('p-status');
+                    const regType = u.regType ? u.regType.toString().trim() : "";
+
+                    if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
+                        payArea.style.display = 'block';
+                        const payStatus = u.payStatus ? u.payStatus.trim() : "";
+                        stEl.innerText = payStatus || "ยังไม่ได้ชำระเงิน";
+                        stEl.className = `fw-bold ${payStatus === 'ชำระเงินเรียบร้อย' ? 'text-success' : 'text-danger'}`;
                     } else {
-                        stEl.innerText = payStatus || "ไม่ระบุสถานะ";
-                        stEl.className = "fw-bold text-warning";
+                        payArea.style.display = 'none'; // ไม่ใช่บุคคลภายนอก ไม่ต้องแสดงส่วนนี้
                     }
 
                     document.getElementById('btn-confirm-record').onclick = () => {
-                        record(id, true); // เรียกบันทึกจริง
+                        record(id, true);
                     };
                     previewModal.show();
                 } else {
                     Swal.fire('ไม่พบข้อมูล', result.message, 'error');
                 }
             } catch (e) {
-                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+                Swal.fire('Error', 'การเชื่อมต่อขัดข้อง', 'error');
             }
         }
 
