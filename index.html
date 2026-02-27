@@ -511,22 +511,24 @@
         }
 
         async function changeDay(d) {
-            // 1. ดึงเวลาเปิด-ปิดจาก Sheet มาก่อน
-            const timer = await new Promise((resolve) => {
+            // 1. ดึงค่าเวลาเปิด-ปิดจาก Sheet (Timer)
+            const settings = await new Promise((resolve) => {
                 google.script.run.withSuccessHandler(resolve).getTimerSettings();
             });
 
+            // 2. เลือกช่วงเวลาตามวันที่กด (d = 1 หรือ 2)
+            const target = (d === 1) ? settings.day1 : settings.day2;
             const now = new Date();
-            const openTime = new Date(timer.open);
-            const closeTime = new Date(timer.close);
+            const openTime = new Date(target.start);
+            const closeTime = new Date(target.end);
 
-            // 2. ตรวจสอบเงื่อนไขเวลา
+            // 3. ตรวจสอบเงื่อนไขเวลา
             if (now < openTime || now > closeTime) {
-                Swal.fire('ปิดระบบ', 'ไม่อยู่ในช่วงเวลาที่กำหนดใน Sheet Timer', 'warning');
-                return;
+                Swal.fire('แจ้งเตือน', `ไม่อยู่ในช่วงเวลาลงทะเบียนของวันที่ ${d}`, 'warning');
+                return; 
             }
 
-            // 3. ถ้าผ่านเงื่อนไข ให้เปลี่ยนสีปุ่มตามเดิม
+            // 4. ถ้าผ่านเงื่อนไข ให้เปลี่ยนสีปุ่มและโหลดประวัติ
             day = d;
             document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
             document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
