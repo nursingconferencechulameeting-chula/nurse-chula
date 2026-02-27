@@ -511,42 +511,37 @@
         }
 
         function changeDay(d) {
-            // แสดง Loading เพื่อบอกผู้ใช้ว่ากำลังเช็คเวลาจาก Sheet
-            Swal.fire({ title: 'กำลังตรวจสอบเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
+            // ตรวจสอบว่ามีข้อมูลจากหน้า Timer หรือยัง
             if (typeof google !== 'undefined') {
-                google.script.run
-                    .withSuccessHandler(function(settings) {
-                        Swal.close();
-                        const now = new Date().getTime();
-                        const target = (d === 1) ? settings.day1 : settings.day2;
+                google.script.run.withSuccessHandler(function(timer) {
+                    if (!timer) return;
 
-                        // ตรวจสอบเงื่อนไขเวลา (เทียบเป็น Milliseconds เพื่อความแม่นยำ)
-                        if (now < target.start || now > target.end) {
-                            Swal.fire('แจ้งเตือน', `ไม่อยู่ในช่วงเวลาลงทะเบียนของวันที่ ${d}`, 'warning');
-                            return;
-                        }
+                    const now = new Date().getTime();
+                    let start, end;
 
-                        // --- ถ้าผ่านเงื่อนไข ให้เปลี่ยนสถานะปุ่มตามเดิม ---
-                        day = d;
-                        updateButtonStyles(d);
-                        fetchHistory();
-                    })
-                    .withFailureHandler(function(err) {
-                        Swal.fire('Error', 'ไม่สามารถดึงข้อมูลเวลาได้', 'error');
-                    })
-                    .getTimerSettings();
-            } else {
-                Swal.fire('Error', 'ระบบ Google ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าจอ', 'error');
+                    // เลือกตัวแปรให้ตรงกับวันที่กด
+                    if (d === 1) {
+                        start = timer.day1Open;
+                        end = timer.day1Close;
+                    } else {
+                        start = timer.day2Open;
+                        end = timer.day2Close;
+                    }
+
+                    // ตรวจสอบเงื่อนไขเวลา
+                    if (!start || !end || now < start || now > end) {
+                        Swal.fire('แจ้งเตือน', `ไม่อยู่ในช่วงเวลาลงทะเบียนของวันที่ ${d}`, 'warning');
+                        return;
+                    }
+
+                    // --- ถ้าผ่านเงื่อนไข ทำคำสั่งเดิมของคุณ ---
+                    day = d;
+                    document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+                    document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+                    fetchHistory();
+
+                }).getTimerSettings();
             }
-        }
-
-        // แยกฟังก์ชันเปลี่ยนสีปุ่มออกมาเพื่อให้โค้ดสะอาดขึ้น
-        function updateButtonStyles(d) {
-            const b1 = document.getElementById('day1-btn');
-            const b2 = document.getElementById('day2-btn');
-            b1.className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
-            b2.className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
         }
 
         const Toast = Swal.mixin({
