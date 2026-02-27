@@ -512,10 +512,14 @@
 
         async function changeDay(d) {
             // 1. แสดง Loading ขณะดึงเวลาจาก Sheet
-            Swal.fire({ title: 'กำลังตรวจสอบเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ 
+                title: 'กำลังตรวจสอบเวลา...', 
+                allowOutsideClick: false, 
+                didOpen: () => Swal.showLoading() 
+            });
 
             try {
-                // 2. ส่งคำขอไปที่ doPost เพื่อดึงเวลา
+                // 2. ส่งคำขอไปที่ doPost เพื่อดึงเวลาล่าสุดจาก Google Sheet
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'getTimerSettings' })
@@ -532,26 +536,43 @@
                 let start = (d === 1) ? timer.day1Open : timer.day2Open;
                 let end = (d === 1) ? timer.day1Close : timer.day2Close;
 
+                // ดึง Element ของปุ่มต่างๆ มาเตรียมไว้
+                const btnStart = document.getElementById('start-btn');
+                const inputManual = document.getElementById('manual-input');
+                const btnSubmit = document.querySelector('.manual-box button');
+
                 // 3. ตรวจสอบเงื่อนไขเวลา
                 if (!start || !end || now < start || now > end) {
+                    // --- กรณี: ไม่อยู่ในช่วงเวลา (ปิดการใช้งาน) ---
+                    if (btnStart) btnStart.disabled = true;
+                    if (inputManual) inputManual.disabled = true;
+                    if (btnSubmit) btnSubmit.disabled = true;
+
                     Swal.fire({
                         icon: 'warning',
                         title: 'ไม่อยู่ในช่วงเวลา',
-                        text: `วันที่ ${d} เปิดให้ลงชื่อเวลา 07:00 - 09:00 น. เท่านั้น`,
+                        text: `วันที่ ${d} ไม่อยู่ในช่วงเวลาที่กำหนด (ปิดระบบลงทะเบียน)`,
                         confirmButtonColor: '#4f46e5'
                     });
-                    return;
+                    // ถึงแม้จะลงทะเบียนไม่ได้ แต่เรายังยอมให้เปลี่ยนหน้าเพื่อ "ดูประวัติ" ได้
+                } else {
+                    // --- กรณี: อยู่ในช่วงเวลา (เปิดการใช้งาน) ---
+                    if (btnStart) btnStart.disabled = false;
+                    if (inputManual) inputManual.disabled = false;
+                    if (btnSubmit) btnSubmit.disabled = false;
                 }
 
-                // 4. ถ้าผ่านเงื่อนไข ทำการเปลี่ยนวันตามปกติ
+                // 4. เปลี่ยนสถานะปุ่มวันที่และโหลดข้อมูลประวัติ
                 day = d;
                 document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
                 document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+                
+                // โหลดประวัติการสแกนของวันที่เลือก
                 fetchHistory();
 
             } catch (e) {
                 Swal.close();
-                Swal.fire('Error', 'การเชื่อมต่อขัดข้อง', 'error');
+                Swal.fire('Error', 'การเชื่อมต่อขัดข้อง: ' + e.toString(), 'error');
             }
         }
 
