@@ -27,9 +27,31 @@
         .cam-view { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative; }
         canvas { width: 100%; height: 100%; object-fit: cover; }
 
-        .sidebar-right { width: 450px; background: white; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+        .sidebar-right { 
+            width: 480px; 
+            background: white; 
+            border-left: 1px solid #e2e8f0; 
+            display: flex; 
+            flex-direction: column; 
+            transition: width 0.3s ease; /* เพิ่ม transition ให้นุ่มนวล */
+        }
         .history-list { flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; }
-
+        /* ปรับช่อง ID ให้กว้างขึ้นเพื่อรองรับ Prefix เช่น NS-002 */
+        .id-num { 
+            width: 75px; /* เพิ่มจาก 45px */
+            height: 45px; 
+            background: #eef2ff; 
+            color: #4f46e5; 
+            border-radius: 12px; 
+            display: flex; 
+            flex-direction: column; /* จัดบรรทัดใหม่ */
+            align-items: center; 
+            justify-content: center; 
+            font-weight: 700; 
+            font-size: 0.85rem; /* ปรับขนาดฟอนต์ให้เล็กลงนิดนึงเพื่อให้ใส่ Prefix ได้ */
+            margin-right: 15px; 
+            line-height: 1.2;
+        }
         @media (max-width: 991px) {
             body { overflow-y: auto; height: auto; }
             .app-wrapper { flex-direction: column; height: auto; }
@@ -298,19 +320,35 @@
                 if (result.success) {
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
                     const box = document.getElementById('history-box');
+                    
                     if(result.records.length > 0) {
-                        box.innerHTML = result.records.reverse().map(r => `
-                            <div class="id-item shadow-sm">
-                                <div class="id-num">${r.id.toString().padStart(3, '0')}</div>
+                        // ใช้ .reverse() เพื่อเอาคนล่าสุดขึ้นก่อน
+                        box.innerHTML = result.records.reverse().map(r => {
+                            // จัดการรหัส ID: ถ้าเป็นตัวเลขล้วนให้เติม 0, ถ้ามี NS- อยู่แล้วให้คงไว้
+                            let displayId = r.id.toString().trim();
+                            if (!isNaN(displayId)) {
+                                displayId = displayId.padStart(3, '0');
+                            }
+
+                            return `
+                            <div class="id-item shadow-sm p-3">
+                                <div class="id-num">
+                                    ${displayId.includes('-') ? 
+                                        `<span>${displayId.split('-')[0]}-</span><span>${displayId.split('-')[1]}</span>` : 
+                                        displayId}
+                                </div>
                                 <div class="flex-grow-1 overflow-hidden">
-                                    <h6 class="mb-0 fw-bold text-dark text-truncate">${r.name}</h6>
+                                    <h5 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 1.1rem;">${r.name}</h5>
                                     <small class="text-muted"><i class="fa-regular fa-clock me-2"></i>${r.time}</small>
                                 </div>
-                                <i class="fa-solid fa-circle-check fa-lg text-success ms-2"></i>
-                            </div>`).join('');
-                    } else { box.innerHTML = `<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>`; }
+                                <i class="fa-solid fa-circle-check fa-2x text-success ms-2"></i>
+                            </div>`;
+                        }).join('');
+                    } else { 
+                        box.innerHTML = `<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>`; 
+                    }
                 }
-            } catch (e) {}
+            } catch (e) { console.error("History Error:", e); }
         }
 
         function changeDay(d) {
