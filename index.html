@@ -70,6 +70,15 @@
         .profile-box i { font-size: 80px; color: #cbd5e1; }
         
         .swal2-popup { border-radius: 1.5rem !important; font-family: 'Prompt', sans-serif !important; }
+
+        .spinner-border {
+            border-width: 0.25em;
+            animation-duration: 0.75s;
+        }
+
+        #history-box {
+            transition: all 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -222,38 +231,57 @@
 
         // ฟังก์ชันดึงข้อมูลมา Preview ก่อนบันทึก
         async function previewUser(id) {
-            Swal.fire({ title: 'กำลังดึงข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            // ล้างข้อมูลเก่าใน Modal ก่อนโชว์ใหม่
+            document.getElementById('p-img').src = "";
+            
+            Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
             try {
-                // ใช้ action 'getUserPreview' (ต้องมีใน Code.gs) หรือใช้ recordAttendance แบบทดลองดึงข้อมูล
                 const res = await fetch(GAS_URL, { 
                     method: 'POST', 
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: id, day, staffInfo: staff, onlyCheck: true } }) 
+                    body: JSON.stringify({ 
+                        action: 'recordAttendance', 
+                        data: { text: id, day, staffInfo: staff, onlyCheck: true } 
+                    }) 
                 });
                 const result = await res.json();
                 Swal.close();
 
+                // ถ้าผลลัพธ์บอกว่า "ลงชื่อไปแล้ว" ให้โชว์ Error แล้วจบการทำงานตรงนี้เลย ไม่ต้องโชว์ Modal
+                if (!result.success && result.message.includes("ลงชื่อวันนี้ไปแล้ว")) {
+                    Swal.fire('แจ้งเตือน', result.message, 'warning');
+                    return; 
+                }
+
                 if (result.success || result.requireConfirm || result.isFound) {
-                    const u = result.user || result.tempUser; // ปรับตามที่ Backend ส่งกลับ
+                    const u = result.user || result.tempUser;
                     
-                    // สลับการแสดงรูปภาพ/Icon
+                    // แสดงข้อมูลใน Modal ตามปกติ...
                     const img = document.getElementById('p-img'), icon = document.getElementById('p-icon');
-                    if (u.img && u.img !== "-") { img.src = u.img; img.style.display = 'block'; icon.style.display = 'none'; }
-                    else { img.style.display = 'none'; icon.style.display = 'block'; }
+                    if (u.img && u.img !== "-" && u.img !== "") { 
+                        img.src = u.img; img.style.display = 'block'; icon.style.display = 'none'; 
+                    } else { 
+                        img.style.display = 'none'; icon.style.display = 'block'; 
+                    }
 
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = `ID: ${u.id}`;
                     document.getElementById('p-dept').innerText = u.dept || 'ไม่ระบุหน่วยงาน';
+                    
                     const stEl = document.getElementById('p-status');
                     stEl.innerText = u.payStatus || 'ชำระเงินเรียบร้อย';
                     stEl.className = `fw-bold ${u.payStatus === 'ยังไม่ได้ชำระเงิน' ? 'text-danger' : 'text-success'}`;
 
                     document.getElementById('btn-confirm-record').onclick = () => {
-                        previewModal.hide();
-                        record(id, true); // บันทึกจริง
+                        record(id, true); // เรียกบันทึกจริง
                     };
                     previewModal.show();
-                } else { Swal.fire('ไม่พบข้อมูล', result.message, 'error'); }
-            } catch (e) { Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error'); }
+                } else {
+                    Swal.fire('ไม่พบข้อมูล', result.message, 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+            }
         }
 
         function handleManual(event) {
@@ -299,43 +327,95 @@
         }
 
         async function record(qrText, confirmed) {
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            // ปิด Modal ทันทีที่กด เพื่อกันการกดซ้ำหรือ Error ซ้อน
+            if (previewModal) previewModal.hide();
+
+            Swal.fire({ 
+                title: 'กำลังบันทึก...', 
+                allowOutsideClick: false, 
+                didOpen: () => Swal.showLoading() 
+            });
+
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirmed, staffInfo: staff } })
+                    body: JSON.stringify({ 
+                        action: 'recordAttendance', 
+                        data: { text: qrText, day, confirmSkip: confirmed, staffInfo: staff } 
+                    })
                 });
                 const result = await res.json();
-                Swal.close();
+                
+                Swal.close(); // ปิด Loading
+
                 if (result.success) {
-                    fetchHistory();
-                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
-                } else { Swal.fire('Error', result.message, 'error'); }
-            } catch (e) { Swal.fire('Error', 'การเชื่อมต่อล้มเหลว', 'error'); }
+                    // แจ้งสำเร็จอย่างเดียว ไม่ต้องเช็คเงื่อนไขอื่นเพิ่ม
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'บันทึกสำเร็จ', 
+                        text: result.user.name, 
+                        timer: 1500, 
+                        showConfirmButton: false 
+                    });
+
+                    // 2. แสดง Spinner รอที่ช่องรายการล่าสุดทันที (เพื่อให้เจ้าหน้ารู้ว่ากำลังอัปเดต)
+                    const box = document.getElementById('history-box');
+                    const currentCount = parseInt(document.getElementById('ui-count').innerText) || 0;
+                    document.getElementById('ui-count').innerText = `${currentCount + 1} คน`;
+
+                    // 3. หน่วงเวลา 1.5 วินาที แล้วค่อยดึงข้อมูลใหม่ เพื่อรอให้ Google Sheets อัปเดตเสร็จชัวร์ๆ
+                    setTimeout(() => {
+                        fetchHistory(); 
+                    }, 1500);
+
+                } else {
+                    // กรณี Error จริงๆ เช่น ลงซ้ำ หรือ หา ID ไม่เจอ
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'แจ้งเตือน',
+                        text: result.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            } catch (e) {
+                Swal.fire('Error', 'การเชื่อมต่อล้มเหลว', 'error');
+            }
         }
 
         async function fetchHistory() {
+            const box = document.getElementById('history-box');
+            
+            // แสดงสถานะกำลังโหลด (Spinner)
+            box.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="text-muted fw-bold">กำลังโหลดข้อมูล...</div>
+                </div>
+            `;
+
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
+                const res = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) 
+                });
                 const result = await res.json();
+                
                 if (result.success) {
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
-                    const box = document.getElementById('history-box');
                     
                     if(result.records.length > 0) {
-                        // ใช้ .reverse() เพื่อเอาคนล่าสุดขึ้นก่อน
+                        // แสดงรายการเมื่อโหลดสำเร็จ
                         box.innerHTML = result.records.reverse().map(r => {
-                            // จัดการรหัส ID: ถ้าเป็นตัวเลขล้วนให้เติม 0, ถ้ามี NS- อยู่แล้วให้คงไว้
                             let displayId = r.id.toString().trim();
-                            if (!isNaN(displayId)) {
-                                displayId = displayId.padStart(3, '0');
-                            }
+                            if (!isNaN(displayId)) displayId = displayId.padStart(3, '0');
 
                             return `
                             <div class="id-item shadow-sm p-3">
                                 <div class="id-num">
                                     ${displayId.includes('-') ? 
-                                        `<span>${displayId.split('-')[0]}-</span><span>${displayId.split('-')[1]}</span>` : 
+                                        `<span>${displayId.split('-')[0]}</span><span>${displayId.split('-')[1]}</span>` : 
                                         displayId}
                                 </div>
                                 <div class="flex-grow-1 overflow-hidden">
@@ -346,10 +426,14 @@
                             </div>`;
                         }).join('');
                     } else { 
-                        box.innerHTML = `<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>`; 
+                        // กรณีไม่มีข้อมูลจริง ๆ
+                        box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`; 
                     }
                 }
-            } catch (e) { console.error("History Error:", e); }
+            } catch (e) { 
+                box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+                console.error("History Error:", e); 
+            }
         }
 
         function changeDay(d) {
