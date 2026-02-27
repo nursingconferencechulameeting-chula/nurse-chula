@@ -510,29 +510,43 @@
             }
         }
 
-        async function changeDay(d) {
-            // 1. ดึงค่าเวลาเปิด-ปิดจาก Sheet (Timer)
-            const settings = await new Promise((resolve) => {
-                google.script.run.withSuccessHandler(resolve).getTimerSettings();
-            });
+        function changeDay(d) {
+            // แสดง Loading เพื่อบอกผู้ใช้ว่ากำลังเช็คเวลาจาก Sheet
+            Swal.fire({ title: 'กำลังตรวจสอบเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-            // 2. เลือกช่วงเวลาตามวันที่กด (d = 1 หรือ 2)
-            const target = (d === 1) ? settings.day1 : settings.day2;
-            const now = new Date();
-            const openTime = new Date(target.start);
-            const closeTime = new Date(target.end);
+            if (typeof google !== 'undefined') {
+                google.script.run
+                    .withSuccessHandler(function(settings) {
+                        Swal.close();
+                        const now = new Date().getTime();
+                        const target = (d === 1) ? settings.day1 : settings.day2;
 
-            // 3. ตรวจสอบเงื่อนไขเวลา
-            if (now < openTime || now > closeTime) {
-                Swal.fire('แจ้งเตือน', `ไม่อยู่ในช่วงเวลาลงทะเบียนของวันที่ ${d}`, 'warning');
-                return; 
+                        // ตรวจสอบเงื่อนไขเวลา (เทียบเป็น Milliseconds เพื่อความแม่นยำ)
+                        if (now < target.start || now > target.end) {
+                            Swal.fire('แจ้งเตือน', `ไม่อยู่ในช่วงเวลาลงทะเบียนของวันที่ ${d}`, 'warning');
+                            return;
+                        }
+
+                        // --- ถ้าผ่านเงื่อนไข ให้เปลี่ยนสถานะปุ่มตามเดิม ---
+                        day = d;
+                        updateButtonStyles(d);
+                        fetchHistory();
+                    })
+                    .withFailureHandler(function(err) {
+                        Swal.fire('Error', 'ไม่สามารถดึงข้อมูลเวลาได้', 'error');
+                    })
+                    .getTimerSettings();
+            } else {
+                Swal.fire('Error', 'ระบบ Google ยังไม่พร้อมใช้งาน กรุณารีเฟรชหน้าจอ', 'error');
             }
+        }
 
-            // 4. ถ้าผ่านเงื่อนไข ให้เปลี่ยนสีปุ่มและโหลดประวัติ
-            day = d;
-            document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
-            document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
-            fetchHistory();
+        // แยกฟังก์ชันเปลี่ยนสีปุ่มออกมาเพื่อให้โค้ดสะอาดขึ้น
+        function updateButtonStyles(d) {
+            const b1 = document.getElementById('day1-btn');
+            const b2 = document.getElementById('day2-btn');
+            b1.className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+            b2.className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
         }
 
         const Toast = Swal.mixin({
