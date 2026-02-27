@@ -163,7 +163,7 @@
                         <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm">
                             <i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน
                         </button>
-                        <button class="btn btn-danger py-3 rounded-4 fw-bold fs-4 shadow-sm" data-bs-dismiss="modal">
+                        <button class="btn btn-warning py-3 rounded-4 fw-bold fs-4 shadow-sm text-dark" data-bs-dismiss="modal">
                             <i class="fa-solid fa-qrcode me-2"></i>ยกเลิก / สแกนใหม่
                         </button>
                     </div>
@@ -185,7 +185,7 @@
                 </div>
             </div>
             <div class="btn-group p-1 rounded-3">
-                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm">วันที่ 1</button>
+                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm me-2">วันที่ 1</button>
                 <button onclick="changeDay(2)" id="day2-btn" class="btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted">วันที่ 2</button>
             </div>
         </div>
@@ -330,7 +330,7 @@
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = `ID: ${u.id}`;
                     document.getElementById('p-dept').innerText = u.dept || '-';
-                    document.getElementById('p-pos').innerText = u.position || '-'; // แสดงตำแหน่ง
+                    document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
 
                     // 3. Logic ซ่อน/แสดง สถานะการเงิน
@@ -511,6 +511,23 @@
         }
 
         function changeDay(d) {
+            const now = new Date();
+            
+            // ตั้งค่าเวลา เปิด (07:00) และ ปิด (09:00) ตามวันที่คุณกำหนด
+            const schedule = {
+                1: { start: new Date("2026-08-25T07:00:00"), end: new Date("2026-08-25T09:00:00") },
+                2: { start: new Date("2026-08-26T07:00:00"), end: new Date("2026-08-26T09:00:00") }
+            };
+
+            const config = schedule[d];
+
+            // เช็คเงื่อนไขเวลา: ถ้าไม่อยู่ในช่วงที่กำหนด ให้หยุดทำงาน (return)
+            if (now < config.start || now > config.end) {
+                Swal.fire('แจ้งเตือน', `วันที่ ${d} เปิดให้ลงชื่อเวลา 07:00 - 09:00 น. เท่านั้น`, 'warning');
+                return; 
+            }
+
+            // --- ส่วนนี้คือโค้ดเดิมของคุณที่ทำงานเมื่อผ่านเงื่อนไขเวลา ---
             day = d;
             document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
             document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
