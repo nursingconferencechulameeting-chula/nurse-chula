@@ -5,38 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smart QR Check-in System</title>
     
-    <!-- Bootstrap 5 & Font Awesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
         :root { --nav-h: 75px; }
         body { font-family: 'Prompt', sans-serif; background-color: #f1f5f9; height: 100vh; overflow: hidden; margin: 0; padding-top: var(--nav-h); }
         
-        /* 1. หน้า Login */
-        #login-screen { 
-            position: fixed; 
-            inset: 0; 
-            background: #1e293b; 
-            z-index: 9999; /* มั่นใจว่าอยู่หน้าสุด */
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 20px; 
-        }
-        
-        /* 2. เมนูหลัก (ล็อคด้านบน Z-index สูง) */
+        #login-screen { position: fixed; inset: 0; background: #1e293b; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .navbar { height: var(--nav-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 2000; }
         .staff-tag { background: #4f46e5; color: white; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; }
-
-        /* 3. จัด Layout แยก PC/มือถือ */
         .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
 
-        /* PC Layout */
         .panel-left { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .scanner-card { width: 100%; max-width: 480px; background: white; border-radius: 2rem; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .cam-view { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative; }
@@ -49,53 +34,64 @@
             body { overflow-y: auto; height: auto; }
             .app-wrapper { flex-direction: column; height: auto; }
             .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
-            .panel-left { padding: 15px; }
         }
 
-        /* ปุ่มและ Input */
         .manual-box { background: #f1f5f9; border-radius: 1rem; padding: 6px; display: flex; border: 1px solid #e2e8f0; margin-top: 15px; }
         .manual-box input { border: none; background: transparent; flex: 1; text-align: center; font-weight: 700; outline: none; }
-        
         .id-item { background: white; border-radius: 1rem; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
         .id-num { width: 45px; height: 45px; background: #eef2ff; color: #4f46e5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 12px; }
-        
-        /* Spinner Style */
-        .spinner-border-sm { width: 1.2rem; height: 1.2rem; margin-right: 8px; }
 
-        /* ปรับแต่งความโค้งมนของ SweetAlert */
-        .swal2-popup {
-            border-radius: 1.5rem !important;
-            font-family: 'Prompt', sans-serif !important;
-        }
-        .swal2-confirm {
-            border-radius: 12px !important;
-            padding: 12px 30px !important;
-            font-weight: 600 !important;
-        }
-        .swal2-cancel {
-            border-radius: 12px !important;
-        }
+        /* Modal Profile Style */
+        .profile-box { width: 150px; height: 180px; background: #f8fafc; border-radius: 20px; overflow: hidden; margin: 0 auto 15px; border: 4px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .profile-box img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-box i { font-size: 80px; color: #cbd5e1; }
+        
+        .swal2-popup { border-radius: 1.5rem !important; font-family: 'Prompt', sans-serif !important; }
     </style>
 </head>
 <body>
 
-    <!-- Login Form รองรับ Enter และสถานะหมุน -->
     <div id="login-screen">
         <form id="login-form" onsubmit="login(event)" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 360px;">
             <div class="staff-tag d-inline-block mb-2">STAFF</div>
             <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
             <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 mb-3 fw-bold" placeholder="รหัสเจ้าหน้าที่" required autofocus>
-            
             <button type="submit" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow">
                 <span id="login-text">ลงชื่อเข้าใช้งาน</span>
-                <span id="login-loader" class="d-none">
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    กำลังโหลด...
-                </span>
+                <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span> กำลังโหลด...</span>
             </button>
-            <p>รหัสผ่านทดสอบระบบ</p>
-            <p>222</p>
+            <p class="mt-3 mb-0 small text-muted">รหัสผ่านทดสอบระบบ: 222</p>
         </form>
+    </div>
+
+    <div class="modal fade" id="previewModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div class="profile-box">
+                        <img id="p-img" src="" style="display: none;">
+                        <i id="p-icon" class="fa-solid fa-user-tie"></i>
+                    </div>
+                    <h3 id="p-name" class="fw-bold mb-1">-</h3>
+                    <p id="p-id" class="text-muted mb-3 fw-bold">ID: -</p>
+                    <div class="bg-light p-3 rounded-4 text-start mb-3">
+                        <small class="text-secondary d-block">หน่วยงาน / สังกัด</small>
+                        <div id="p-dept" class="fw-bold mb-2">-</div>
+                        <small class="text-secondary d-block">สถานะการชำระเงิน</small>
+                        <div id="p-status" class="fw-bold">-</div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm">
+                            <i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน
+                        </button>
+                        <button class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">ยกเลิก / สแกนใหม่</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <nav class="navbar shadow-sm">
@@ -127,7 +123,6 @@
                 </div>
                 <button id="start-btn" onclick="toggleScanner(true)" class="btn btn-success w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm mb-2">เริ่มสแกน QR Code</button>
                 <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm d-none">หยุดสแกน</button>
-
                 <form onsubmit="handleManual(event)" class="manual-box shadow-sm">
                     <input type="text" id="manual-input" placeholder="กรอกรหัส ID..." autocomplete="off">
                     <button type="submit" class="btn btn-dark px-4 py-2 rounded-3 fw-bold">บันทึก</button>
@@ -150,111 +145,116 @@
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec";
-        let day = 1, staff = null, isScanning = false, currentStream = null;
+        let day = 1, staff = null, isScanning = false, currentStream = null, previewModal = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        // ฟังก์ชัน Login รองรับ Enter และสถานะหมุน
+        window.onload = () => {
+            previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            const savedStaff = localStorage.getItem('staff_session');
+            if (savedStaff) {
+                staff = JSON.parse(savedStaff);
+                document.getElementById('login-screen').classList.add('d-none');
+                document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
+                fetchHistory();
+            }
+        };
+
         async function login(event) {
             if(event) event.preventDefault();
             const id = document.getElementById('staff-id').value.trim();
             if (!id) return;
-
-            const btn = document.getElementById('login-btn');
-            const text = document.getElementById('login-text');
-            const loader = document.getElementById('login-loader');
-
-            // เปลี่ยนสถานะปุ่ม
-            btn.disabled = true;
-            text.classList.add('d-none');
-            loader.classList.remove('d-none');
+            const btn = document.getElementById('login-btn'), text = document.getElementById('login-text'), loader = document.getElementById('login-loader');
+            btn.disabled = true; text.classList.add('d-none'); loader.classList.remove('d-none');
 
             try {
-                const res = await fetch(GAS_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id }) 
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id }) });
                 const result = await res.json();
-                
                 if (result.isAllowed) {
                     staff = result;
                     localStorage.setItem('staff_session', JSON.stringify(result));
-                    
-                    // แสดงความยินดีก่อนเข้าแอป
-                    Toast.fire({ icon: 'success', title: `ยินดีต้อนรับคุณ ${result.name}` });
-                    
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${result.name}`;
                     fetchHistory();
                 } else { 
-                    Swal.fire({ icon: 'error', title: 'รหัสไม่ถูกต้อง', text: 'กรุณาตรวจสอบรหัสเจ้าหน้าที่อีกครั้ง', confirmButtonColor: '#ef4444' }); 
-                    btn.disabled = false;
-                    text.classList.remove('d-none');
-                    loader.classList.add('d-none');
+                    Swal.fire('Error', 'รหัสไม่ถูกต้อง', 'error'); 
+                    btn.disabled = false; text.classList.remove('d-none'); loader.classList.add('d-none');
                 }
             } catch (e) { 
-                Swal.fire('Error', 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้', 'error');
-                btn.disabled = false;
-                text.classList.remove('d-none');
-                loader.classList.add('d-none');
+                Swal.fire('Error', 'เชื่อมต่อล้มเหลว', 'error');
+                btn.disabled = false; text.classList.remove('d-none'); loader.classList.add('d-none');
             }
         }
-        
+
         function logout() {
-            Swal.fire({
-                title: 'ยืนยันออกจากระบบ?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'ตกลง',
-                cancelButtonText: 'ยกเลิก'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // 1. ล้างข้อมูลใน LocalStorage
+            Swal.fire({ title: 'ยืนยันออกจากระบบ?', icon: 'warning', showCancelButton: true }).then((r) => {
+                if (r.isConfirmed) {
                     localStorage.removeItem('staff_session');
-                    
-                    // 2. ล้างตัวแปรในระบบ
                     staff = null;
-                    
-                    // 3. ปิดกล้องถ้าเปิดค้างไว้
                     if (isScanning) toggleScanner(false);
-                    
-                    // 4. สลับหน้าจอ UI (แสดงหน้า Login และซ่อนหน้า Scan)
                     document.getElementById('login-screen').classList.remove('d-none');
-                    document.getElementById('staff-id').value = ''; // ล้างช่องรหัส
-                    
-                    // 5. รีเซ็ตสถานะปุ่ม Login
-                    const btn = document.getElementById('login-btn');
-                    const text = document.getElementById('login-text');
-                    const loader = document.getElementById('login-loader');
-                    btn.disabled = false;
-                    text.classList.remove('d-none');
-                    loader.classList.add('d-none');
-        
-                    Swal.fire('ออกจากระบบเรียบร้อย', '', 'success');
+                    document.getElementById('staff-id').value = '';
                 }
             });
         }
-        
+
+        // ฟังก์ชันดึงข้อมูลมา Preview ก่อนบันทึก
+        async function previewUser(id) {
+            Swal.fire({ title: 'กำลังดึงข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                // ใช้ action 'getUserPreview' (ต้องมีใน Code.gs) หรือใช้ recordAttendance แบบทดลองดึงข้อมูล
+                const res = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: id, day, staffInfo: staff, onlyCheck: true } }) 
+                });
+                const result = await res.json();
+                Swal.close();
+
+                if (result.success || result.requireConfirm || result.isFound) {
+                    const u = result.user || result.tempUser; // ปรับตามที่ Backend ส่งกลับ
+                    
+                    // สลับการแสดงรูปภาพ/Icon
+                    const img = document.getElementById('p-img'), icon = document.getElementById('p-icon');
+                    if (u.img && u.img !== "-") { img.src = u.img; img.style.display = 'block'; icon.style.display = 'none'; }
+                    else { img.style.display = 'none'; icon.style.display = 'block'; }
+
+                    document.getElementById('p-name').innerText = u.name;
+                    document.getElementById('p-id').innerText = `ID: ${u.id}`;
+                    document.getElementById('p-dept').innerText = u.dept || 'ไม่ระบุหน่วยงาน';
+                    const stEl = document.getElementById('p-status');
+                    stEl.innerText = u.payStatus || 'ชำระเงินเรียบร้อย';
+                    stEl.className = `fw-bold ${u.payStatus === 'ยังไม่ได้ชำระเงิน' ? 'text-danger' : 'text-success'}`;
+
+                    document.getElementById('btn-confirm-record').onclick = () => {
+                        previewModal.hide();
+                        record(id, true); // บันทึกจริง
+                    };
+                    previewModal.show();
+                } else { Swal.fire('ไม่พบข้อมูล', result.message, 'error'); }
+            } catch (e) { Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error'); }
+        }
+
         function handleManual(event) {
             if(event) event.preventDefault();
             const val = document.getElementById('manual-input').value.trim();
-            if (val) { record(val, false); document.getElementById('manual-input').value = ''; }
+            if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
         }
 
         async function toggleScanner(start) {
-            const startBtn = document.getElementById('start-btn'), stopBtn = document.getElementById('stop-btn');
             if (start) {
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                     video.srcObject = currentStream; video.play();
                     isScanning = true;
-                    startBtn.classList.add('d-none'); stopBtn.classList.remove('d-none');
+                    document.getElementById('start-btn').classList.add('d-none'); 
+                    document.getElementById('stop-btn').classList.remove('d-none');
                     document.getElementById('placeholder').classList.add('d-none');
                     canvas.hidden = false; requestAnimationFrame(tick);
                 } catch (e) { Swal.fire('Error', 'ไม่สามารถเข้าถึงกล้องได้', 'error'); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
-                startBtn.classList.remove('d-none'); stopBtn.classList.add('d-none');
+                document.getElementById('start-btn').classList.remove('d-none'); 
+                document.getElementById('stop-btn').classList.add('d-none');
                 canvas.hidden = true; document.getElementById('placeholder').classList.remove('d-none');
             }
         }
@@ -265,99 +265,49 @@
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) { if(navigator.vibrate) navigator.vibrate(100); toggleScanner(false); record(code.data, false); return; }
+                if (code) { 
+                    if(navigator.vibrate) navigator.vibrate(100); 
+                    toggleScanner(false); 
+                    previewUser(code.data); 
+                    return; 
+                }
             }
             if (isScanning) requestAnimationFrame(tick);
         }
 
-        async function record(qrText, confirm) {
-            // 1. แสดง Loading แบบ Minimal
-            Swal.fire({
-                title: 'กำลังประมวลผล...',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading() }
-            });
-
+        async function record(qrText, confirmed) {
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirm, staffInfo: staff } })
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirmed, staffInfo: staff } })
                 });
                 const result = await res.json();
-                
+                Swal.close();
                 if (result.success) {
                     fetchHistory();
-                    // 2. แจ้งเตือนสำเร็จแบบมีรายละเอียด (Show User Info)
-                    Swal.fire({
-                        icon: 'success',
-                        title: '<span style="color:#059669">เช็คชื่อสำเร็จ</span>',
-                        html: `
-                            <div class="mt-3">
-                                <div class="mb-2">
-                                    ${result.user.img ? `<img src="${result.user.img}" class="rounded-circle shadow-sm" style="width:100px; height:100px; object-fit:cover; border:3px solid #10b981">` : `<i class="fa-solid fa-circle-user fa-5x text-secondary"></i>`}
-                                </div>
-                                <h4 class="fw-bold mb-1">${result.user.name}</h4>
-                                <p class="text-muted mb-0">${result.user.dept || 'ไม่ระบุหน่วยงาน'}</p>
-                                <hr>
-                                <p class="small text-primary fw-bold mb-0">บันทึกเวลา: ${result.user.time} น.</p>
-                            </div>
-                        `,
-                        showConfirmButton: false,
-                        timer: 2500,
-                        timerProgressBar: true
-                    });
-                } else if (result.requireConfirm) {
-                    // 3. แจ้งเตือนแบบ Warning (มีปุ่มยืนยัน)
-                    Swal.fire({
-                        title: 'ยืนยันการบันทึก?',
-                        text: result.message,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#4f46e5',
-                        cancelButtonColor: '#64748b',
-                        confirmButtonText: 'ใช่, บันทึกเลย',
-                        cancelButtonText: 'ยกเลิก'
-                    }).then((c) => {
-                        if (c.isConfirmed) record(qrText, true);
-                    });
-                } else {
-                    // 4. แจ้งเตือนผิดพลาด (Error)
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'บันทึกไม่สำเร็จ',
-                        text: result.message,
-                        confirmButtonColor: '#ef4444'
-                    });
-                }
-            } catch (e) {
-                Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'กรุณาตรวจสอบอินเทอร์เน็ต' });
-            }
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
+                } else { Swal.fire('Error', result.message, 'error'); }
+            } catch (e) { Swal.fire('Error', 'การเชื่อมต่อล้มเหลว', 'error'); }
         }
 
         async function fetchHistory() {
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
                 const result = await res.json();
-                const box = document.getElementById('history-box');
                 if (result.success) {
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
+                    const box = document.getElementById('history-box');
                     if(result.records.length > 0) {
-                        // ใช้ .reverse() เพื่อกลับเอาข้อมูลล่าสุดมาไว้ที่ index แรกของ Array
-                        box.innerHTML = result.records.reverse().map(r => {
-                            // โชว์เฉพาะ ID ตัวเลขเท่านั้น
-                            let cleanId = r.id.toString().replace(/\D/g, ''); 
-                            if(cleanId.length < 3) cleanId = cleanId.padStart(3, '0');
-                            
-                            return `
+                        box.innerHTML = result.records.reverse().map(r => `
                             <div class="id-item shadow-sm">
-                                <div class="id-num">${cleanId}</div>
+                                <div class="id-num">${r.id.toString().padStart(3, '0')}</div>
                                 <div class="flex-grow-1 overflow-hidden">
                                     <h6 class="mb-0 fw-bold text-dark text-truncate">${r.name}</h6>
                                     <small class="text-muted"><i class="fa-regular fa-clock me-2"></i>${r.time}</small>
                                 </div>
                                 <i class="fa-solid fa-circle-check fa-lg text-success ms-2"></i>
-                            </div>`;
-                        }).join('');
+                            </div>`).join('');
                     } else { box.innerHTML = `<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูลวันนี้</p>`; }
                 }
             } catch (e) {}
@@ -370,15 +320,9 @@
             fetchHistory();
         }
 
-        window.onload = () => {
-            const savedStaff = localStorage.getItem('staff_session');
-            if (savedStaff) {
-                staff = JSON.parse(savedStaff);
-                document.getElementById('login-screen').classList.add('d-none');
-                document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                fetchHistory();
-            }
-        };
+        const Toast = Swal.mixin({
+            toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true
+        });
     </script>
 </body>
 </html>
