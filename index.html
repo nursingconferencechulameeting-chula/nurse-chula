@@ -18,7 +18,16 @@
         body { font-family: 'Prompt', sans-serif; background-color: #f1f5f9; height: 100vh; overflow: hidden; margin: 0; padding-top: var(--nav-h); }
         
         /* 1. หน้า Login */
-        #login-screen { position: fixed; inset: 0; background: #1e293b; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #login-screen { 
+            position: fixed; 
+            inset: 0; 
+            background: #1e293b; 
+            z-index: 9999; /* มั่นใจว่าอยู่หน้าสุด */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; 
+        }
         
         /* 2. เมนูหลัก (ล็อคด้านบน Z-index สูง) */
         .navbar { height: var(--nav-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 2000; }
@@ -56,7 +65,7 @@
 </head>
 <body>
 
-    <!-- แก้ไขจุดที่ 1: Login Form รองรับ Enter และสถานะหมุน -->
+    <!-- Login Form รองรับ Enter และสถานะหมุน -->
     <div id="login-screen">
         <form id="login-form" onsubmit="login(event)" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 360px;">
             <div class="staff-tag d-inline-block mb-2">STAFF</div>
@@ -82,6 +91,7 @@
                 <div>
                     <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">QR Check-in</h6>
                     <small id="ui-staff" class="text-primary fw-bold" style="font-size: 0.7rem;">LOADING...</small>
+                    <button onclick="logout()" class="btn btn-outline-danger btn-sm p-0 px-1 ms-2" style="font-size: 0.6rem;">ออกจากระบบ</button>
                 </div>
             </div>
             <div class="btn-group p-1 rounded-3">
@@ -129,7 +139,7 @@
         let day = 1, staff = null, isScanning = false, currentStream = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        // แก้ไขจุดที่ 2: ฟังก์ชัน Login รองรับ Enter และสถานะหมุน
+        // ฟังก์ชัน Login รองรับ Enter และสถานะหมุน
         async function login(event) {
             if(event) event.preventDefault();
             const id = document.getElementById('staff-id').value.trim();
@@ -153,6 +163,7 @@
                 
                 if (result.isAllowed) {
                     staff = result;
+                    localStorage.setItem('staff_session', JSON.stringify(result));
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${result.name}`;
                     fetchHistory();
@@ -170,7 +181,42 @@
                 loader.classList.add('d-none');
             }
         }
-
+        
+        function logout() {
+            Swal.fire({
+                title: 'ยืนยันออกจากระบบ?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ตกลง',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 1. ล้างข้อมูลใน LocalStorage
+                    localStorage.removeItem('staff_session');
+                    
+                    // 2. ล้างตัวแปรในระบบ
+                    staff = null;
+                    
+                    // 3. ปิดกล้องถ้าเปิดค้างไว้
+                    if (isScanning) toggleScanner(false);
+                    
+                    // 4. สลับหน้าจอ UI (แสดงหน้า Login และซ่อนหน้า Scan)
+                    document.getElementById('login-screen').classList.remove('d-none');
+                    document.getElementById('staff-id').value = ''; // ล้างช่องรหัส
+                    
+                    // 5. รีเซ็ตสถานะปุ่ม Login
+                    const btn = document.getElementById('login-btn');
+                    const text = document.getElementById('login-text');
+                    const loader = document.getElementById('login-loader');
+                    btn.disabled = false;
+                    text.classList.remove('d-none');
+                    loader.classList.add('d-none');
+        
+                    Swal.fire('ออกจากระบบเรียบร้อย', '', 'success');
+                }
+            });
+        }
+        
         function handleManual(event) {
             if(event) event.preventDefault();
             const val = document.getElementById('manual-input').value.trim();
@@ -234,7 +280,8 @@
                 if (result.success) {
                     document.getElementById('ui-count').innerText = `${result.records.length} คน`;
                     if(result.records.length > 0) {
-                        box.innerHTML = result.records.map(r => {
+                        // ใช้ .reverse() เพื่อกลับเอาข้อมูลล่าสุดมาไว้ที่ index แรกของ Array
+                        box.innerHTML = result.records.reverse().map(r => {
                             // โชว์เฉพาะ ID ตัวเลขเท่านั้น
                             let cleanId = r.id.toString().replace(/\D/g, ''); 
                             if(cleanId.length < 3) cleanId = cleanId.padStart(3, '0');
@@ -260,6 +307,16 @@
             document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
             fetchHistory();
         }
+
+        window.onload = () => {
+            const savedStaff = localStorage.getItem('staff_session');
+            if (savedStaff) {
+                staff = JSON.parse(savedStaff);
+                document.getElementById('login-screen').classList.add('d-none');
+                document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
+                fetchHistory();
+            }
+        };
     </script>
 </body>
 </html>
