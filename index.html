@@ -510,37 +510,48 @@
             }
         }
 
-        function changeDay(d) {
-            // ตรวจสอบว่ามีข้อมูลจากหน้า Timer หรือยัง
-            if (typeof google !== 'undefined') {
-                google.script.run.withSuccessHandler(function(timer) {
-                    if (!timer) return;
+        async function changeDay(d) {
+            // 1. แสดง Loading ขณะดึงเวลาจาก Sheet
+            Swal.fire({ title: 'กำลังตรวจสอบเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-                    const now = new Date().getTime();
-                    let start, end;
+            try {
+                // 2. ส่งคำขอไปที่ doPost เพื่อดึงเวลา
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getTimerSettings' })
+                });
+                const timer = await res.json();
+                Swal.close();
 
-                    // เลือกตัวแปรให้ตรงกับวันที่กด
-                    if (d === 1) {
-                        start = timer.day1Open;
-                        end = timer.day1Close;
-                    } else {
-                        start = timer.day2Open;
-                        end = timer.day2Close;
-                    }
+                if (!timer.success) {
+                    Swal.fire('Error', 'ไม่สามารถดึงข้อมูลเวลาได้', 'error');
+                    return;
+                }
 
-                    // ตรวจสอบเงื่อนไขเวลา
-                    if (!start || !end || now < start || now > end) {
-                        Swal.fire('แจ้งเตือน', `ไม่อยู่ในช่วงเวลาลงทะเบียนของวันที่ ${d}`, 'warning');
-                        return;
-                    }
+                const now = new Date().getTime();
+                let start = (d === 1) ? timer.day1Open : timer.day2Open;
+                let end = (d === 1) ? timer.day1Close : timer.day2Close;
 
-                    // --- ถ้าผ่านเงื่อนไข ทำคำสั่งเดิมของคุณ ---
-                    day = d;
-                    document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
-                    document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
-                    fetchHistory();
+                // 3. ตรวจสอบเงื่อนไขเวลา
+                if (!start || !end || now < start || now > end) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่อยู่ในช่วงเวลา',
+                        text: `วันที่ ${d} เปิดให้ลงชื่อเวลา 07:00 - 09:00 น. เท่านั้น`,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    return;
+                }
 
-                }).getTimerSettings();
+                // 4. ถ้าผ่านเงื่อนไข ทำการเปลี่ยนวันตามปกติ
+                day = d;
+                document.getElementById('day1-btn').className = d === 1 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+                document.getElementById('day2-btn').className = d === 2 ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold' : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
+                fetchHistory();
+
+            } catch (e) {
+                Swal.close();
+                Swal.fire('Error', 'การเชื่อมต่อขัดข้อง', 'error');
             }
         }
 
