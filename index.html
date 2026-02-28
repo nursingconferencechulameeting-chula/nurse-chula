@@ -476,7 +476,15 @@
         <div id="login-form" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 360px;">
             <div class="staff-tag d-inline-block mb-2">STAFF</div>
             <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
-            <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 mb-3 fw-bold" placeholder="รหัสเจ้าหน้าที่" autofocus>
+
+            <div class="position-relative mb-2">
+                <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 mb-1 fw-bold" placeholder="รหัสเจ้าหน้าที่" autofocus style="padding-right: 45px;">
+                <button type="button" onclick="togglePasswordVisibility()" class="btn position-absolute top-50 end-0 translate-middle-y border-0" style="margin-right: 5px; background: transparent;">
+                    <i id="eye-icon" class="fa-solid fa-eye"></i>
+                </button>
+            </div>
+            <div id="login-error-msg" class="text-danger small fw-bold mb-3 d-none text-center">รหัสไม่ถูกต้อง กรุณาลองใหม่</div>
+
             <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow">
                 <span id="login-text">ลงชื่อเข้าใช้งาน</span>
                 <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span> กำลังโหลด...</span>
@@ -658,20 +666,17 @@
         const ctx = canvas.getContext("2d");
 
         // ============================================================
-        // 2) RESET & UI HELPERS (แก้ปัญหาปุ่มหมุนค้าง)
+        // 2) RESET & UI HELPERS
         // ============================================================
         function resetAllStates() {
             staff = null;
             isScanning = false;
             currentPreviewId = null;
-
-            // ปิดกล้อง
             if (currentStream) {
                 currentStream.getTracks().forEach(t => t.stop());
                 currentStream = null;
             }
-
-            // รีเซ็ตปุ่ม Login ให้กลับมาปกติ
+            // คืนสถานะปุ่ม Login
             const btn = document.getElementById('login-btn');
             const text = document.getElementById('login-text');
             const loader = document.getElementById('login-loader');
@@ -680,16 +685,37 @@
                 text.classList.remove('d-none');
                 loader.classList.add('d-none');
             }
-
-            // ล้างช่อง Input
             document.getElementById('staff-id').value = '';
-            document.getElementById('manual-input').value = '';
-
-            // รีเซ็ตหน้าจอ Scanner
+            showLoginError(false); // ปิดข้อความแจ้งเตือนสีแดง
+            
             canvas.hidden = true;
             document.getElementById('placeholder').classList.remove('d-none');
             document.getElementById('start-btn').classList.remove('d-none');
             document.getElementById('stop-btn').classList.add('d-none');
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('staff-id');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        }
+
+        function showLoginError(show) {
+            const msg = document.getElementById('login-error-msg');
+            const input = document.getElementById('staff-id');
+            if (show) {
+                msg.classList.remove('d-none');
+                input.classList.add('is-invalid');
+            } else {
+                msg.classList.add('d-none');
+                input.classList.remove('is-invalid');
+            }
         }
 
         function setInputsEnabled(enabled) {
@@ -702,25 +728,20 @@
         }
 
         // ============================================================
-        // 3) INIT & EVENT LISTENERS (เพิ่ม Enter กลับมาให้แล้ว)
+        // 3) INIT & EVENT LISTENERS
         // ============================================================
         window.onload = () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-            
-            // รีเซ็ต ID เมื่อปิด Modal เพื่อให้สแกนซ้ำได้
             document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => {
                 currentPreviewId = null;
             });
 
-            // ดักจับปุ่ม Enter ที่ช่องรหัสผ่าน
             const staffInput = document.getElementById('staff-id');
             if (staffInput) {
                 staffInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') { 
-                        e.preventDefault(); 
-                        login(); 
-                    }
+                    if (e.key === 'Enter') { e.preventDefault(); login(); }
                 });
+                staffInput.addEventListener('input', () => showLoginError(false));
             }
 
             setInputsEnabled(false);
@@ -739,10 +760,8 @@
 
         function setStaffName(name) {
             const label = `เจ้าหน้าที่: ${name}`;
-            const d = document.getElementById('ui-staff');
-            const m = document.getElementById('ui-staff-m');
-            if (d) d.innerText = label;
-            if (m) m.innerText = label;
+            document.getElementById('ui-staff').innerText = label;
+            document.getElementById('ui-staff-m').innerText = label;
         }
 
         function hideSplash(el) {
@@ -751,20 +770,20 @@
         }
 
         // ============================================================
-        // 4) CORE LOGIC (LOGIN, LOGOUT, SCAN, RECORD)
+        // 4) CORE LOGIC (LOGIN, CHECK TIME)
         // ============================================================
         async function login() {
             const idInput = document.getElementById('staff-id');
             const id = idInput.value.trim();
-            if (!id) {
-                Swal.fire({ icon: 'warning', title: 'กรุณากรอกรหัส' });
-                return;
-            }
+            
+            showLoginError(false);
+            if (!id) { idInput.focus(); return; }
 
             const btn = document.getElementById('login-btn');
             const text = document.getElementById('login-text');
             const loader = document.getElementById('login-loader');
 
+            // เริ่มแสดงการโหลด
             btn.disabled = true;
             text.classList.add('d-none');
             loader.classList.remove('d-none');
@@ -784,13 +803,58 @@
                     fetchHistory();
                     checkCurrentDay();
                 } else {
-                    Swal.fire({ icon: 'error', title: 'รหัสไม่ถูกต้อง' });
-                    resetAllStates(); // คืนค่า UI
+                    // รหัสผิด: แจ้งเตือนใต้ช่องกรอกทันที และคืนสถานะปุ่ม
+                    showLoginError(true);
+                    btn.disabled = false;
+                    text.classList.remove('d-none');
+                    loader.classList.add('d-none');
+                    idInput.value = '';
+                    idInput.focus();
                 }
             } catch (e) {
-                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว' });
-                resetAllStates();
+                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว', text: 'กรุณาเช็คอินเทอร์เน็ต' });
+                btn.disabled = false;
+                text.classList.remove('d-none');
+                loader.classList.add('d-none');
             }
+        }
+
+        async function checkCurrentDay() {
+            try {
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getTimerSettings' }) });
+                const timer = await res.json();
+                if (!timer || !timer.success) return;
+
+                const now = new Date().getTime();
+                const start = (day === 1) ? timer.day1Open : timer.day2Open;
+                const end = (day === 1) ? timer.day1Close : timer.day2Close;
+                const fmtT = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const fmtD = (ts) => {
+                    const d = new Date(ts);
+                    return `${d.getDate()} ${['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()]} ${d.getFullYear() + 543}`;
+                };
+
+                const banner = document.getElementById('timer-banner');
+                banner.style.display = 'block';
+                const dateStr = start ? fmtD(start) : "";
+
+                if (!start || !end) {
+                    banner.className = 'status-unknown';
+                    banner.innerHTML = `<b>วันที่ ${day}: ยังไม่กำหนดเวลา</b>`;
+                } else if (now < start) {
+                    setInputsEnabled(false);
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `<b>ยังไม่ถึงเวลาลงทะเบียน</b><br><small>วันที่ ${dateStr} | เริ่ม ${fmtT(start)} น.</small>`;
+                } else if (now > end) {
+                    setInputsEnabled(false);
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `<b>ปิดลงทะเบียนแล้ว</b><br><small>วันที่ ${dateStr} | สิ้นสุด ${fmtT(end)} น.</small>`;
+                } else {
+                    setInputsEnabled(true);
+                    banner.className = 'status-open';
+                    banner.innerHTML = `<b>เปิดลงทะเบียน (วันที่ ${day})</b><br><small>วันที่ ${dateStr} | ถึงเวลา ${fmtT(end)} น.</small>`;
+                }
+            } catch (e) { console.error(e); }
         }
 
         function logout() {
@@ -803,82 +867,41 @@
             }).then((r) => {
                 if (r.isConfirmed) {
                     localStorage.removeItem('staff_session');
-                    resetAllStates(); // ล้างค่าและ UI ทั้งหมด
+                    resetAllStates();
                     document.getElementById('login-screen').classList.remove('d-none');
                 }
             });
         }
 
-        async function checkCurrentDay() {
-            try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getTimerSettings' })
-                });
-                const timer = await res.json();
-                if (!timer || !timer.success) return;
-
-                const now = new Date().getTime();
-                const start = (day === 1) ? timer.day1Open : timer.day2Open;
-                const end = (day === 1) ? timer.day1Close : timer.day2Close;
-                const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-
-                const banner = document.getElementById('timer-banner');
-                banner.style.display = 'block';
-
-                if (!start || !end) {
-                    setInputsEnabled(false);
-                    banner.className = 'status-unknown';
-                    banner.innerHTML = `<b>วันที่ ${day}: ยังไม่กำหนดเวลา</b>`;
-                } else if (now < start) {
-                    setInputsEnabled(false);
-                    banner.className = 'status-closed';
-                    banner.innerHTML = `<b>ยังไม่ถึงเวลา</b> (เริ่ม ${fmt(start)} น.)`;
-                } else if (now > end) {
-                    setInputsEnabled(false);
-                    banner.className = 'status-closed';
-                    banner.innerHTML = `<b>ปิดลงทะเบียนแล้ว</b>`;
-                } else {
-                    setInputsEnabled(true);
-                    banner.className = 'status-open';
-                    banner.innerHTML = `<b>เปิดลงทะเบียน</b> (ถึง ${fmt(end)} น.)`;
-                }
-            } catch (e) { console.error(e); }
-        }
-
+        // ============================================================
+        // 5) SCAN & RECORDS (ฟังก์ชันเดิมที่ทำงานดีอยู่แล้ว)
+        // ============================================================
         async function previewUser(id) {
             if (currentPreviewId === id) return;
             currentPreviewId = id;
+            document.getElementById('p-img').style.display = 'none';
+            document.getElementById('p-icon').style.display = 'block';
             Swal.fire({ title: 'กำลังโหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) 
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) });
                 const result = await res.json();
                 Swal.close();
-
                 if (result.success) {
                     const u = result.user;
-                    const img = document.getElementById('p-img');
-                    const icon = document.getElementById('p-icon');
-                    
-                    if (u.img && u.img !== "-") {
-                        img.src = u.img; img.style.display = 'block'; icon.style.display = 'none';
-                    } else {
-                        img.style.display = 'none'; icon.style.display = 'block';
+                    if (u.img && u.img !== "-") { 
+                        document.getElementById('p-img').src = u.img; 
+                        document.getElementById('p-img').style.display = 'block'; 
+                        document.getElementById('p-icon').style.display = 'none'; 
                     }
-
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = u.id;
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
                     document.getElementById('p-dept').innerText = u.dept || '-';
-
+                    document.getElementById('dept-area').style.display = (u.regType === "สำหรับผู้ลงทะเบียนภายนอก") ? 'none' : 'block';
+                    
                     const btnConfirm = document.getElementById('btn-confirm-record');
                     const alreadyArea = document.getElementById('already-scanned-area');
-                    
                     alreadyArea.classList.toggle('d-none', !result.isAlreadyScanned);
                     if(result.isAlreadyScanned) {
                         document.getElementById('scanned-day-label').innerText = day;
@@ -889,49 +912,30 @@
                         btnConfirm.onclick = () => record(id, false);
                     }
                     previewModal.show();
-                } else {
-                    currentPreviewId = null;
-                    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล' });
-                }
+                } else { currentPreviewId = null; Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล' }); }
             } catch (e) { currentPreviewId = null; }
         }
 
         async function record(qrText, confirmSkip) {
             if (previewModal) previewModal.hide();
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'recordAttendance',
-                        data: { text: qrText, day, confirmSkip: confirmSkip, staffInfo: staff }
-                    })
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip, staffInfo: staff } }) });
                 const result = await res.json();
                 Swal.close();
-
                 if (result.success) {
                     Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
                     setTimeout(() => fetchHistory(), 500);
                 } else if (result.requireConfirm) {
-                    Swal.fire({
-                        icon: 'question', title: 'ยืนยัน?', text: result.message,
-                        showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก'
-                    }).then((r) => { if (r.isConfirmed) record(qrText, true); });
-                } else {
-                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message });
-                }
-            } catch (e) { Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด' }); }
+                    Swal.fire({ icon: 'question', title: 'ยืนยัน?', text: result.message, showCancelButton: true }).then((r) => { if (r.isConfirmed) record(qrText, true); });
+                } else { Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message }); }
+            } catch (e) { Swal.fire({ icon: 'error', title: 'ขัดข้อง' }); }
         }
 
         async function fetchHistory() {
             const box = document.getElementById('history-box');
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getRecentRecords', data: { day } })
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
                 const result = await res.json();
                 if (result.success) {
                     document.getElementById('ui-present').innerText = result.present;
@@ -940,15 +944,10 @@
                         box.innerHTML = result.records.reverse().map(r => `
                             <div class="id-item shadow-sm p-3">
                                 <div class="id-num">${r.id}</div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0 fw-bold">${r.name}</h6>
-                                    <small class="text-muted">${r.time}</small>
-                                </div>
-                                <i class="fa-solid fa-circle-check text-success fa-lg"></i>
+                                <div class="flex-grow-1"><h6 class="mb-0 fw-bold">${r.name}</h6><small class="text-muted">${r.time}</small></div>
+                                <i class="fa-solid fa-circle-check text-success fa-2x"></i>
                             </div>`).join('');
-                    } else {
-                        box.innerHTML = '<p class="text-center py-5">ยังไม่มีข้อมูล</p>';
-                    }
+                    } else { box.innerHTML = '<p class="text-center py-5">ยังไม่มีข้อมูล</p>'; }
                 }
             } catch (e) { console.error(e); }
         }
@@ -957,20 +956,14 @@
             if (start) {
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = currentStream; video.play();
-                    isScanning = true;
-                    document.getElementById('start-btn').classList.add('d-none');
-                    document.getElementById('stop-btn').classList.remove('d-none');
-                    document.getElementById('placeholder').classList.add('d-none');
-                    canvas.hidden = false;
-                    requestAnimationFrame(tick);
+                    video.srcObject = currentStream; video.play(); isScanning = true;
+                    document.getElementById('start-btn').classList.add('d-none'); document.getElementById('stop-btn').classList.remove('d-none');
+                    document.getElementById('placeholder').classList.add('d-none'); canvas.hidden = false; requestAnimationFrame(tick);
                 } catch (e) { Swal.fire({ icon: 'error', title: 'กล้องขัดข้อง' }); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                isScanning = false;
-                document.getElementById('start-btn').classList.remove('d-none');
-                document.getElementById('stop-btn').classList.add('d-none');
-                canvas.hidden = true;
+                isScanning = false; document.getElementById('start-btn').classList.remove('d-none');
+                document.getElementById('stop-btn').classList.add('d-none'); canvas.hidden = true;
                 document.getElementById('placeholder').classList.remove('d-none');
             }
         }
@@ -979,12 +972,8 @@
             if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
                 canvas.height = video.videoHeight; canvas.width = video.videoWidth;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) {
-                    if (navigator.vibrate) navigator.vibrate(100);
-                    toggleScanner(false); previewUser(code.data); return;
-                }
+                const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+                if (code) { if (navigator.vibrate) navigator.vibrate(100); toggleScanner(false); previewUser(code.data); return; }
             }
             if (isScanning) requestAnimationFrame(tick);
         }
@@ -996,13 +985,11 @@
 
         function changeDay(d) {
             day = d;
-            // ปรับแต่ง UI ปุ่มวันที่
             ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'].forEach(id => {
                 const b = document.getElementById(id); if(b) b.classList.remove('active');
             });
             if(d===1) { document.getElementById('day1-btn').classList.add('active'); document.getElementById('day1-btn-m').classList.add('active'); }
             else { document.getElementById('day2-btn').classList.add('active'); document.getElementById('day2-btn-m').classList.add('active'); }
-            
             checkCurrentDay(); fetchHistory();
         }
     </script>
