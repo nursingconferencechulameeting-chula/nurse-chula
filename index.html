@@ -418,7 +418,7 @@
                         <span id="p-id">-</span>
                     </div>
 
-                    <!-- *** เพิ่มส่วนนี้: ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
+                    <!-- *** ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
                     <div id="already-scanned-area" class="d-none">
                         <div class="scanned-status-badge">
                             <i class="fa-solid fa-circle-check"></i>
@@ -768,7 +768,7 @@
                 }
             });
         }
-        
+
         // ===== PREVIEW USER ก่อนบันทึก (เวอร์ชันอัปเดต: ตรวจสอบการสแกนซ้ำ) =====
         async function previewUser(id) {
             if (currentPreviewId === id) return;
@@ -828,6 +828,7 @@
                     const btnConfirm = document.getElementById('btn-confirm-record');
                     const alreadyArea = document.getElementById('already-scanned-area');
                     const dayLabel = document.getElementById('scanned-day-label');
+                    const timeLabel = document.getElementById('scanned-time-label');
 
                     // --- RESET สถานะก่อนทุกครั้ง ---
                     alreadyArea.classList.add('d-none');
@@ -841,6 +842,7 @@
                     if (result.isAlreadyScanned) {
                         alreadyArea.classList.remove('d-none');
                         if (dayLabel) dayLabel.innerText = day; // แสดงเลขวันที่สแกนแล้ว
+                        if (timeLabel) timeLabel.innerText = result.scannedTime;
                         btnConfirm.style.display = 'none';     // ซ่อนปุ่มยืนยันทันที
                     } 
                     // 6. ตรวจสอบสถานะการเงิน (ลำดับความสำคัญที่ 2 - เฉพาะกรณีที่ยังไม่ได้สแกน)
