@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <style>
+   <style>
         /* ===== BASE ===== */
         :root { --nav-h: 65px; }
 
@@ -58,6 +58,7 @@
             height: 100%;
             padding: 0 16px;
             gap: 12px;
+            position: relative;
         }
 
         /* Desktop elements */
@@ -65,22 +66,27 @@
         .nav-brand-text { min-width: 0; }
         .nav-brand-text h6 { font-size: 0.9rem; font-weight: 700; margin: 0; white-space: nowrap; }
         .nav-brand-text small { font-size: 0.7rem; font-weight: 700; color: #4f46e5; white-space: nowrap; }
-        .nav-days   { display: flex; gap: 8px; flex-shrink: 0; }
-        .nav-logout { flex-shrink: 0; }
+        .nav-days   { 
+            position: absolute; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 8px; flex-shrink: 0;
+        }
+        .nav-logout { flex-shrink: 0; margin-left: auto; }
 
         /* Mobile rows (hidden on desktop) */
         .nav-row1, .nav-row2 { display: none; }
 
         /* ── MOBILE breakpoint ── */
-        @media (max-width: 575px) {
+        @media (max-width: 767px) {
             :root { --nav-h: 105px; }
 
+            .navbar { overflow: visible; }
             .navbar .container-fluid {
                 flex-direction: column;
                 justify-content: center;
                 align-items: stretch;
                 gap: 6px;
                 padding: 8px 16px;
+                position: relative;
             }
 
             /* ซ่อน desktop elements */
@@ -98,10 +104,7 @@
             .nav-row1-left small { font-size: 0.7rem;  font-weight: 700; color: #4f46e5; }
 
             /* แถว 2: ปุ่มวันที่ */
-            .nav-row2 {
-                display: flex;
-                gap: 8px;
-            }
+            .nav-row2 { display: flex; gap: 8px; }
             .nav-row2 button { flex: 1; font-size: 0.85rem; }
         }
 
@@ -213,6 +216,7 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+
 </head>
 <body>
 
