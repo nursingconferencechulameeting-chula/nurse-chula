@@ -149,7 +149,7 @@
 
     <!-- ===== PREVIEW MODAL ===== -->
     <div class="modal fade" id="previewModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-scrollable" style="margin-top: var(--nav-h); margin-bottom: 1rem;">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
@@ -177,6 +177,11 @@
                             <small class="text-secondary d-block">สถานะการชำระเงิน</small>
                             <div id="p-status" class="fw-bold">-</div>
                         </div>
+                    </div>
+
+                    <!-- แจ้งเตือนกรณียังไม่ชำระเงิน -->
+                    <div id="pay-warning" class="alert alert-danger rounded-3 fw-bold d-none mb-3" style="font-size:0.9rem;">
+                        <i class="fa-solid fa-ban me-2"></i>ไม่สามารถลงชื่อได้ — ยังไม่ได้ชำระเงิน
                     </div>
 
                     <div class="d-grid gap-2">
@@ -495,22 +500,37 @@
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
 
-                    // แสดง/ซ่อนสถานะการเงิน
-                    const payArea = document.getElementById('pay-status-area');
-                    const stEl = document.getElementById('p-status');
-                    const regType = u.regType ? u.regType.toString().trim() : "";
+                    // แสดง/ซ่อนสถานะการเงิน + ควบคุมปุ่มยืนยัน
+                    const payArea   = document.getElementById('pay-status-area');
+                    const stEl      = document.getElementById('p-status');
+                    const payWarn   = document.getElementById('pay-warning');
+                    const btnConfirm = document.getElementById('btn-confirm-record');
+                    const regType   = u.regType ? u.regType.toString().trim() : "";
+
+                    // reset ก่อนทุกครั้ง
+                    payWarn.classList.add('d-none');
+                    btnConfirm.disabled = false;
+                    btnConfirm.classList.remove('btn-secondary');
+                    btnConfirm.classList.add('btn-success');
 
                     if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
                         payArea.style.display = 'block';
                         const payStatus = u.payStatus ? u.payStatus.trim() : "";
                         stEl.innerText = payStatus || "ยังไม่ได้ชำระเงิน";
                         stEl.className = `fw-bold ${payStatus === 'ชำระเงินเรียบร้อย' ? 'text-success' : 'text-danger'}`;
+
+                        // ยังไม่ชำระเงิน → ปิดปุ่มบันทึก + แสดงคำเตือน
+                        if (payStatus !== 'ชำระเงินเรียบร้อย') {
+                            btnConfirm.disabled = true;
+                            btnConfirm.classList.remove('btn-success');
+                            btnConfirm.classList.add('btn-secondary');
+                            payWarn.classList.remove('d-none');
+                        }
                     } else {
                         payArea.style.display = 'none';
                     }
 
                     // ผูก Event ปุ่มยืนยัน
-                    const btnConfirm = document.getElementById('btn-confirm-record');
                     btnConfirm.onclick = () => record(id, false);
 
                     previewModal.show();
