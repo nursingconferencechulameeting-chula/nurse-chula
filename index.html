@@ -47,6 +47,12 @@
         .manual-box input { border: none; background: transparent; flex: 1; text-align: center; font-weight: 700; outline: none; }
         .id-item { background: white; border-radius: 1rem; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
 
+        /* Timer Status Banner */
+        #timer-banner { display: none; border-radius: 1rem; padding: 14px 18px; margin-bottom: 15px; width: 100%; max-width: 480px; font-size: 0.875rem; line-height: 1.6; }
+        #timer-banner.status-closed  { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
+        #timer-banner.status-open    { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
+        #timer-banner.status-unknown { background: #fefce8; border: 1.5px solid #fde047; color: #854d0e; }
+
         .id-num { 
             width: 75px;
             height: 45px; 
@@ -193,6 +199,7 @@
     <!-- ===== MAIN APP ===== -->
     <div class="app-wrapper">
         <main class="panel-left">
+            <div id="timer-banner"></div>
             <div class="scanner-card">
                 <div class="cam-view">
                     <canvas id="canvas" hidden></canvas>
@@ -273,6 +280,19 @@
             if (btnSubmit)   btnSubmit.disabled   = !enabled;
         }
 
+        // ===== ฟังก์ชันแสดง Banner แจ้งสถานะเวลา =====
+        function showTimerBanner(type, html) {
+            const banner = document.getElementById('timer-banner');
+            banner.className = `status-${type}`;
+            banner.innerHTML = html;
+            banner.style.display = 'block';
+        }
+
+        function hideTimerBanner() {
+            const banner = document.getElementById('timer-banner');
+            banner.style.display = 'none';
+        }
+
         // ===== ตรวจสอบเวลาของวันปัจจุบันทันทีที่โหลด =====
         async function checkCurrentDay() {
             try {
@@ -284,6 +304,7 @@
 
                 if (!timer || timer.success === false) {
                     setInputsEnabled(false);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>ไม่สามารถดึงข้อมูลเวลาได้</b> กรุณาลองรีเฟรชหน้า`);
                     return;
                 }
 
@@ -291,11 +312,42 @@
                 const start = (day === 1) ? timer.day1Open  : timer.day2Open;
                 const end   = (day === 1) ? timer.day1Close : timer.day2Close;
 
-                const isOpen = start !== null && end !== null && now >= start && now <= end;
-                setInputsEnabled(isOpen);
+                const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const fmtDate = (ts) => {
+                    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+                    const d = new Date(ts);
+                    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+                };
+
+                if (start === null || end === null) {
+                    setInputsEnabled(false);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดช่วงเวลาลงทะเบียน</b>`);
+
+                } else if (now < start) {
+                    setInputsEnabled(false);
+                    showTimerBanner('closed',
+                        `<i class="fa-solid fa-clock me-2"></i><b>ยังไม่ถึงเวลาลงทะเบียน</b><br>` +
+                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; เปิดรับ <b>${fmt(start)}</b> – <b>${fmt(end)} น.</b>`
+                    );
+
+                } else if (now > end) {
+                    setInputsEnabled(false);
+                    showTimerBanner('closed',
+                        `<i class="fa-solid fa-circle-xmark me-2"></i><b>ปิดรับลงทะเบียนแล้ว</b><br>` +
+                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; ช่วงเวลา <b>${fmt(start)}</b> – <b>${fmt(end)} น.</b>`
+                    );
+
+                } else {
+                    setInputsEnabled(true);
+                    showTimerBanner('open',
+                        `<i class="fa-solid fa-circle-check me-2"></i><b>เปิดรับลงทะเบียน</b><br>` +
+                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; ถึง <b>${fmt(end)} น.</b>`
+                    );
+                }
 
             } catch (e) {
                 setInputsEnabled(false);
+                showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>เกิดข้อผิดพลาด:</b> ${e.toString()}`);
                 console.error("checkCurrentDay Error:", e);
             }
         }
@@ -617,77 +669,19 @@
 
         // ===== CHANGE DAY =====
         async function changeDay(d) {
-            Swal.fire({ title: 'กำลังตรวจสอบเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            // เปลี่ยนวัน + อัปเดตปุ่ม
+            day = d;
+            document.getElementById('day1-btn').className = d === 1
+                ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm me-2'
+                : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted me-2';
+            document.getElementById('day2-btn').className = d === 2
+                ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm'
+                : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
 
-            try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getTimerSettings' })
-                });
-                const timer = await res.json();
-                Swal.close();
-
-                // ✅ FIX: ตรวจสอบว่า Response เป็น null หรือ error
-                if (!timer || timer.success === false) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: timer ? timer.message : 'ไม่สามารถดึงข้อมูลเวลาได้' });
-                    return;
-                }
-
-                const now = new Date().getTime();
-                const start = (d === 1) ? timer.day1Open : timer.day2Open;
-                const end   = (d === 1) ? timer.day1Close : timer.day2Close;
-
-                const btnStart   = document.getElementById('start-btn');
-                const inputManual = document.getElementById('manual-input');
-                const btnSubmit  = document.querySelector('.manual-box button');
-
-                // ✅ FIX: แยกเช็คกรณี timestamp เป็น null (ยังไม่ตั้งค่า) vs นอกช่วงเวลา
-                if (start === null || end === null) {
-                    setInputsEnabled(false);
-
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'ยังไม่ได้ตั้งเวลา',
-                        text: `ยังไม่ได้กำหนดช่วงเวลาสำหรับวันที่ ${d} ใน Sheet Timer`,
-                        confirmButtonColor: '#4f46e5'
-                    });
-
-                } else if (now < start || now > end) {
-                    setInputsEnabled(false);
-
-                    // ✅ FIX: แสดงช่วงเวลาจริงให้ Staff ทราบ
-                    const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                    const fmtDate = (ts) => {
-                        const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-                        const d = new Date(ts);
-                        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
-                    };
-                    Swal.fire({
-                        icon: 'warning',
-                        title: `วันที่ ${d}: ปิดรับลงทะเบียน`,
-                        html: `<b>${fmtDate(start)}</b><br>ช่วงเวลาที่กำหนด: <b>${fmt(start)} – ${fmt(end)} น.</b><br><small class="text-muted">คุณยังสามารถดูประวัติการสแกนได้</small>`,
-                        confirmButtonColor: '#4f46e5'
-                    });
-
-                } else {
-                    setInputsEnabled(true);
-                }
-
-                // เปลี่ยนวัน + อัปเดตปุ่ม + โหลดประวัติ (ทุกกรณี)
-                day = d;
-                document.getElementById('day1-btn').className = d === 1
-                    ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm me-2'
-                    : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted me-2';
-                document.getElementById('day2-btn').className = d === 2
-                    ? 'btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm'
-                    : 'btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted';
-
-                fetchHistory();
-
-            } catch (e) {
-                Swal.close();
-                Swal.fire({ icon: 'error', title: 'การเชื่อมต่อขัดข้อง', text: e.toString() });
-            }
+            // ใช้ checkCurrentDay() จัดการ banner + เปิด/ปิดปุ่มแทน (ไม่ต้องมี Swal)
+            hideTimerBanner();
+            checkCurrentDay();
+            fetchHistory();
         }
     </script>
 </body>
