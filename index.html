@@ -22,6 +22,20 @@
         .staff-tag { background: #4f46e5; color: white; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; }
         .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
 
+        /* Navbar mobile: 2 rows */
+        @media (max-width: 575px) {
+            :root { --nav-h: 110px; }
+            .navbar .container-fluid { flex-direction: column; align-items: stretch !important; gap: 6px; padding-top: 10px; padding-bottom: 10px; }
+            .navbar-row1 { display: flex; align-items: center; justify-content: space-between; }
+            .navbar-row2 { display: flex; gap: 8px; }
+            .navbar-row2 button { flex: 1; font-size: 0.85rem; }
+        }
+        @media (min-width: 576px) {
+            .navbar .container-fluid { display: flex; align-items: center; justify-content: space-between; }
+            .navbar-row1 { display: flex; align-items: center; }
+            .navbar-row2 { display: flex; }
+        }
+
         .panel-left { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .scanner-card { width: 100%; max-width: 480px; background: white; border-radius: 2rem; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .cam-view { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative; }
@@ -181,18 +195,27 @@
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar shadow-sm">
         <div class="container-fluid px-3">
-            <div class="d-flex align-items: center">
-                <div class="staff-tag me-2">STAFF</div>
-                <div>
-                    <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">QR Check-in</h6>
-                    <small id="ui-staff" class="text-primary fw-bold" style="font-size: 0.7rem;">LOADING...</small>
-                    <button onclick="logout()" class="btn btn-outline-danger btn-sm p-0 px-1 ms-2" style="font-size: 0.6rem;">ออกจากระบบ</button>
+
+            <!-- แถวที่ 1: ชื่อ + ปุ่มออกจากระบบ -->
+            <div class="navbar-row1 w-100">
+                <div class="d-flex align-items-center">
+                    <div class="staff-tag me-2">STAFF</div>
+                    <div>
+                        <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">QR Check-in</h6>
+                        <small id="ui-staff" class="text-primary fw-bold" style="font-size: 0.7rem;">LOADING...</small>
+                    </div>
                 </div>
+                <button onclick="logout()" class="btn btn-outline-danger btn-sm px-2 fw-bold" style="font-size: 0.75rem; white-space: nowrap;">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ
+                </button>
             </div>
-            <div class="btn-group p-1 rounded-3">
-                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm me-2">วันที่ 1</button>
+
+            <!-- แถวที่ 2: ปุ่มเลือกวัน -->
+            <div class="navbar-row2 w-100">
+                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-3 fw-bold shadow-sm">วันที่ 1</button>
                 <button onclick="changeDay(2)" id="day2-btn" class="btn btn-light btn-sm rounded-2 px-3 fw-bold text-muted">วันที่ 2</button>
             </div>
+
         </div>
     </nav>
 
