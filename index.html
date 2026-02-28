@@ -25,7 +25,7 @@
             --primary-color: #4f46e5;
         }
 
-        @media (max-width: 575px) {
+        @media (max-width: 767px) {
             :root {
                 --nav-h: 125px;         /* ความสูง Navbar (Mobile 2 แถว) */
             }
@@ -48,12 +48,12 @@
         ============================================================ */
         .navbar {
             position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 2000;
+            top: 0; width: 100%; z-index: 2000;
             height: var(--nav-h);
             background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
         }
 
         .navbar .container-fluid {
@@ -152,6 +152,50 @@
             }
         }
 
+        @media (min-width: 768px) {
+            .pc-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+            .mobile-layout { display: none !important; }
+        }
+
+        @media (max-width: 767px) {
+            .pc-layout { display: none !important; }
+            .mobile-layout {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;             /* ระยะห่างระหว่างแถวบนกับแถวล่าง */
+                padding: 5px 0;
+            }
+
+            /* แถวที่ 1: ชื่อระบบ + ปุ่มออก */
+            .mobile-row1 {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+            }
+
+            /* แถวที่ 2: ปุ่มวันที่แบบเต็มพื้นที่ */
+            .mobile-row2 {
+                width: 100%;
+            }
+
+            .mobile-row2 .nav-tabs-custom {
+                display: flex;
+                width: 100%;           /* แถบสีเทายาวเต็มจอ */
+                background: #f1f5f9;
+                padding: 4px;
+                border-radius: 12px;
+            }
+
+            .mobile-row2 .btn-day {
+                flex: 1;               /* บังคับให้ปุ่มกว้างเท่ากันคนละ 50% */
+                text-align: center;
+                padding: 10px 0;       /* เพิ่มความสูงปุ่มให้กดง่าย */
+                border-radius: 10px;
+                font-size: 0.95rem;    /* ตัวอักษรใหญ่ขึ้นเล็กน้อย */
+            }
+        }
         /* ============================================================
         4) MAIN APP LAYOUT
         ============================================================ */
@@ -358,20 +402,63 @@
             }
         }
 
-        /* แถบสถานะสแกนแล้ว */
+        /* ============================================================
+        10) MODAL - PREVIEW USER COMPONENTS
+        ============================================================ */
+
+        /* ชื่อผู้ใช้งานใน Modal */
+        #p-name {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        /* กรอบ ID ทรงแคปซูลสีฟ้า (เด่นชัด) */
+        .modal-id-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2ff;      /* สีฟ้าอ่อน */
+            color: var(--primary-color);
+            padding: 5px 18px;
+            border-radius: 50px;      /* ทรงแคปซูล */
+            border: 1px solid #c7d2fe;
+            margin-bottom: 15px;
+        }
+
+        /* ตัวเลข ID ภายในกรอบ */
+        #p-id {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        /* แถบสถานะ "ลงชื่อแล้ว" (สีเขียว + เวลา) */
         .scanned-status-badge {
-            background-color: #f0fdf4;
-            color: #15803d;
+            background: #f0fdf4;      /* พื้นเขียวอ่อน */
+            color: #15803d;           /* ตัวอักษรเขียวเข้ม */
             border: 1px solid #bbf7d0;
-            padding: 8px 15px;
+            padding: 12px;
             border-radius: 12px;
             font-weight: 700;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin: 10px auto;
-            width: fit-content;
+            gap: 10px;
+            margin: 0 auto 15px;
+            width: 100%;
+            max-width: 350px;         /* จำกัดความกว้างบนจอใหญ่ */
+        }
+
+        .scanned-status-badge i {
+            font-size: 1.2rem;
+        }
+
+        /* ปรับแต่งส่วนรายละเอียดใน Modal ให้ดูสะอาดขึ้น */
+        .modal-body .bg-light {
+            border: 1px solid #e2e8f0;
         }
 
     </style>
