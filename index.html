@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smart QR Check-in System</title>
 
+    <!-- ใช้ไอคอน QR Code สีน้ำเงิน/ม่วง ให้เข้ากับธีมระบบ -->
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/241/241528.png">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -15,68 +17,35 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* ============================================================
+        1) ROOT VARIABLES
+        ============================================================ */
         :root {
-            --nav-h: 70px;
+            --nav-h: 70px;              /* ความสูง Navbar (Desktop) */
             --primary-color: #4f46e5;
         }
 
         @media (max-width: 767px) {
-            :root { --nav-h: 125px; }
+            :root {
+                --nav-h: 125px;         /* ความสูง Navbar (Mobile 2 แถว) */
+            }
         }
 
+        /* ============================================================
+        2) BASE / GLOBAL
+        ============================================================ */
         body {
             font-family: 'Prompt', sans-serif;
             background-color: #f1f5f9;
             height: 100vh;
             overflow: hidden;
             margin: 0;
-            padding-top: var(--nav-h);
+            padding-top: var(--nav-h);  /* ดันเนื้อหาลงตามความสูง Navbar */
         }
 
         /* ============================================================
-           LOGIN SCREEN (FIXED OVERLAY)
-           ============================================================ */
-        #login-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            background: #1e293b;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .login-card {
-            width: 100%;
-            max-width: 380px;
-            background: #ffffff;
-            border-radius: 2rem;
-            padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            text-align: center;
-        }
-
-        /* ป้องกันปุ่มดวงตาขยับ หรือถูกทับ */
-        .password-container {
-            position: relative;
-        }
-        
-        .eye-btn {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #64748b;
-            z-index: 10;
-            padding: 5px;
-        }
-
-        /* ============================================================
-           NAVBAR & LAYOUT
-           ============================================================ */
+        3) NAVBAR
+        ============================================================ */
         .navbar {
             position: fixed;
             top: 0; width: 100%; z-index: 2000;
@@ -87,6 +56,13 @@
             align-items: center;
         }
 
+        .navbar .container-fluid {
+            height: 100%;
+            display: flex;
+            padding: 0 16px;
+        }
+
+        /* ---------- Navbar Components ---------- */
         .staff-tag {
             background: var(--primary-color);
             color: #ffffff;
@@ -94,6 +70,7 @@
             border-radius: 8px;
             font-weight: 700;
             font-size: 0.75rem;
+            white-space: nowrap;
         }
 
         .nav-tabs-custom {
@@ -104,63 +81,386 @@
             border-radius: 12px;
         }
 
-        .btn-day {
-            border: none; background: transparent;
-            padding: 6px 20px; border-radius: 8px;
-            font-weight: 600; font-size: 0.85rem; color: #64748b;
+        .nav-tabs-custom .btn-day {
+            border: none;
+            background: transparent;
+            padding: 6px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #64748b;
+            transition: 0.2s;
         }
 
-        .btn-day.active {
-            background: #ffffff; color: var(--primary-color);
+        .nav-tabs-custom .btn-day.active {
+            background: #ffffff;
+            color: var(--primary-color);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
+        /* ---------- Layout Switch (PC / Mobile) ---------- */
+        .pc-layout {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-layout {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 575px) {
+            .pc-layout { 
+                display: none !important; 
+            }
+
+            .mobile-layout {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .mobile-row1 {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+            }
+
+            .mobile-row2 {
+                width: 100%;
+            }
+
+            /* ปรับปุ่มให้เต็มพื้นที่ในแถวที่ 2 */
+            .mobile-row2 .nav-tabs-custom {
+                width: 100%;
+                display: flex;
+            }
+
+            .mobile-row2 .btn-day {
+                flex: 1;            /* ขยายให้กว้างเท่ากันทั้ง 2 ปุ่ม */
+                text-align: center;
+                padding: 10px 0;    /* เพิ่มความสูงให้กดง่ายขึ้น */
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .pc-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+            .mobile-layout { display: none !important; }
+        }
+
+        @media (max-width: 767px) {
+            .pc-layout { display: none !important; }
+            .mobile-layout {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;             /* ระยะห่างระหว่างแถวบนกับแถวล่าง */
+                padding: 5px 0;
+            }
+
+            /* แถวที่ 1: ชื่อระบบ + ปุ่มออก */
+            .mobile-row1 {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+            }
+
+            /* แถวที่ 2: ปุ่มวันที่แบบเต็มพื้นที่ */
+            .mobile-row2 {
+                width: 100%;
+            }
+
+            .mobile-row2 .nav-tabs-custom {
+                display: flex;
+                width: 100%;           /* แถบสีเทายาวเต็มจอ */
+                background: #f1f5f9;
+                padding: 4px;
+                border-radius: 12px;
+            }
+
+            .mobile-row2 .btn-day {
+                flex: 1;               /* บังคับให้ปุ่มกว้างเท่ากันคนละ 50% */
+                text-align: center;
+                padding: 10px 0;       /* เพิ่มความสูงปุ่มให้กดง่าย */
+                border-radius: 10px;
+                font-size: 0.95rem;    /* ตัวอักษรใหญ่ขึ้นเล็กน้อย */
+            }
+        }
+        /* ============================================================
+        4) MAIN APP LAYOUT
+        ============================================================ */
         .app-wrapper {
             display: flex;
             height: calc(100vh - var(--nav-h));
         }
 
-        .panel-left { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .sidebar-right { width: 480px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+        .panel-left {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
+        .sidebar-right {
+            width: 480px;
+            background: #ffffff;
+            border-left: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ---------- Responsive Layout ---------- */
         @media (max-width: 991px) {
-            body { height: auto; overflow-y: auto; }
-            .app-wrapper { flex-direction: column; height: auto; }
-            .sidebar-right { width: 100% !important; border-left: none; border-top: 1px solid #e2e8f0; }
+            body {
+                height: auto;
+                overflow-y: auto;
+            }
+            .app-wrapper {
+                flex-direction: column;
+                height: auto;
+            }
+            .sidebar-right {
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid #e2e8f0;
+            }
         }
 
-        /* Scanner Components */
-        .scanner-card { width: 100%; max-width: 480px; background: #ffffff; border-radius: 2rem; padding: 20px; }
-        .cam-view { width: 100%; aspect-ratio: 4 / 3; background: #000; border-radius: 1.2rem; overflow: hidden; position: relative; margin-bottom: 15px; }
-        canvas { width: 100%; height: 100%; object-fit: cover; }
-
-        .manual-box { display: flex; padding: 6px; background: #f1f5f9; border-radius: 1rem; border: 1px solid #e2e8f0; margin-top: 15px; }
-        .manual-box input { flex: 1; border: none; background: transparent; outline: none; text-align: center; font-weight: 700; }
-
-        #timer-banner { display: none; width: 100%; max-width: 480px; margin-bottom: 15px; padding: 12px; border-radius: 1rem; text-align: center; font-size: 0.85rem; }
-        .status-open { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
-        .status-closed { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
-
-        #splash-screen { position: fixed; inset: 0; z-index: 10000; background: #1e293b; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .loader-circle { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Modal UI */
-        .profile-box { width: 140px; height: 160px; margin: 0 auto 15px; background: #f8fafc; border-radius: 20px; border: 4px solid #fff; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .profile-box img { width: 100%; height: 100%; object-fit: cover; }
-        .modal-id-wrapper { display: inline-flex; background: #eef2ff; color: var(--primary-color); padding: 5px 18px; border-radius: 50px; font-weight: 800; margin-bottom: 15px; }
-
-        /* List Items */
-        .id-item { display: flex; align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 12px; margin-bottom: 10px; margin-left: 10px; margin-right: 10px;}
-        .id-num { width: 60px; height: 40px; background: #eef2ff; color: #4f46e5; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 15px; }
-
-        /* Responsive Navbar */
-        .pc-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
-        .mobile-layout { display: none; width: 100%; flex-direction: column; gap: 8px; }
-        @media (max-width: 767px) {
-            .pc-layout { display: none !important; }
-            .mobile-layout { display: flex; }
+        /* ============================================================
+        5) LOGIN / SCANNER SCREEN
+        ============================================================ */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #1e293b;
         }
+
+        .scanner-card {
+            width: 100%;
+            max-width: 480px;
+            background: #ffffff;
+            border-radius: 2rem;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .cam-view {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #000000;
+            border-radius: 1.2rem;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ============================================================
+        6) INPUT / MANUAL ENTRY
+        ============================================================ */
+        .manual-box {
+            display: flex;
+            overflow: hidden;
+            margin-top: 15px;
+            padding: 6px;
+            background: #f1f5f9;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .manual-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 4px 8px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        /* ============================================================
+        7) STATUS / TIMER
+        ============================================================ */
+        #timer-banner {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+            margin-bottom: 15px;
+            padding: 14px 18px;
+            font-size: 0.875rem;
+            border-radius: 1rem;
+        }
+
+        #timer-banner.status-closed {
+            background: #fef2f2;
+            border: 1.5px solid #fca5a5;
+            color: #b91c1c;
+        }
+
+        #timer-banner.status-open {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            color: #15803d;
+        }
+
+        /* ============================================================
+        8) LIST / PROFILE COMPONENTS
+        ============================================================ */
+        .id-item {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .id-num {
+            width: 75px;
+            height: 45px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            background: #eef2ff;
+            color: #4f46e5;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .profile-box {
+            width: 150px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            background: #f8fafc;
+            border-radius: 20px;
+            border: 4px solid #ffffff;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ============================================================
+        9) SPLASH SCREEN
+        ============================================================ */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1e293b;
+        }
+
+        .loader-circle {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ============================================================
+        10) MODAL - PREVIEW USER COMPONENTS
+        ============================================================ */
+
+        /* ชื่อผู้ใช้งานใน Modal */
+        #p-name {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        /* กรอบ ID ทรงแคปซูลสีฟ้า (เด่นชัด) */
+        .modal-id-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2ff;      /* สีฟ้าอ่อน */
+            color: var(--primary-color);
+            padding: 5px 18px;
+            border-radius: 50px;      /* ทรงแคปซูล */
+            border: 1px solid #c7d2fe;
+            margin-bottom: 15px;
+        }
+
+        /* ตัวเลข ID ภายในกรอบ */
+        #p-id {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        /* แถบสถานะ "ลงชื่อแล้ว" (สีเขียว + เวลา) */
+        .scanned-status-badge {
+            background: #f0fdf4;      /* พื้นเขียวอ่อน */
+            color: #15803d;           /* ตัวอักษรเขียวเข้ม */
+            border: 1px solid #bbf7d0;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 0 auto 15px;
+            width: 100%;
+            max-width: 350px;         /* จำกัดความกว้างบนจอใหญ่ */
+        }
+
+        .scanned-status-badge i {
+            font-size: 1.2rem;
+        }
+
+        /* ปรับแต่งส่วนรายละเอียดใน Modal ให้ดูสะอาดขึ้น */
+        .modal-body .bg-light {
+            border: 1px solid #e2e8f0;
+        }
+
     </style>
 </head>
 <body>
@@ -171,55 +471,92 @@
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
     </div>
 
-    <!-- ===== LOGIN SCREEN (Corrected Structure) ===== -->
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="staff-tag d-inline-block mb-2">STAFF</div>
-            <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
-            
-            <div class="password-container mb-2">
-                <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 fw-bold shadow-sm" placeholder="รหัสเจ้าหน้าที่" autofocus>
-                <button type="button" onclick="togglePasswordVisibility()" class="eye-btn">
-                    <i id="eye-icon" class="fa-solid fa-eye"></i>
-                </button>
-            </div>
-            
-            <div id="login-error-msg" class="text-danger small fw-bold mb-3 d-none">
-                <i class="fa-solid fa-circle-exclamation me-1"></i>รหัสไม่ถูกต้อง กรุณาลองใหม่
-            </div>
-
-            <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow">
-                <span id="login-text">เข้าสู่ระบบ</span>
-                <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span></span>
-            </button>
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div id="login-form" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 360px;">
+        <div class="staff-tag d-inline-block mb-2">STAFF</div>
+        <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
+        
+    <div class="position-relative mb-1">
+        <input type="password" id="staff-id" 
+            class="form-control form-control-lg text-center rounded-4 fw-bold" 
+            placeholder="รหัสเจ้าหน้าที่" autofocus style="padding-right: 45px;"
+            onkeydown="if(event.key==='Enter'){ login(); }"> <!-- เพิ่มให้กด Enter ได้ -->
+        <button type="button" onclick="togglePasswordVisibility()" class="btn position-absolute top-50 end-0 translate-middle-y border-0" style="margin-right: 8px; background: transparent; z-index: 10;">
+            <i id="eye-icon" class="fa-solid fa-eye text-muted"></i>
+        </button>
+    </div>
+        
+        <div id="login-error-msg" class="text-danger small fw-bold mb-3 d-none">
+            รหัสไม่ถูกต้อง กรุณาลองใหม่
         </div>
+
+        <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow">
+            <span id="login-text">ลงชื่อเข้าใช้งาน</span>
+            <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span> กำลังโหลด...</span>
+        </button>
     </div>
 
     <!-- ===== PREVIEW MODAL ===== -->
-    <div class="modal fade" id="previewModal" data-bs-backdrop="static" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="previewModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable" style="margin-top: var(--nav-h); margin-bottom: 1rem;">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
+                </div>
                 <div class="modal-body text-center p-4">
                     <div class="profile-box">
-                        <img id="p-img" src="" style="display: none;">
-                        <i id="p-icon" class="fa-solid fa-user-tie fa-4x text-light"></i>
+                        <img id="p-img" src="" style="display: none;" alt="profile">
+                        <i id="p-icon" class="fa-solid fa-user-tie"></i>
                     </div>
-                    <h3 id="p-name" class="fw-bold mb-1">-</h3>
-                    <div class="modal-id-wrapper">ID: <span id="p-id" class="ms-1">-</span></div>
 
-                    <div id="already-scanned-area" class="alert alert-success d-none mb-3 py-2 rounded-3">
-                        <i class="fa-solid fa-circle-check me-2"></i>ลงชื่อแล้ว: วันที่ <span id="scanned-day-label"></span> เวลา <span id="scanned-time-label"></span>
+                    <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
+
+                    <!-- ส่วน ID -->
+                    <div class="modal-id-wrapper">
+                        <span class="me-2 opacity-50 small">ID:</span>
+                        <span id="p-id">-</span>
+                    </div>
+
+                    <!-- *** ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
+                    <div id="already-scanned-area" class="d-none">
+                        <div class="scanned-status-badge">
+                            <i class="fa-solid fa-circle-check"></i>
+                            ลงชื่อแล้ว: วันที่ <span id="scanned-day-label">-</span> 
+                            เวลา <span id="scanned-time-label" class="ms-1">-</span> น.
+                        </div>
                     </div>
 
                     <div class="bg-light p-3 rounded-4 text-start mb-3">
-                        <small class="text-muted">ตำแหน่ง/สังกัด</small>
-                        <div id="p-pos" class="fw-bold mb-1">-</div>
-                        <div id="p-dept" class="fw-bold">-</div>
+                        <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
+                        <div id="p-regType" class="fw-bold mb-2">-</div>
+
+                        <small class="text-secondary d-block">ตำแหน่ง / สถานะ</small>
+                        <div id="p-pos" class="fw-bold mb-2">-</div>
+
+                        <div id="dept-area">
+                            <small class="text-secondary d-block">หน่วยงาน / สังกัด</small>
+                            <div id="p-dept" class="fw-bold mb-2">-</div>
+                        </div>
+                        
+                        <div id="pay-status-area">
+                            <hr class="my-2 opacity-10">
+                            <small class="text-secondary d-block">สถานะการชำระเงิน</small>
+                            <div id="p-status" class="fw-bold">-</div>
+                        </div>
+                    </div>
+
+                    <!-- แจ้งเตือนกรณียังไม่ชำระเงิน -->
+                    <div id="pay-warning" class="alert alert-danger rounded-3 fw-bold d-none mb-3" style="font-size:0.9rem;">
+                        <i class="fa-solid fa-ban me-2"></i>ไม่สามารถลงชื่อได้ — ยังไม่ได้ชำระเงิน
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold shadow-sm">ยืนยันลงชื่อเข้างาน</button>
-                        <button class="btn btn-light py-2 rounded-3 text-muted" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm">
+                            <i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน
+                        </button>
+                        <button class="btn btn-warning py-3 rounded-4 fw-bold fs-4 shadow-sm text-dark" data-bs-dismiss="modal">
+                            <i class="fa-solid fa-qrcode me-2"></i>ยกเลิก / สแกนใหม่
+                        </button>
                     </div>
                 </div>
             </div>
@@ -229,32 +566,45 @@
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar shadow-sm">
         <div class="container-fluid">
-            <!-- PC -->
+            
+            <!-- PC VIEW -->
             <div class="pc-layout">
                 <div class="d-flex align-items-center gap-3">
                     <div class="staff-tag">STAFF</div>
-                    <div><h6 class="mb-0 fw-bold">QR Check-in</h6><small id="ui-staff" class="text-primary fw-bold">...</small></div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">QR Check-in</h6>
+                        <small id="ui-staff" class="text-primary fw-bold">กำลังโหลด...</small>
+                    </div>
                 </div>
                 <div class="nav-tabs-custom">
                     <button onclick="changeDay(1)" id="day1-btn" class="btn-day active">วันที่ 1</button>
                     <button onclick="changeDay(2)" id="day2-btn" class="btn-day">วันที่ 2</button>
                 </div>
-                <button onclick="logout()" class="btn btn-outline-danger btn-sm px-3 fw-bold">ออกจากระบบ</button>
+                <button onclick="logout()" class="btn btn-outline-danger btn-sm fw-bold px-3">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ
+                </button>
             </div>
-            <!-- Mobile -->
+
+            <!-- MOBILE VIEW (2 Rows) -->
             <div class="mobile-layout">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="mobile-row1">
                     <div class="d-flex align-items-center gap-2">
                         <div class="staff-tag">STAFF</div>
-                        <small id="ui-staff-m" class="text-primary fw-bold" style="font-size:0.75rem">...</small>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="font-size:0.85rem">QR Check-in</h6>
+                            <small id="ui-staff-m" class="text-primary fw-bold" style="font-size:0.7rem">กำลังโหลด...</small>
+                        </div>
                     </div>
-                    <button onclick="logout()" class="btn btn-sm btn-light text-danger border">ออก <i class="fa-solid fa-power-off"></i></button>
+                    <button onclick="logout()" class="btn btn-sm btn-light text-danger border fw-bold">ออก <i class="fa-solid fa-power-off ms-1"></i></button>
                 </div>
-                <div class="nav-tabs-custom w-100">
-                    <button onclick="changeDay(1)" id="day1-btn-m" class="btn-day flex-grow-1 active">วันที่ 1</button>
-                    <button onclick="changeDay(2)" id="day2-btn-m" class="btn-day flex-grow-1">วันที่ 2</button>
+                <div class="mobile-row2">
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeDay(1)" id="day1-btn-m" class="btn-day active">วันที่ 1</button>
+                        <button onclick="changeDay(2)" id="day2-btn-m" class="btn-day">วันที่ 2</button>
+                    </div>
                 </div>
             </div>
+
         </div>
     </nav>
 
@@ -262,18 +612,20 @@
     <div class="app-wrapper">
         <main class="panel-left">
             <div id="timer-banner"></div>
-            <div class="scanner-card shadow-sm">
+            <div class="scanner-card">
                 <div class="cam-view">
                     <canvas id="canvas" hidden></canvas>
                     <div id="placeholder" class="h-100 d-flex flex-column align-items-center justify-content-center text-white opacity-25">
-                        <i class="fa-solid fa-camera fa-2x mb-2"></i><span>READY</span>
+                        <i class="fa-solid fa-camera fa-2x mb-2"></i>
+                        <span class="small fw-bold">READY</span>
                     </div>
                 </div>
-                <button id="start-btn" onclick="toggleScanner(true)" class="btn btn-success w-100 py-3 rounded-4 fw-bold fs-5 mb-2">เริ่มสแกน QR Code</button>
-                <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger w-100 py-3 rounded-4 fw-bold fs-5 d-none mb-2">หยุดสแกน</button>
+                <button id="start-btn" onclick="toggleScanner(true)" class="btn btn-success w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm mb-2">เริ่มสแกน QR Code</button>
+                <button id="stop-btn" onclick="toggleScanner(false)" class="btn btn-danger w-100 py-3 rounded-4 fw-bold fs-5 shadow-sm d-none mb-2">หยุดสแกน</button>
                 <div class="manual-box shadow-sm">
-                    <input type="text" id="manual-input" placeholder="กรอกรหัส ID..." onkeydown="if(event.key==='Enter') handleManual()">
-                    <button onclick="handleManual()" class="btn btn-dark px-4 rounded-3 fw-bold">บันทึก</button>
+                    <input type="text" id="manual-input" placeholder="กรอกรหัส ID..." autocomplete="off"
+                           onkeydown="if(event.key==='Enter'){ event.preventDefault(); handleManual(); }">
+                    <button onclick="handleManual()" class="btn btn-dark px-4 py-2 rounded-3 fw-bold">บันทึก</button>
                 </div>
             </div>
         </main>
@@ -281,13 +633,19 @@
         <aside class="sidebar-right">
             <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">รายการสแกนล่าสุด</h6>
-                <div class="d-flex gap-2">
-                    <span class="badge bg-success-subtle text-success border">มาแล้ว: <span id="ui-present">0</span></span>
-                    <span class="badge bg-danger-subtle text-danger border">ยังไม่มา: <span id="ui-absent">0</span></span>
+
+                <!-- ส่วนแสดงจำนวน -->
+                <div class="d-flex gap-2 text-end">
+                    <div class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.75rem;">
+                        มาแล้ว: <span id="ui-present" class="fw-bold">0</span>
+                    </div>
+                    <div class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1" style="font-size: 0.75rem;">
+                        ยังไม่มา: <span id="ui-absent" class="fw-bold">0</span>
+                    </div>
                 </div>
             </div>
-            <div id="history-box" style="overflow-y:auto; flex:1;">
-                <p class="text-center py-5 text-muted">ยังไม่มีข้อมูล</p>
+            <div id="history-box" class="history-list">
+                <p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูล</p>
             </div>
         </aside>
     </div>
@@ -295,6 +653,9 @@
     <video id="video" playsinline hidden></video>
 
     <script>
+        // ============================================================
+        // 1) CONFIG & VARIABLES
+        // ============================================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec";
         
         let day = 1;
@@ -308,80 +669,33 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        window.onload = () => {
-            previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-            
-            // ตรวจสอบ Session เดิม
-            const savedStaff = localStorage.getItem('staff_session');
-            const splash = document.getElementById('splash-screen');
-
-            if (savedStaff) {
-                staff = JSON.parse(savedStaff);
-                document.getElementById('login-screen').classList.add('d-none');
-                setStaffUI(staff.name);
-                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
-            } else {
-                hideSplash(splash);
+        // ============================================================
+        // 2) RESET & UI HELPERS
+        // ============================================================
+        function resetAllStates() {
+            staff = null;
+            isScanning = false;
+            currentPreviewId = null;
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+                currentStream = null;
             }
-        };
-
-        function hideSplash(el) {
-            el.style.opacity = '0';
-            setTimeout(() => { el.style.display = 'none'; }, 400);
-        }
-
-        function setStaffUI(name) {
-            const label = `เจ้าหน้าที่: ${name}`;
-            document.getElementById('ui-staff').innerText = label;
-            document.getElementById('ui-staff-m').innerText = label;
-        }
-
-        /* ============================================================
-           LOGIN & UI ERROR FIX
-           ============================================================ */
-        async function login() {
-            const input = document.getElementById('staff-id');
-            const pass = input.value.trim();
+            // คืนสถานะปุ่ม Login
             const btn = document.getElementById('login-btn');
-            const errorMsg = document.getElementById('login-error-msg');
-
-            if (!pass) { input.focus(); return; }
-
-            // Reset Error UI
-            errorMsg.classList.add('d-none');
-            input.classList.remove('border-danger', 'text-danger');
-
-            btn.disabled = true;
-            document.getElementById('login-text').classList.add('d-none');
-            document.getElementById('login-loader').classList.remove('d-none');
-
-            try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: pass })
-                });
-                const result = await res.json();
-
-                if (result.isAllowed) {
-                    staff = result;
-                    localStorage.setItem('staff_session', JSON.stringify(result));
-                    document.getElementById('login-screen').classList.add('d-none');
-                    setStaffUI(result.name);
-                    fetchHistory();
-                    checkCurrentDay();
-                } else {
-                    // กรณีรหัสผิด - ใช้ขอบแดงธรรมดา ไม่ใช้ .is-invalid เพื่อไม่ให้ไปทับรูปดวงตา
-                    errorMsg.classList.remove('d-none');
-                    input.classList.add('border-danger', 'text-danger');
-                    input.focus();
-                }
-            } catch (e) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อขัดข้อง' });
-            } finally {
+            const text = document.getElementById('login-text');
+            const loader = document.getElementById('login-loader');
+            if (btn) {
                 btn.disabled = false;
-                document.getElementById('login-text').classList.remove('d-none');
-                document.getElementById('login-loader').classList.add('d-none');
+                text.classList.remove('d-none');
+                loader.classList.add('d-none');
             }
+            document.getElementById('staff-id').value = '';
+            showLoginError(false); // ปิดข้อความแจ้งเตือนสีแดง
+            
+            canvas.hidden = true;
+            document.getElementById('placeholder').classList.remove('d-none');
+            document.getElementById('start-btn').classList.remove('d-none');
+            document.getElementById('stop-btn').classList.add('d-none');
         }
 
         function togglePasswordVisibility() {
@@ -396,144 +710,230 @@
             }
         }
 
+        function showLoginError(show) {
+            const msg = document.getElementById('login-error-msg');
+            const input = document.getElementById('staff-id');
+            if (show) {
+                msg.classList.remove('d-none');
+                // input.classList.add('is-invalid');
+            } else {
+                msg.classList.add('d-none');
+                // input.classList.remove('is-invalid');
+            }
+        }
+
+        function setInputsEnabled(enabled) {
+            const btnStart = document.getElementById('start-btn');
+            const inputManual = document.getElementById('manual-input');
+            const btnSubmit = document.querySelector('.manual-box button');
+            if (btnStart) btnStart.disabled = !enabled;
+            if (inputManual) inputManual.disabled = !enabled;
+            if (btnSubmit) btnSubmit.disabled = !enabled;
+        }
+
+        // ============================================================
+        // 3) INIT & EVENT LISTENERS
+        // ============================================================
+        window.onload = () => {
+            previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => {
+                currentPreviewId = null;
+            });
+
+            const staffInput = document.getElementById('staff-id');
+            if (staffInput) {
+                staffInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); login(); }
+                });
+                staffInput.addEventListener('input', () => showLoginError(false));
+            }
+
+            setInputsEnabled(false);
+            const splash = document.getElementById('splash-screen');
+            const savedStaff = localStorage.getItem('staff_session');
+
+            if (savedStaff) {
+                staff = JSON.parse(savedStaff);
+                document.getElementById('login-screen').style.display = 'none';
+                setStaffName(staff.name);
+                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
+            } else {
+                hideSplash(splash);
+            }
+        };
+
+        function setStaffName(name) {
+            const label = `เจ้าหน้าที่: ${name}`;
+            document.getElementById('ui-staff').innerText = label;
+            document.getElementById('ui-staff-m').innerText = label;
+        }
+
+        function hideSplash(el) {
+            el.style.opacity = '0';
+            setTimeout(() => { el.style.display = 'none'; }, 400);
+        }
+
+        // ============================================================
+        // 4) CORE LOGIC (LOGIN, CHECK TIME)
+        // ============================================================
+        async function login() {
+            const idInput = document.getElementById('staff-id');
+            const id = idInput.value.trim();
+            
+            showLoginError(false);
+            if (!id) { idInput.focus(); return; }
+
+            const btn = document.getElementById('login-btn');
+            const text = document.getElementById('login-text');
+            const loader = document.getElementById('login-loader');
+
+            // เริ่มแสดงการโหลด
+            btn.disabled = true;
+            text.classList.add('d-none');
+            loader.classList.remove('d-none');
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id })
+                });
+                const result = await res.json();
+
+                if (result.isAllowed) {
+                    staff = result;
+                    localStorage.setItem('staff_session', JSON.stringify(result));
+                    document.getElementById('login-screen').classList.add('d-none');
+                    setStaffName(result.name);
+                    fetchHistory();
+                    checkCurrentDay();
+                } else {
+                    // รหัสผิด: แจ้งเตือนใต้ช่องกรอกทันที และคืนสถานะปุ่ม
+                    showLoginError(true);
+                    btn.disabled = false;
+                    text.classList.remove('d-none');
+                    loader.classList.add('d-none');
+                    idInput.value = '';
+                    idInput.focus();
+                }
+            } catch (e) {
+                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว', text: 'กรุณาเช็คอินเทอร์เน็ต' });
+                btn.disabled = false;
+                text.classList.remove('d-none');
+                loader.classList.add('d-none');
+            }
+        }
+
+        async function checkCurrentDay() {
+            try {
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getTimerSettings' }) });
+                const timer = await res.json();
+                if (!timer || !timer.success) return;
+
+                const now = new Date().getTime();
+                const start = (day === 1) ? timer.day1Open : timer.day2Open;
+                const end = (day === 1) ? timer.day1Close : timer.day2Close;
+                const fmtT = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const fmtD = (ts) => {
+                    const d = new Date(ts);
+                    return `${d.getDate()} ${['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()]} ${d.getFullYear() + 543}`;
+                };
+
+                const banner = document.getElementById('timer-banner');
+                banner.style.display = 'block';
+                const dateStr = start ? fmtD(start) : "";
+
+                if (!start || !end) {
+                    banner.className = 'status-unknown';
+                    banner.innerHTML = `<b>วันที่ ${day}: ยังไม่กำหนดเวลา</b>`;
+                } else if (now < start) {
+                    setInputsEnabled(false);
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `<b>ยังไม่ถึงเวลาลงทะเบียน</b><br><small>วันที่ ${dateStr} | เริ่ม ${fmtT(start)} น.</small>`;
+                } else if (now > end) {
+                    setInputsEnabled(false);
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `<b>ปิดลงทะเบียนแล้ว</b><br><small>วันที่ ${dateStr} | สิ้นสุด ${fmtT(end)} น.</small>`;
+                } else {
+                    setInputsEnabled(true);
+                    banner.className = 'status-open';
+                    banner.innerHTML = `<b>เปิดลงทะเบียน (วันที่ ${day})</b><br><small>วันที่ ${dateStr} | ถึงเวลา ${fmtT(end)} น.</small>`;
+                }
+            } catch (e) { console.error(e); }
+        }
+
         function logout() {
             Swal.fire({
                 title: 'ยืนยันออกจากระบบ?',
-                icon: 'question',
+                icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'ออกจากระบบ',
-                confirmButtonColor: '#ef4444'
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ออกจากระบบ'
             }).then((r) => {
                 if (r.isConfirmed) {
                     localStorage.removeItem('staff_session');
-                    location.reload(); // รีโหลดเพื่อเคลียร์ค่าทั้งหมด
+                    resetAllStates();
+                    document.getElementById('login-screen').classList.remove('d-none');
                 }
             });
         }
 
-        /* ============================================================
-           SCANNER & RECORDS LOGIC
-           ============================================================ */
-        async function toggleScanner(start) {
-            if (start) {
-                try {
-                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = currentStream;
-                    video.play();
-                    isScanning = true;
-                    document.getElementById('start-btn').classList.add('d-none');
-                    document.getElementById('stop-btn').classList.remove('d-none');
-                    document.getElementById('placeholder').classList.add('d-none');
-                    canvas.hidden = false;
-                    requestAnimationFrame(tick);
-                } catch (e) {
-                    Swal.fire({ icon: 'error', title: 'ไม่สามารถเปิดกล้องได้', text: 'โปรดอนุญาตให้เข้าถึงกล้อง' });
-                }
-            } else {
-                if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                isScanning = false;
-                document.getElementById('start-btn').classList.remove('d-none');
-                document.getElementById('stop-btn').classList.add('d-none');
-                canvas.hidden = true;
-                document.getElementById('placeholder').classList.remove('d-none');
-            }
-        }
-
-        function tick() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
-                if (code) {
-                    if (navigator.vibrate) navigator.vibrate(100);
-                    toggleScanner(false);
-                    previewUser(code.data);
-                    return;
-                }
-            }
-            if (isScanning) requestAnimationFrame(tick);
-        }
-
+        // ============================================================
+        // 5) SCAN & RECORDS (ฟังก์ชันเดิมที่ทำงานดีอยู่แล้ว)
+        // ============================================================
         async function previewUser(id) {
             if (currentPreviewId === id) return;
             currentPreviewId = id;
-            
-            Swal.fire({ title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            
+            document.getElementById('p-img').style.display = 'none';
+            document.getElementById('p-icon').style.display = 'block';
+            Swal.fire({ title: 'กำลังโหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) });
                 const result = await res.json();
                 Swal.close();
-
                 if (result.success) {
                     const u = result.user;
-                    // Reset Modal UI
-                    document.getElementById('p-img').style.display = 'none';
-                    document.getElementById('p-icon').style.display = 'block';
-                    
                     if (u.img && u.img !== "-") { 
                         document.getElementById('p-img').src = u.img; 
                         document.getElementById('p-img').style.display = 'block'; 
                         document.getElementById('p-icon').style.display = 'none'; 
                     }
-                    
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = u.id;
                     document.getElementById('p-pos').innerText = u.position || '-';
+                    document.getElementById('p-regType').innerText = u.regType || '-';
                     document.getElementById('p-dept').innerText = u.dept || '-';
+                    document.getElementById('dept-area').style.display = (u.regType === "สำหรับผู้ลงทะเบียนภายนอก") ? 'none' : 'block';
                     
-                    // สแกนไปหรือยัง?
                     const btnConfirm = document.getElementById('btn-confirm-record');
                     const alreadyArea = document.getElementById('already-scanned-area');
-                    
+                    alreadyArea.classList.toggle('d-none', !result.isAlreadyScanned);
                     if(result.isAlreadyScanned) {
-                        alreadyArea.classList.remove('d-none');
                         document.getElementById('scanned-day-label').innerText = day;
                         document.getElementById('scanned-time-label').innerText = result.scannedTime;
                         btnConfirm.style.display = 'none';
                     } else {
-                        alreadyArea.classList.add('d-none');
                         btnConfirm.style.display = 'block';
                         btnConfirm.onclick = () => record(id, false);
                     }
-                    
                     previewModal.show();
-                } else {
-                    currentPreviewId = null;
-                    Swal.fire({ icon: 'error', title: 'ไม่พบรหัสนี้ในระบบ' });
-                }
-            } catch (e) {
-                currentPreviewId = null;
-                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการโหลดข้อมูล' });
-            }
+                } else { currentPreviewId = null; Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล' }); }
+            } catch (e) { currentPreviewId = null; }
         }
 
-        async function record(id, confirmSkip) {
-            previewModal.hide();
+        async function record(qrText, confirmSkip) {
+            if (previewModal) previewModal.hide();
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            
             try {
-                const res = await fetch(GAS_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: id, day, confirmSkip, staffInfo: staff } }) 
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip, staffInfo: staff } }) });
                 const result = await res.json();
                 Swal.close();
-
                 if (result.success) {
                     Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
-                    fetchHistory();
+                    setTimeout(() => fetchHistory(), 500);
                 } else if (result.requireConfirm) {
-                    Swal.fire({ icon: 'question', title: 'ยืนยัน?', text: result.message, showCancelButton: true }).then((r) => {
-                        if (r.isConfirmed) record(id, true);
-                    });
-                } else {
-                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message });
-                }
-            } catch (e) {
-                Swal.fire({ icon: 'error', title: 'ขัดข้อง' });
-            }
+                    Swal.fire({ icon: 'question', title: 'ยืนยัน?', text: result.message, showCancelButton: true }).then((r) => { if (r.isConfirmed) record(qrText, true); });
+                } else { Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message }); }
+            } catch (e) { Swal.fire({ icon: 'error', title: 'ขัดข้อง' }); }
         }
 
         async function fetchHistory() {
@@ -544,62 +944,59 @@
                 if (result.success) {
                     document.getElementById('ui-present').innerText = result.present;
                     document.getElementById('ui-absent').innerText = result.absent;
-                    
                     if (result.records.length > 0) {
                         box.innerHTML = result.records.reverse().map(r => `
-                            <div class="id-item shadow-sm">
+                            <div class="id-item shadow-sm p-3">
                                 <div class="id-num">${r.id}</div>
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0 fw-bold" style="font-size:0.9rem">${r.name}</h6>
-                                    <small class="text-muted">${r.time}</small>
-                                </div>
-                                <i class="fa-solid fa-check-circle text-success fs-4"></i>
-                            </div>
-                        `).join('');
-                    } else {
-                        box.innerHTML = '<p class="text-center py-5 text-muted">ยังไม่มีข้อมูลของวันนี้</p>';
-                    }
+                                <div class="flex-grow-1"><h6 class="mb-0 fw-bold">${r.name}</h6><small class="text-muted">${r.time}</small></div>
+                                <i class="fa-solid fa-circle-check text-success fa-2x"></i>
+                            </div>`).join('');
+                    } else { box.innerHTML = '<p class="text-center py-5">ยังไม่มีข้อมูล</p>'; }
                 }
             } catch (e) { console.error(e); }
         }
 
-        async function checkCurrentDay() {
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getTimerSettings' }) });
-                const timer = await res.json();
-                if (!timer.success) return;
+        async function toggleScanner(start) {
+            if (start) {
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    video.srcObject = currentStream; video.play(); isScanning = true;
+                    document.getElementById('start-btn').classList.add('d-none'); document.getElementById('stop-btn').classList.remove('d-none');
+                    document.getElementById('placeholder').classList.add('d-none'); canvas.hidden = false; requestAnimationFrame(tick);
+                } catch (e) { Swal.fire({ icon: 'error', title: 'กล้องขัดข้อง' }); }
+            } else {
+                if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+                isScanning = false; document.getElementById('start-btn').classList.remove('d-none');
+                document.getElementById('stop-btn').classList.add('d-none'); canvas.hidden = true;
+                document.getElementById('placeholder').classList.remove('d-none');
+            }
+        }
 
-                const now = new Date().getTime();
-                const start = (day === 1) ? timer.day1Open : timer.day2Open;
-                const end = (day === 1) ? timer.day1Close : timer.day2Close;
-                
-                const banner = document.getElementById('timer-banner');
-                banner.style.display = 'block';
-
-                if (now >= start && now <= end) {
-                    banner.className = 'status-open';
-                    banner.innerHTML = `<b>● เปิดการลงทะเบียน (วันที่ ${day})</b>`;
-                } else {
-                    banner.className = 'status-closed';
-                    banner.innerHTML = `<b>● ปิดการลงทะเบียน (วันที่ ${day})</b>`;
-                }
-            } catch (e) { }
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
+                canvas.height = video.videoHeight; canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+                if (code) { if (navigator.vibrate) navigator.vibrate(100); toggleScanner(false); previewUser(code.data); return; }
+            }
+            if (isScanning) requestAnimationFrame(tick);
         }
 
         function handleManual() {
-            const input = document.getElementById('manual-input');
-            const val = input.value.trim();
-            if (val) { previewUser(val); input.value = ''; }
+            const val = document.getElementById('manual-input').value.trim();
+            if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
         }
 
         function changeDay(d) {
             day = d;
-            document.querySelectorAll('.btn-day').forEach(b => b.classList.remove('active'));
-            document.getElementById(`day${d}-btn`).classList.add('active');
-            document.getElementById(`day${d}-btn-m`).classList.add('active');
-            fetchHistory();
-            checkCurrentDay();
+            ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'].forEach(id => {
+                const b = document.getElementById(id); if(b) b.classList.remove('active');
+            });
+            if(d===1) { document.getElementById('day1-btn').classList.add('active'); document.getElementById('day1-btn-m').classList.add('active'); }
+            else { document.getElementById('day2-btn').classList.add('active'); document.getElementById('day2-btn-m').classList.add('active'); }
+            checkCurrentDay(); fetchHistory();
         }
     </script>
+
 </body>
 </html>
