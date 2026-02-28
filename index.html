@@ -14,70 +14,117 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        :root { --nav-h: 75px; }
-        body { font-family: 'Prompt', sans-serif; background-color: #f1f5f9; height: 100vh; overflow: hidden; margin: 0; padding-top: var(--nav-h); }
-        
-        #login-screen { position: fixed; inset: 0; background: #1e293b; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .navbar { height: var(--nav-h); background: white; border-bottom: 1px solid #e2e8f0; position: fixed; top: 0; width: 100%; z-index: 2000; }
-        .staff-tag { background: #4f46e5; color: white; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; }
+        /* ===== BASE ===== */
+        :root { --nav-h: 65px; }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f1f5f9;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding-top: var(--nav-h);
+        }
+
+        #login-screen {
+            position: fixed; inset: 0;
+            background: #1e293b;
+            z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        .staff-tag {
+            background: #4f46e5; color: white;
+            padding: 4px 10px; border-radius: 8px;
+            font-weight: 700; font-size: 0.75rem;
+            white-space: nowrap; flex-shrink: 0;
+        }
+
         .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
 
         /* ===== NAVBAR ===== */
-        :root { --nav-h: 65px; }
         .navbar {
             height: var(--nav-h);
             background: white;
             border-bottom: 1px solid #e2e8f0;
             position: fixed; top: 0; width: 100%; z-index: 2000;
+            overflow: hidden;
         }
         .navbar .container-fluid {
             display: flex;
             align-items: center;
             justify-content: space-between;
             height: 100%;
+            padding: 0 16px;
             gap: 12px;
         }
-        /* ซ้าย: logo + ชื่อ staff */
-        .nav-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        /* กลาง: ปุ่มวัน */
-        .nav-days  { display: flex; gap: 8px; flex-shrink: 0; }
-        /* ขวา: ปุ่มออก */
+
+        /* Desktop elements */
+        .nav-brand  { display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0; }
+        .nav-brand-text { min-width: 0; }
+        .nav-brand-text h6 { font-size: 0.9rem; font-weight: 700; margin: 0; white-space: nowrap; }
+        .nav-brand-text small { font-size: 0.7rem; font-weight: 700; color: #4f46e5; white-space: nowrap; }
+        .nav-days   { display: flex; gap: 8px; flex-shrink: 0; }
         .nav-logout { flex-shrink: 0; }
 
-        /* Mobile: 2 แถว */
+        /* Mobile rows (hidden on desktop) */
+        .nav-row1, .nav-row2 { display: none; }
+
+        /* ── MOBILE breakpoint ── */
         @media (max-width: 575px) {
-            :root { --nav-h: 105px; }
+            :root { --nav-h: 100px; }
+
             .navbar .container-fluid {
                 flex-direction: column;
                 justify-content: center;
                 align-items: stretch;
                 gap: 6px;
-                padding-top: 8px;
-                padding-bottom: 8px;
+                padding: 8px 16px;
             }
-            .nav-row1 { display: flex; align-items: center; justify-content: space-between; }
-            .nav-row2 { display: flex; gap: 8px; }
-            .nav-row2 button { flex: 1; }
-            /* ซ่อน brand/logout ที่อยู่นอก row บน mobile */
+
+            /* ซ่อน desktop elements */
             .nav-brand, .nav-days, .nav-logout { display: none !important; }
-        }
-        /* Desktop: 1 แถว — ซ่อน row1/row2 */
-        @media (min-width: 576px) {
-            .nav-row1, .nav-row2 { display: none !important; }
+
+            /* แสดง mobile rows */
+            .nav-row1 {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+            }
+            .nav-row1-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+            .nav-row1-left h6  { font-size: 0.85rem; font-weight: 700; margin: 0; }
+            .nav-row1-left small { font-size: 0.7rem; font-weight: 700; color: #4f46e5; }
+
+            .nav-row2 {
+                display: flex;
+                gap: 8px;
+            }
+            .nav-row2 button { flex: 1; font-size: 0.85rem; }
         }
 
-        .panel-left { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .scanner-card { width: 100%; max-width: 480px; background: white; border-radius: 2rem; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .cam-view { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative; }
+        /* ===== LAYOUT ===== */
+        .panel-left {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .scanner-card {
+            width: 100%; max-width: 480px;
+            background: white; border-radius: 2rem;
+            padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .cam-view {
+            width: 100%; aspect-ratio: 4/3;
+            background: #000; border-radius: 1.2rem;
+            overflow: hidden; margin-bottom: 15px; position: relative;
+        }
         canvas { width: 100%; height: 100%; object-fit: cover; }
 
-        .sidebar-right { 
-            width: 480px; 
-            background: white; 
-            border-left: 1px solid #e2e8f0; 
-            display: flex; 
-            flex-direction: column; 
-            transition: width 0.3s ease;
+        .sidebar-right {
+            width: 480px; background: white;
+            border-left: 1px solid #e2e8f0;
+            display: flex; flex-direction: column;
         }
         .history-list { flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; }
 
@@ -87,73 +134,83 @@
             .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
         }
 
-        .manual-box { background: #f1f5f9; border-radius: 1rem; padding: 6px; display: flex; border: 1px solid #e2e8f0; margin-top: 15px; }
-        .manual-box input { border: none; background: transparent; flex: 1; text-align: center; font-weight: 700; outline: none; }
-        .id-item { background: white; border-radius: 1rem; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; }
+        /* ===== MANUAL BOX ===== */
+        .manual-box {
+            background: #f1f5f9; border-radius: 1rem;
+            padding: 6px; display: flex;
+            border: 1px solid #e2e8f0; margin-top: 15px;
+            overflow: hidden;
+        }
+        .manual-box input {
+            border: none; background: transparent;
+            flex: 1; min-width: 0;
+            text-align: center; font-weight: 700; outline: none;
+            padding: 4px 8px;
+        }
+        .manual-box button { flex-shrink: 0; white-space: nowrap; }
 
-        /* Timer Status Banner */
-        #timer-banner { display: none; border-radius: 1rem; padding: 14px 18px; margin-bottom: 15px; width: 100%; max-width: 480px; font-size: 0.875rem; line-height: 1.6; }
+        /* ===== TIMER BANNER ===== */
+        #timer-banner {
+            display: none; border-radius: 1rem;
+            padding: 14px 18px; margin-bottom: 15px;
+            width: 100%; max-width: 480px;
+            font-size: 0.875rem; line-height: 1.6;
+        }
         #timer-banner.status-closed  { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
         #timer-banner.status-open    { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
         #timer-banner.status-unknown { background: #fefce8; border: 1.5px solid #fde047; color: #854d0e; }
 
-        .id-num { 
-            width: 75px;
-            height: 45px; 
-            background: #eef2ff; 
-            color: #4f46e5; 
-            border-radius: 12px; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            font-weight: 700; 
-            font-size: 0.85rem;
-            margin-right: 15px; 
-            line-height: 1.2;
+        /* ===== HISTORY LIST ===== */
+        .id-item {
+            background: white; border-radius: 1rem;
+            padding: 12px; margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+            display: flex; align-items: center;
+        }
+        .id-num {
+            width: 75px; height: 45px;
+            background: #eef2ff; color: #4f46e5;
+            border-radius: 12px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem;
+            margin-right: 15px; line-height: 1.2;
+            flex-shrink: 0;
         }
 
-        /* Modal Profile Style */
-        .profile-box { width: 150px; height: 180px; background: #f8fafc; border-radius: 20px; overflow: hidden; margin: 0 auto 15px; border: 4px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        /* ===== MODAL ===== */
+        .profile-box {
+            width: 150px; height: 180px;
+            background: #f8fafc; border-radius: 20px;
+            overflow: hidden; margin: 0 auto 15px;
+            border: 4px solid white;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
         .profile-box img { width: 100%; height: 100%; object-fit: cover; }
         .profile-box i { font-size: 80px; color: #cbd5e1; }
-        
         .swal2-popup { border-radius: 1.5rem !important; font-family: 'Prompt', sans-serif !important; }
 
-        .spinner-border {
-            border-width: 0.25em;
-            animation-duration: 0.75s;
-        }
+        /* ===== MISC ===== */
+        .spinner-border { border-width: 0.25em; animation-duration: 0.75s; }
+        #history-box { transition: all 0.3s ease-in-out; }
 
-        #history-box {
-            transition: all 0.3s ease-in-out;
-        }
-
-        /* Splash Screen */
+        /* ===== SPLASH ===== */
         #splash-screen {
-            position: fixed;
-            inset: 0;
-            background: #1e293b;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            position: fixed; inset: 0;
+            background: #1e293b; z-index: 10000;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             transition: opacity 0.4s ease;
         }
-
         .loader-circle {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             border: 4px solid rgba(255,255,255,0.1);
             border-left-color: #4f46e5;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -191,7 +248,7 @@
                     </div>
                     <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
                     <p id="p-id" class="text-muted mb-3 fw-bold">ID: -</p>
-                    
+
                     <div class="bg-light p-3 rounded-4 text-start mb-3">
                         <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
                         <div id="p-regType" class="fw-bold mb-2">-</div>
@@ -231,14 +288,14 @@
 
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar shadow-sm">
-        <div class="container-fluid px-3">
+        <div class="container-fluid">
 
-            <!-- ── DESKTOP (≥576px): 3 คอลัมน์ในแถวเดียว ── -->
+            <!-- ── DESKTOP (≥576px) ── -->
             <div class="nav-brand">
                 <div class="staff-tag">STAFF</div>
-                <div>
-                    <h6 class="fw-bold mb-0" style="font-size:0.9rem;">QR Check-in</h6>
-                    <small id="ui-staff" class="text-primary fw-bold" style="font-size:0.7rem;">LOADING...</small>
+                <div class="nav-brand-text">
+                    <h6>QR Check-in</h6>
+                    <small id="ui-staff">LOADING...</small>
                 </div>
             </div>
 
@@ -253,13 +310,13 @@
                 </button>
             </div>
 
-            <!-- ── MOBILE (<576px): แถว 1 และ 2 ── -->
-            <div class="nav-row1 w-100">
-                <div class="d-flex align-items-center gap-2">
+            <!-- ── MOBILE (<576px) ── -->
+            <div class="nav-row1">
+                <div class="nav-row1-left">
                     <div class="staff-tag">STAFF</div>
                     <div>
-                        <h6 class="fw-bold mb-0" style="font-size:0.85rem;">QR Check-in</h6>
-                        <small id="ui-staff-m" class="text-primary fw-bold" style="font-size:0.7rem;">LOADING...</small>
+                        <h6>QR Check-in</h6>
+                        <small id="ui-staff-m">LOADING...</small>
                     </div>
                 </div>
                 <button onclick="logout()" class="btn btn-outline-danger btn-sm px-2 fw-bold" style="font-size:0.75rem; white-space:nowrap;">
@@ -267,7 +324,7 @@
                 </button>
             </div>
 
-            <div class="nav-row2 w-100">
+            <div class="nav-row2">
                 <button onclick="changeDay(1)" id="day1-btn-m" class="btn btn-primary btn-sm rounded-2 fw-bold shadow-sm">วันที่ 1</button>
                 <button onclick="changeDay(2)" id="day2-btn-m" class="btn btn-light btn-sm rounded-2 fw-bold text-muted">วันที่ 2</button>
             </div>
@@ -571,7 +628,6 @@
                     // แสดงข้อมูล
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = `ID: ${u.id}`;
-                    document.getElementById('p-dept').innerText = u.dept || '-';
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
 
@@ -586,9 +642,9 @@
                     }
 
                     // แสดง/ซ่อนสถานะการเงิน + ควบคุมปุ่มยืนยัน
-                    const payArea   = document.getElementById('pay-status-area');
-                    const stEl      = document.getElementById('p-status');
-                    const payWarn   = document.getElementById('pay-warning');
+                    const payArea    = document.getElementById('pay-status-area');
+                    const stEl       = document.getElementById('p-status');
+                    const payWarn    = document.getElementById('pay-warning');
                     const btnConfirm = document.getElementById('btn-confirm-record');
 
                     // reset ก่อนทุกครั้ง
