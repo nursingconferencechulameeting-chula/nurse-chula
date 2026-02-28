@@ -794,27 +794,49 @@
             setTimeout(() => { el.style.display = 'none'; }, 400);
         }
 
-        // ===== LOGIN =====
+        // ===== LOGIN (ปรับปรุงใหม่: แจ้งเตือนไวขึ้นและมีสถานะโหลด) =====
         async function login() {
-            const id = document.getElementById('staff-id').value.trim();
-            if (!id) return;
+            const idInput = document.getElementById('staff-id');
+            const id = idInput.value.trim();
+            
+            // 1. Validation เบื้องต้น (ไม่ต้องรอ Server)
+            if (!id) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณากรอกรหัส',
+                    text: 'กรุณาใส่รหัสเจ้าหน้าที่ก่อนเข้าใช้งาน',
+                    confirmButtonColor: '#4f46e5',
+                    timer: 2000
+                });
+                idInput.focus();
+                return;
+            }
 
             const btn = document.getElementById('login-btn');
             const text = document.getElementById('login-text');
             const loader = document.getElementById('login-loader');
 
+            // 2. แสดงสถานะกำลังโหลดทันที (ป้องกันการกดซ้ำและแจ้งผู้ใช้ว่าระบบรับทราบแล้ว)
             btn.disabled = true;
             text.classList.add('d-none');
             loader.classList.remove('d-none');
 
             try {
+                // ตั้งเวลา Timeout กรณี Internet ช้ามาก (เช่น 10 วินาที)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
+                    signal: controller.signal,
                     body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id })
                 });
+                
+                clearTimeout(timeoutId);
                 const result = await res.json();
 
                 if (result.isAllowed) {
+                    // กรณีรหัสถูก
                     staff = result;
                     localStorage.setItem('staff_session', JSON.stringify(result));
                     document.getElementById('login-screen').classList.add('d-none');
@@ -822,16 +844,36 @@
                     fetchHistory();
                     checkCurrentDay();
                 } else {
-                    Swal.fire({ icon: 'error', title: 'รหัสไม่ถูกต้อง', text: 'กรุณาลองใหม่อีกครั้ง', confirmButtonColor: '#4f46e5' });
-                    btn.disabled = false;
-                    text.classList.remove('d-none');
-                    loader.classList.add('d-none');
+                    // กรณีรหัสผิด (แจ้งเตือนทันทีที่ Server ตอบกลับ)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'รหัสไม่ถูกต้อง',
+                        text: 'รหัสเจ้าหน้าที่ผิดพลาด กรุณาลองใหม่อีกครั้ง',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    resetLoginButton();
                 }
             } catch (e) {
-                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว', text: e.toString() });
+                // กรณี Error อื่นๆ เช่น Internet หลุด
+                let errorMsg = "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้";
+                if (e.name === 'AbortError') errorMsg = "การเชื่อมต่อใช้เวลานานเกินไป (Timeout)";
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: errorMsg,
+                    confirmButtonColor: '#4f46e5'
+                });
+                resetLoginButton();
+            }
+
+            // ฟังก์ชันช่วยคืนค่าสถานะปุ่ม
+            function resetLoginButton() {
                 btn.disabled = false;
                 text.classList.remove('d-none');
                 loader.classList.add('d-none');
+                idInput.value = ''; // ล้างรหัสที่ผิดออก
+                idInput.focus();    // ให้พิมพ์ต่อได้ทันที
             }
         }
 
