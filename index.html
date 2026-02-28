@@ -241,7 +241,7 @@
         /* ============================================================
         5) LOGIN / SCANNER SCREEN
         ============================================================ */
-        #login-screen {
+        #login-form {
             position: fixed;
             inset: 0;
             z-index: 9999;
@@ -751,7 +751,7 @@
 
             if (savedStaff) {
                 staff = JSON.parse(savedStaff);
-                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('login-form').style.display = 'none';
                 setStaffName(staff.name);
                 Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
             } else {
@@ -799,7 +799,7 @@
                 if (result.isAllowed) {
                     staff = result;
                     localStorage.setItem('staff_session', JSON.stringify(result));
-                    document.getElementById('login-screen').classList.add('d-none');
+                    document.getElementById('login-form').classList.add('d-none');
                     setStaffName(result.name);
                     fetchHistory();
                     checkCurrentDay();
@@ -869,7 +869,7 @@
                 if (r.isConfirmed) {
                     localStorage.removeItem('staff_session');
                     resetAllStates();
-                    document.getElementById('login-screen').classList.remove('d-none');
+                    document.getElementById('login-form').classList.remove('d-none');
                 }
             });
         }
