@@ -7,6 +7,7 @@
 
     <!-- ใช้ไอคอน QR Code สีน้ำเงิน/ม่วง ให้เข้ากับธีมระบบ -->
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/241/241528.png">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -357,6 +358,22 @@
             }
         }
 
+        /* แถบสถานะสแกนแล้ว */
+        .scanned-status-badge {
+            background-color: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+            padding: 8px 15px;
+            border-radius: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px auto;
+            width: fit-content;
+        }
+
     </style>
 </head>
 <body>
@@ -392,8 +409,22 @@
                         <img id="p-img" src="" style="display: none;" alt="profile">
                         <i id="p-icon" class="fa-solid fa-user-tie"></i>
                     </div>
+
                     <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
-                    <p id="p-id" class="text-muted mb-3 fw-bold">ID: -</p>
+
+                    <!-- ส่วน ID -->
+                    <div class="modal-id-wrapper">
+                        <span class="me-2 opacity-50 small">ID:</span>
+                        <span id="p-id">-</span>
+                    </div>
+
+                    <!-- *** เพิ่มส่วนนี้: ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
+                    <div id="already-scanned-area" class="d-none">
+                        <div class="scanned-status-badge">
+                            <i class="fa-solid fa-circle-check"></i>
+                            ลงชื่อเข้างานแล้ว (วันที่ <span id="scanned-day-label">-</span>)
+                        </div>
+                    </div>
 
                     <div class="bg-light p-3 rounded-4 text-start mb-3">
                         <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
@@ -737,14 +768,13 @@
                 }
             });
         }
-
-        // ===== PREVIEW USER ก่อนบันทึก =====
+        
+        // ===== PREVIEW USER ก่อนบันทึก (เวอร์ชันอัปเดต: ตรวจสอบการสแกนซ้ำ) =====
         async function previewUser(id) {
-            // ป้องกันการเรียกซ้ำ ถ้า Modal กำลังเปิดอยู่แล้ว
             if (currentPreviewId === id) return;
             currentPreviewId = id;
 
-            // ล้างรูปเก่า
+            // ล้างข้อมูลเก่า/รูปเก่าใน Modal
             document.getElementById('p-img').src = "";
             document.getElementById('p-img').style.display = 'none';
             document.getElementById('p-icon').style.display = 'block';
@@ -752,9 +782,10 @@
             Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
+                // ส่งค่า day ไปให้ Backend ตรวจสอบด้วยว่าวันนี้ ID นี้สแกนไปหรือยัง
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'getUserPreview', id: id })
+                    body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) 
                 });
                 const result = await res.json();
                 Swal.close();
@@ -762,7 +793,7 @@
                 if (result.success) {
                     const u = result.user;
 
-                    // จัดการรูปภาพ
+                    // 1. จัดการรูปภาพ
                     const img = document.getElementById('p-img');
                     const icon = document.getElementById('p-icon');
                     if (u.img && u.img !== "-" && u.img !== "") {
@@ -774,15 +805,15 @@
                         icon.style.display = 'block';
                     }
 
-                    // แสดงข้อมูล
+                    // 2. แสดงข้อมูลพื้นฐาน
                     document.getElementById('p-name').innerText = u.name;
-                    document.getElementById('p-id').innerText = `ID: ${u.id}`;
+                    document.getElementById('p-id').innerText = u.id; // โชว์เฉพาะรหัสใน Badge
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
 
-                    // ซ่อน หน่วยงาน/สังกัด ถ้าเป็นบุคคลภายนอก
+                    // 3. จัดการส่วน หน่วยงาน/สังกัด
                     const deptArea = document.getElementById('dept-area');
-                    const regType   = u.regType ? u.regType.toString().trim() : "";
+                    const regType = u.regType ? u.regType.toString().trim() : "";
                     if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
                         deptArea.style.display = 'none';
                     } else {
@@ -790,25 +821,35 @@
                         document.getElementById('p-dept').innerText = u.dept || '-';
                     }
 
-                    // แสดง/ซ่อนสถานะการเงิน + ควบคุมปุ่มยืนยัน
-                    const payArea    = document.getElementById('pay-status-area');
-                    const stEl       = document.getElementById('p-status');
-                    const payWarn    = document.getElementById('pay-warning');
+                    // 4. ตัวแปรสำหรับควบคุมการแสดงผลปุ่มและสถานะ
+                    const payArea = document.getElementById('pay-status-area');
+                    const stEl = document.getElementById('p-status');
+                    const payWarn = document.getElementById('pay-warning');
                     const btnConfirm = document.getElementById('btn-confirm-record');
+                    const alreadyArea = document.getElementById('already-scanned-area');
+                    const dayLabel = document.getElementById('scanned-day-label');
 
-                    // reset ก่อนทุกครั้ง
+                    // --- RESET สถานะก่อนทุกครั้ง ---
+                    alreadyArea.classList.add('d-none');
                     payWarn.classList.add('d-none');
+                    btnConfirm.style.display = 'block'; // โชว์ปุ่มไว้ก่อน
                     btnConfirm.disabled = false;
                     btnConfirm.classList.remove('btn-secondary');
                     btnConfirm.classList.add('btn-success');
 
-                    if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
+                    // 5. ตรวจสอบการสแกนซ้ำ (ลำดับความสำคัญที่ 1)
+                    if (result.isAlreadyScanned) {
+                        alreadyArea.classList.remove('d-none');
+                        if (dayLabel) dayLabel.innerText = day; // แสดงเลขวันที่สแกนแล้ว
+                        btnConfirm.style.display = 'none';     // ซ่อนปุ่มยืนยันทันที
+                    } 
+                    // 6. ตรวจสอบสถานะการเงิน (ลำดับความสำคัญที่ 2 - เฉพาะกรณีที่ยังไม่ได้สแกน)
+                    else if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
                         payArea.style.display = 'block';
                         const payStatus = u.payStatus ? u.payStatus.trim() : "";
                         stEl.innerText = payStatus || "ยังไม่ได้ชำระเงิน";
                         stEl.className = `fw-bold ${payStatus === 'ชำระเงินเรียบร้อย' ? 'text-success' : 'text-danger'}`;
 
-                        // ยังไม่ชำระเงิน → ปิดปุ่มบันทึก + แสดงคำเตือน
                         if (payStatus !== 'ชำระเงินเรียบร้อย') {
                             btnConfirm.disabled = true;
                             btnConfirm.classList.remove('btn-success');
@@ -819,10 +860,11 @@
                         payArea.style.display = 'none';
                     }
 
-                    // ผูก Event ปุ่มยืนยัน
+                    // 7. ผูก Event ปุ่มยืนยัน (ถ้าปุ่มยังแสดงอยู่)
                     btnConfirm.onclick = () => record(id, false);
 
                     previewModal.show();
+
                 } else {
                     currentPreviewId = null;
                     Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message, confirmButtonColor: '#4f46e5' });
