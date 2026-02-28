@@ -199,8 +199,10 @@
                         <small class="text-secondary d-block">ตำแหน่ง / สถานะ</small>
                         <div id="p-pos" class="fw-bold mb-2">-</div>
 
-                        <small class="text-secondary d-block">หน่วยงาน / สังกัด</small>
-                        <div id="p-dept" class="fw-bold mb-2">-</div>
+                        <div id="dept-area">
+                            <small class="text-secondary d-block">หน่วยงาน / สังกัด</small>
+                            <div id="p-dept" class="fw-bold mb-2">-</div>
+                        </div>
                         
                         <div id="pay-status-area">
                             <hr class="my-2 opacity-10">
@@ -573,12 +575,21 @@
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
 
+                    // ซ่อน หน่วยงาน/สังกัด ถ้าเป็นบุคคลภายนอก
+                    const deptArea = document.getElementById('dept-area');
+                    const regType   = u.regType ? u.regType.toString().trim() : "";
+                    if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
+                        deptArea.style.display = 'none';
+                    } else {
+                        deptArea.style.display = 'block';
+                        document.getElementById('p-dept').innerText = u.dept || '-';
+                    }
+
                     // แสดง/ซ่อนสถานะการเงิน + ควบคุมปุ่มยืนยัน
                     const payArea   = document.getElementById('pay-status-area');
                     const stEl      = document.getElementById('p-status');
                     const payWarn   = document.getElementById('pay-warning');
                     const btnConfirm = document.getElementById('btn-confirm-record');
-                    const regType   = u.regType ? u.regType.toString().trim() : "";
 
                     // reset ก่อนทุกครั้ง
                     payWarn.classList.add('d-none');
