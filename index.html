@@ -24,10 +24,9 @@
 
         @media (max-width: 575px) {
             :root {
-                --nav-h: 120px;         /* ความสูง Navbar (Mobile 2 แถว) */
+                --nav-h: 125px;         /* ความสูง Navbar (Mobile 2 แถว) */
             }
         }
-
 
         /* ============================================================
         2) BASE / GLOBAL
@@ -35,14 +34,11 @@
         body {
             font-family: 'Prompt', sans-serif;
             background-color: #f1f5f9;
-
             height: 100vh;
             overflow: hidden;
-
             margin: 0;
             padding-top: var(--nav-h);  /* ดันเนื้อหาลงตามความสูง Navbar */
         }
-
 
         /* ============================================================
         3) NAVBAR
@@ -52,7 +48,6 @@
             top: 0;
             width: 100%;
             z-index: 2000;
-
             height: var(--nav-h);
             background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -65,14 +60,11 @@
         }
 
         /* ---------- Navbar Components ---------- */
-
         .staff-tag {
             background: var(--primary-color);
             color: #ffffff;
-
             padding: 4px 10px;
             border-radius: 8px;
-
             font-weight: 700;
             font-size: 0.75rem;
             white-space: nowrap;
@@ -81,7 +73,6 @@
         .nav-tabs-custom {
             display: flex;
             gap: 4px;
-
             background: #f1f5f9;
             padding: 4px;
             border-radius: 12px;
@@ -90,14 +81,11 @@
         .nav-tabs-custom .btn-day {
             border: none;
             background: transparent;
-
             padding: 6px 20px;
             border-radius: 8px;
-
             font-weight: 600;
             font-size: 0.85rem;
             color: #64748b;
-
             transition: 0.2s;
         }
 
@@ -107,13 +95,10 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
-
         /* ---------- Layout Switch (PC / Mobile) ---------- */
-
         .pc-layout {
             display: flex;
             width: 100%;
-
             justify-content: space-between;
             align-items: center;
         }
@@ -121,38 +106,48 @@
         .mobile-layout {
             display: none;
             width: 100%;
-
             flex-direction: column;
             justify-content: center;
             gap: 8px;
         }
 
         @media (max-width: 575px) {
-
-            .pc-layout {
-                display: none;
+            .pc-layout { 
+                display: none !important; 
             }
 
             .mobile-layout {
                 display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 8px;
+                width: 100%;
             }
 
             .mobile-row1 {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-            }
-
-            .mobile-row2 .nav-tabs-custom {
                 width: 100%;
             }
 
+            .mobile-row2 {
+                width: 100%;
+            }
+
+            /* ปรับปุ่มให้เต็มพื้นที่ในแถวที่ 2 */
+            .mobile-row2 .nav-tabs-custom {
+                width: 100%;
+                display: flex;
+            }
+
             .mobile-row2 .btn-day {
-                flex: 1;
-                padding: 8px;
+                flex: 1;            /* ขยายให้กว้างเท่ากันทั้ง 2 ปุ่ม */
+                text-align: center;
+                padding: 10px 0;    /* เพิ่มความสูงให้กดง่ายขึ้น */
+                font-size: 0.9rem;
             }
         }
-
 
         /* ============================================================
         4) MAIN APP LAYOUT
@@ -165,9 +160,7 @@
         .panel-left {
             flex: 1;
             overflow-y: auto;
-
             padding: 20px;
-
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -177,32 +170,26 @@
             width: 480px;
             background: #ffffff;
             border-left: 1px solid #e2e8f0;
-
             display: flex;
             flex-direction: column;
         }
 
-
         /* ---------- Responsive Layout ---------- */
         @media (max-width: 991px) {
-
             body {
                 height: auto;
                 overflow-y: auto;
             }
-
             .app-wrapper {
                 flex-direction: column;
                 height: auto;
             }
-
             .sidebar-right {
                 width: 100%;
                 border-left: none;
                 border-top: 1px solid #e2e8f0;
             }
         }
-
 
         /* ============================================================
         5) LOGIN / SCANNER SCREEN
@@ -211,11 +198,9 @@
             position: fixed;
             inset: 0;
             z-index: 9999;
-
             display: flex;
             align-items: center;
             justify-content: center;
-
             padding: 20px;
             background: #1e293b;
         }
@@ -223,22 +208,18 @@
         .scanner-card {
             width: 100%;
             max-width: 480px;
-
             background: #ffffff;
             border-radius: 2rem;
             padding: 20px;
-
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
         .cam-view {
             width: 100%;
             aspect-ratio: 4 / 3;
-
             background: #000000;
             border-radius: 1.2rem;
             overflow: hidden;
-
             margin-bottom: 15px;
             position: relative;
         }
@@ -249,17 +230,14 @@
             object-fit: cover;
         }
 
-
         /* ============================================================
         6) INPUT / MANUAL ENTRY
         ============================================================ */
         .manual-box {
             display: flex;
             overflow: hidden;
-
             margin-top: 15px;
             padding: 6px;
-
             background: #f1f5f9;
             border-radius: 1rem;
             border: 1px solid #e2e8f0;
@@ -267,30 +245,23 @@
 
         .manual-box input {
             flex: 1;
-
             border: none;
             outline: none;
             background: transparent;
-
             padding: 4px 8px;
-
             text-align: center;
             font-weight: 700;
         }
-
 
         /* ============================================================
         7) STATUS / TIMER
         ============================================================ */
         #timer-banner {
             display: none;
-
             width: 100%;
             max-width: 480px;
-
             margin-bottom: 15px;
             padding: 14px 18px;
-
             font-size: 0.875rem;
             border-radius: 1rem;
         }
@@ -307,18 +278,15 @@
             color: #15803d;
         }
 
-
         /* ============================================================
         8) LIST / PROFILE COMPONENTS
         ============================================================ */
         .id-item {
             display: flex;
             align-items: center;
-
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 1rem;
-
             padding: 12px;
             margin-bottom: 10px;
         }
@@ -326,17 +294,13 @@
         .id-num {
             width: 75px;
             height: 45px;
-
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-
             margin-right: 15px;
-
             background: #eef2ff;
             color: #4f46e5;
-
             border-radius: 12px;
             font-weight: 700;
             font-size: 0.85rem;
@@ -345,18 +309,14 @@
         .profile-box {
             width: 150px;
             height: 180px;
-
             display: flex;
             align-items: center;
             justify-content: center;
-
             margin: 0 auto 15px;
-
             background: #f8fafc;
             border-radius: 20px;
             border: 4px solid #ffffff;
             overflow: hidden;
-
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
@@ -366,7 +326,6 @@
             object-fit: cover;
         }
 
-
         /* ============================================================
         9) SPLASH SCREEN
         ============================================================ */
@@ -374,23 +333,19 @@
             position: fixed;
             inset: 0;
             z-index: 10000;
-
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-
             background: #1e293b;
         }
 
         .loader-circle {
             width: 50px;
             height: 50px;
-
             border: 4px solid rgba(255, 255, 255, 0.1);
             border-left-color: var(--primary-color);
             border-radius: 50%;
-
             animation: spin 1s linear infinite;
         }
 
