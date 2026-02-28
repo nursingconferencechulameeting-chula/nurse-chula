@@ -521,20 +521,24 @@
         }
 
         function setDayButtons(d) {
-            const activeClass  = 'btn btn-primary btn-sm rounded-2 px-4 fw-bold shadow-sm';
-            const inactiveClass = 'btn btn-light btn-sm rounded-2 px-4 fw-bold text-muted';
-            const activeMClass  = 'btn btn-primary btn-sm rounded-2 fw-bold shadow-sm';
-            const inactiveMClass = 'btn btn-light btn-sm rounded-2 fw-bold text-muted';
+            // รายชื่อ ID ของปุ่มทั้งหมดที่มีในระบบ (ทั้ง PC และ Mobile)
+            const allButtonIds = ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'];
 
-            const d1 = document.getElementById('day1-btn');
-            const d2 = document.getElementById('day2-btn');
-            const d1m = document.getElementById('day1-btn-m');
-            const d2m = document.getElementById('day2-btn-m');
+            allButtonIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('active');
+                }
+            });
 
-            if (d1)  d1.className  = d === 1 ? activeClass   : inactiveClass;
-            if (d2)  d2.className  = d === 2 ? activeClass   : inactiveClass;
-            if (d1m) d1m.className = d === 1 ? activeMClass  : inactiveMClass;
-            if (d2m) d2m.className = d === 2 ? activeMClass  : inactiveMClass;
+            // เพิ่ม class 'active' ให้เฉพาะปุ่มของวันที่เราเลือก (ทำทั้งชุด PC และ Mobile)
+            if (d === 1) {
+                document.getElementById('day1-btn')?.classList.add('active');
+                document.getElementById('day1-btn-m')?.classList.add('active');
+            } else if (d === 2) {
+                document.getElementById('day2-btn')?.classList.add('active');
+                document.getElementById('day2-btn-m')?.classList.add('active');
+            }
         }
 
         let day = 1;
