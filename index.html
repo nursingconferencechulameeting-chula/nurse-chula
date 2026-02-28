@@ -14,226 +14,392 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        /* ===== BASE ===== */
-        :root { --nav-h: 65px; }
+        /* ============================================================
+        1) ROOT VARIABLES
+        ============================================================ */
+        :root {
+            --nav-h: 70px;              /* ความสูง Navbar (Desktop) */
+            --primary-color: #4f46e5;
+        }
 
+        @media (max-width: 575px) {
+            :root {
+                --nav-h: 120px;         /* ความสูง Navbar (Mobile 2 แถว) */
+            }
+        }
+
+
+        /* ============================================================
+        2) BASE / GLOBAL
+        ============================================================ */
         body {
             font-family: 'Prompt', sans-serif;
             background-color: #f1f5f9;
+
             height: 100vh;
             overflow: hidden;
+
             margin: 0;
-            padding-top: var(--nav-h);
+            padding-top: var(--nav-h);  /* ดันเนื้อหาลงตามความสูง Navbar */
         }
 
-        #login-screen {
-            position: fixed; inset: 0;
-            background: #1e293b;
-            z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px;
+
+        /* ============================================================
+        3) NAVBAR
+        ============================================================ */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 2000;
+
+            height: var(--nav-h);
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
         }
+
+        .navbar .container-fluid {
+            height: 100%;
+            display: flex;
+            padding: 0 16px;
+        }
+
+        /* ---------- Navbar Components ---------- */
 
         .staff-tag {
-            background: #4f46e5; color: white;
-            padding: 4px 10px; border-radius: 8px;
-            font-weight: 700; font-size: 0.75rem;
-            white-space: nowrap; flex-shrink: 0;
+            background: var(--primary-color);
+            color: #ffffff;
+
+            padding: 4px 10px;
+            border-radius: 8px;
+
+            font-weight: 700;
+            font-size: 0.75rem;
+            white-space: nowrap;
         }
 
-        .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
-
-        /* ===== NAVBAR ===== */
-        .navbar {
-            height: var(--nav-h);
-            background: white;
-            border-bottom: 1px solid #e2e8f0;
-            position: fixed; top: 0; width: 100%; z-index: 2000;
-            overflow: hidden;
-        }
-        .navbar .container-fluid {
+        .nav-tabs-custom {
             display: flex;
-            align-items: center;
+            gap: 4px;
+
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .nav-tabs-custom .btn-day {
+            border: none;
+            background: transparent;
+
+            padding: 6px 20px;
+            border-radius: 8px;
+
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #64748b;
+
+            transition: 0.2s;
+        }
+
+        .nav-tabs-custom .btn-day.active {
+            background: #ffffff;
+            color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+
+        /* ---------- Layout Switch (PC / Mobile) ---------- */
+
+        .pc-layout {
+            display: flex;
+            width: 100%;
+
             justify-content: space-between;
-            height: 100%;
-            padding: 0 16px;
-            gap: 12px;
+            align-items: center;
         }
 
-        /* Desktop elements */
-        .nav-brand  { display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0; }
-        .nav-brand-text { min-width: 0; }
-        .nav-brand-text h6 { font-size: 0.9rem; font-weight: 700; margin: 0; white-space: nowrap; }
-        .nav-brand-text small { font-size: 0.7rem; font-weight: 700; color: #4f46e5; white-space: nowrap; }
-        .nav-days   { display: flex; gap: 8px; flex-shrink: 0; }
-        .nav-logout { flex-shrink: 0; }
+        .mobile-layout {
+            display: none;
+            width: 100%;
 
-        /* Mobile rows (hidden on desktop) */
-        .nav-row1, .nav-row2 { display: none; }
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+        }
 
-        /* ── MOBILE breakpoint ── */
         @media (max-width: 575px) {
-            :root { --nav-h: 115px; } /* ขยายความสูง Navbar รองรับ 2 แถว */
 
-            .navbar .container-fluid {
-                flex-direction: column; /* เรียงเป็นแนวตั้ง */
-                justify-content: center;
-                align-items: stretch;
-                padding: 10px 16px;
-                gap: 10px;
+            .pc-layout {
+                display: none;
             }
 
-            /* ซ่อนส่วนของ Desktop */
-            .nav-brand, .nav-days, .nav-logout { display: none !important; }
-
-            /* แถวที่ 1: ข้อมูลผู้ใช้ และ ปุ่ม Logout */
-            .nav-row1 {
+            .mobile-layout {
                 display: flex;
-                align-items: center;
+            }
+
+            .mobile-row1 {
+                display: flex;
                 justify-content: space-between;
+                align-items: center;
+            }
+
+            .mobile-row2 .nav-tabs-custom {
                 width: 100%;
             }
-            .nav-row1-left { 
-                display: flex; 
-                align-items: center; 
-                gap: 8px; 
-                min-width: 0; 
+
+            .mobile-row2 .btn-day {
                 flex: 1;
-            }
-            .nav-row1-left h6 { 
-                font-size: 0.85rem; 
-                margin: 0; 
-                white-space: nowrap; 
-                overflow: hidden; 
-                text-overflow: ellipsis;
-            }
-            .nav-row1-left small { 
-                font-size: 0.7rem; 
-                display: block; 
-                color: #4f46e5; 
-                font-weight: 700;
-            }
-
-            /* แถวที่ 2: ปุ่มวันที่ (แสดงเต็มความกว้างแบ่งครึ่ง) */
-            .nav-row2 {
-                display: flex;
-                gap: 8px;
-                width: 100%;
-            }
-            .nav-row2 button { 
-                flex: 1; /* ให้ปุ่มกว้างเท่ากันคนละกึ่งหนึ่ง */
-                font-size: 0.85rem;
-                padding: 8px 0;
+                padding: 8px;
             }
         }
 
-        /* ===== LAYOUT ===== */
+
+        /* ============================================================
+        4) MAIN APP LAYOUT
+        ============================================================ */
+        .app-wrapper {
+            display: flex;
+            height: calc(100vh - var(--nav-h));
+        }
+
         .panel-left {
-            flex: 1; overflow-y: auto; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
+            flex: 1;
+            overflow-y: auto;
+
+            padding: 20px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .scanner-card {
-            width: 100%; max-width: 480px;
-            background: white; border-radius: 2rem;
-            padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .cam-view {
-            width: 100%; aspect-ratio: 4/3;
-            background: #000; border-radius: 1.2rem;
-            overflow: hidden; margin-bottom: 15px; position: relative;
-        }
-        canvas { width: 100%; height: 100%; object-fit: cover; }
 
         .sidebar-right {
-            width: 480px; background: white;
+            width: 480px;
+            background: #ffffff;
             border-left: 1px solid #e2e8f0;
-            display: flex; flex-direction: column;
-        }
-        .history-list { flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; }
 
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        /* ---------- Responsive Layout ---------- */
         @media (max-width: 991px) {
-            body { overflow-y: auto; height: auto; }
-            .app-wrapper { flex-direction: column; height: auto; }
-            .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
+
+            body {
+                height: auto;
+                overflow-y: auto;
+            }
+
+            .app-wrapper {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar-right {
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid #e2e8f0;
+            }
         }
 
-        /* ===== MANUAL BOX ===== */
-        .manual-box {
-            background: #f1f5f9; border-radius: 1rem;
-            padding: 6px; display: flex;
-            border: 1px solid #e2e8f0; margin-top: 15px;
+
+        /* ============================================================
+        5) LOGIN / SCANNER SCREEN
+        ============================================================ */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+            background: #1e293b;
+        }
+
+        .scanner-card {
+            width: 100%;
+            max-width: 480px;
+
+            background: #ffffff;
+            border-radius: 2rem;
+            padding: 20px;
+
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .cam-view {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+
+            background: #000000;
+            border-radius: 1.2rem;
             overflow: hidden;
-        }
-        .manual-box input {
-            border: none; background: transparent;
-            flex: 1; min-width: 0;
-            text-align: center; font-weight: 700; outline: none;
-            padding: 4px 8px;
-        }
-        .manual-box button { flex-shrink: 0; white-space: nowrap; }
 
-        /* ===== TIMER BANNER ===== */
-        #timer-banner {
-            display: none; border-radius: 1rem;
-            padding: 14px 18px; margin-bottom: 15px;
-            width: 100%; max-width: 480px;
-            font-size: 0.875rem; line-height: 1.6;
+            margin-bottom: 15px;
+            position: relative;
         }
-        #timer-banner.status-closed  { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
-        #timer-banner.status-open    { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
-        #timer-banner.status-unknown { background: #fefce8; border: 1.5px solid #fde047; color: #854d0e; }
 
-        /* ===== HISTORY LIST ===== */
-        .id-item {
-            background: white; border-radius: 1rem;
-            padding: 12px; margin-bottom: 10px;
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+
+        /* ============================================================
+        6) INPUT / MANUAL ENTRY
+        ============================================================ */
+        .manual-box {
+            display: flex;
+            overflow: hidden;
+
+            margin-top: 15px;
+            padding: 6px;
+
+            background: #f1f5f9;
+            border-radius: 1rem;
             border: 1px solid #e2e8f0;
-            display: flex; align-items: center;
         }
+
+        .manual-box input {
+            flex: 1;
+
+            border: none;
+            outline: none;
+            background: transparent;
+
+            padding: 4px 8px;
+
+            text-align: center;
+            font-weight: 700;
+        }
+
+
+        /* ============================================================
+        7) STATUS / TIMER
+        ============================================================ */
+        #timer-banner {
+            display: none;
+
+            width: 100%;
+            max-width: 480px;
+
+            margin-bottom: 15px;
+            padding: 14px 18px;
+
+            font-size: 0.875rem;
+            border-radius: 1rem;
+        }
+
+        #timer-banner.status-closed {
+            background: #fef2f2;
+            border: 1.5px solid #fca5a5;
+            color: #b91c1c;
+        }
+
+        #timer-banner.status-open {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            color: #15803d;
+        }
+
+
+        /* ============================================================
+        8) LIST / PROFILE COMPONENTS
+        ============================================================ */
+        .id-item {
+            display: flex;
+            align-items: center;
+
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
         .id-num {
-            width: 75px; height: 45px;
-            background: #eef2ff; color: #4f46e5;
+            width: 75px;
+            height: 45px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            margin-right: 15px;
+
+            background: #eef2ff;
+            color: #4f46e5;
+
             border-radius: 12px;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.85rem;
-            margin-right: 15px; line-height: 1.2;
-            flex-shrink: 0;
+            font-weight: 700;
+            font-size: 0.85rem;
         }
 
-        /* ===== MODAL ===== */
         .profile-box {
-            width: 150px; height: 180px;
-            background: #f8fafc; border-radius: 20px;
-            overflow: hidden; margin: 0 auto 15px;
-            border: 4px solid white;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 150px;
+            height: 180px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin: 0 auto 15px;
+
+            background: #f8fafc;
+            border-radius: 20px;
+            border: 4px solid #ffffff;
+            overflow: hidden;
+
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        .profile-box img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-box i { font-size: 80px; color: #cbd5e1; }
-        .swal2-popup { border-radius: 1.5rem !important; font-family: 'Prompt', sans-serif !important; }
 
-        /* ===== MISC ===== */
-        .spinner-border { border-width: 0.25em; animation-duration: 0.75s; }
-        #history-box { transition: all 0.3s ease-in-out; }
+        .profile-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-        /* ===== SPLASH ===== */
+
+        /* ============================================================
+        9) SPLASH SCREEN
+        ============================================================ */
         #splash-screen {
-            position: fixed; inset: 0;
-            background: #1e293b; z-index: 10000;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            transition: opacity 0.4s ease;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            background: #1e293b;
         }
+
         .loader-circle {
-            width: 50px; height: 50px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-left-color: #4f46e5;
+            width: 50px;
+            height: 50px;
+
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--primary-color);
             border-radius: 50%;
+
             animation: spin 1s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -312,50 +478,43 @@
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar shadow-sm">
         <div class="container-fluid">
-
-            <!-- ── DESKTOP VIEW (≥576px) ── -->
-            <div class="nav-brand">
-                <div class="staff-tag">STAFF</div>
-                <div class="nav-brand-text">
-                    <h6>Smart QR Check-in</h6>
-                    <small id="ui-staff">LOADING...</small>
+            
+            <!-- PC VIEW -->
+            <div class="pc-layout">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="staff-tag">STAFF</div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">QR Check-in</h6>
+                        <small id="ui-staff" class="text-primary fw-bold">กำลังโหลด...</small>
+                    </div>
                 </div>
-            </div>
-
-            <div class="nav-days">
-                <button onclick="changeDay(1)" id="day1-btn" class="btn btn-primary btn-sm rounded-2 px-4 fw-bold shadow-sm">วันที่ 1</button>
-                <button onclick="changeDay(2)" id="day2-btn" class="btn btn-light btn-sm rounded-2 px-4 fw-bold text-muted">วันที่ 2</button>
-            </div>
-
-            <div class="nav-logout">
-                <button onclick="logout()" class="btn btn-outline-danger btn-sm px-3 fw-bold">
+                <div class="nav-tabs-custom">
+                    <button onclick="changeDay(1)" id="day1-btn" class="btn-day active">วันที่ 1</button>
+                    <button onclick="changeDay(2)" id="day2-btn" class="btn-day">วันที่ 2</button>
+                </div>
+                <button onclick="logout()" class="btn btn-outline-danger btn-sm fw-bold px-3">
                     <i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ
                 </button>
             </div>
 
-            <!-- ── MOBILE VIEW (<576px) : 2 ROWS ── -->
-            <!-- แถวที่ 1: LOGO/STAFF + LOGOUT -->
-            <div class="nav-row1">
-                <div class="nav-row1-left">
-                    <div class="staff-tag">STAFF</div>
-                    <div class="overflow-hidden">
-                        <h6>QR Check-in</h6>
-                        <small id="ui-staff-m">LOADING...</small>
+            <!-- MOBILE VIEW (2 Rows) -->
+            <div class="mobile-layout">
+                <div class="mobile-row1">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="staff-tag">STAFF</div>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="font-size:0.85rem">QR Check-in</h6>
+                            <small id="ui-staff-m" class="text-primary fw-bold" style="font-size:0.7rem">กำลังโหลด...</small>
+                        </div>
+                    </div>
+                    <button onclick="logout()" class="btn btn-sm btn-light text-danger border fw-bold">ออก <i class="fa-solid fa-power-off ms-1"></i></button>
+                </div>
+                <div class="mobile-row2">
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeDay(1)" id="day1-btn-m" class="btn-day active">วันที่ 1</button>
+                        <button onclick="changeDay(2)" id="day2-btn-m" class="btn-day">วันที่ 2</button>
                     </div>
                 </div>
-                <button onclick="logout()" class="btn btn-sm btn-light text-danger fw-bold border" style="font-size: 0.75rem;">
-                    <i class="fa-solid fa-power-off me-1"></i>ออก
-                </button>
-            </div>
-
-            <!-- แถวที่ 2: DATE SELECTOR -->
-            <div class="nav-row2">
-                <button onclick="changeDay(1)" id="day1-btn-m" class="btn btn-primary btn-sm rounded-3 fw-bold shadow-sm">
-                    <i class="fa-solid fa-calendar-day me-1"></i>วันที่ 1
-                </button>
-                <button onclick="changeDay(2)" id="day2-btn-m" class="btn btn-light btn-sm rounded-3 fw-bold text-muted border">
-                    <i class="fa-solid fa-calendar-day me-1"></i>วันที่ 2
-                </button>
             </div>
 
         </div>
