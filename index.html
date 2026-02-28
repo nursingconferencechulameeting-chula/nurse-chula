@@ -247,6 +247,9 @@
                 currentPreviewId = null;
             });
 
+            // ปิดปุ่มไว้ก่อนเสมอ รอผล checkCurrentDay()
+            setInputsEnabled(false);
+
             const splash = document.getElementById('splash-screen');
             const savedStaff = localStorage.getItem('staff_session');
 
@@ -254,11 +257,48 @@
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                fetchHistory().then(() => hideSplash(splash));
+                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
             } else {
                 hideSplash(splash);
             }
         };
+
+        // ===== เปิด/ปิด ปุ่มสแกน + ช่องกรอก ID =====
+        function setInputsEnabled(enabled) {
+            const btnStart    = document.getElementById('start-btn');
+            const inputManual = document.getElementById('manual-input');
+            const btnSubmit   = document.querySelector('.manual-box button');
+            if (btnStart)    btnStart.disabled    = !enabled;
+            if (inputManual) inputManual.disabled = !enabled;
+            if (btnSubmit)   btnSubmit.disabled   = !enabled;
+        }
+
+        // ===== ตรวจสอบเวลาของวันปัจจุบันทันทีที่โหลด =====
+        async function checkCurrentDay() {
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getTimerSettings' })
+                });
+                const timer = await res.json();
+
+                if (!timer || timer.success === false) {
+                    setInputsEnabled(false);
+                    return;
+                }
+
+                const now   = new Date().getTime();
+                const start = (day === 1) ? timer.day1Open  : timer.day2Open;
+                const end   = (day === 1) ? timer.day1Close : timer.day2Close;
+
+                const isOpen = start !== null && end !== null && now >= start && now <= end;
+                setInputsEnabled(isOpen);
+
+            } catch (e) {
+                setInputsEnabled(false);
+                console.error("checkCurrentDay Error:", e);
+            }
+        }
 
         function hideSplash(el) {
             el.style.opacity = '0';
@@ -291,6 +331,7 @@
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${result.name}`;
                     fetchHistory();
+                    checkCurrentDay();
                 } else {
                     Swal.fire({ icon: 'error', title: 'รหัสไม่ถูกต้อง', text: 'กรุณาลองใหม่อีกครั้ง', confirmButtonColor: '#4f46e5' });
                     btn.disabled = false;
@@ -574,7 +615,7 @@
             }
         }
 
-        // ===== CHANGE DAY (แก้บั๊กหลัก) =====
+        // ===== CHANGE DAY =====
         async function changeDay(d) {
             Swal.fire({ title: 'กำลังตรวจสอบเวลา...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -602,9 +643,7 @@
 
                 // ✅ FIX: แยกเช็คกรณี timestamp เป็น null (ยังไม่ตั้งค่า) vs นอกช่วงเวลา
                 if (start === null || end === null) {
-                    if (btnStart)    btnStart.disabled    = true;
-                    if (inputManual) inputManual.disabled = true;
-                    if (btnSubmit)   btnSubmit.disabled   = true;
+                    setInputsEnabled(false);
 
                     Swal.fire({
                         icon: 'warning',
@@ -614,9 +653,7 @@
                     });
 
                 } else if (now < start || now > end) {
-                    if (btnStart)    btnStart.disabled    = true;
-                    if (inputManual) inputManual.disabled = true;
-                    if (btnSubmit)   btnSubmit.disabled   = true;
+                    setInputsEnabled(false);
 
                     // ✅ FIX: แสดงช่วงเวลาจริงให้ Staff ทราบ
                     const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
@@ -633,10 +670,7 @@
                     });
 
                 } else {
-                    // อยู่ในช่วงเวลา — เปิดการใช้งาน
-                    if (btnStart)    btnStart.disabled    = false;
-                    if (inputManual) inputManual.disabled = false;
-                    if (btnSubmit)   btnSubmit.disabled   = false;
+                    setInputsEnabled(true);
                 }
 
                 // เปลี่ยนวัน + อัปเดตปุ่ม + โหลดประวัติ (ทุกกรณี)
