@@ -73,7 +73,7 @@
 
         /* ── MOBILE breakpoint ── */
         @media (max-width: 575px) {
-            :root { --nav-h: 100px; }
+            :root { --nav-h: 105px; }
 
             .navbar .container-fluid {
                 flex-direction: column;
@@ -86,7 +86,7 @@
             /* ซ่อน desktop elements */
             .nav-brand, .nav-days, .nav-logout { display: none !important; }
 
-            /* แสดง mobile rows */
+            /* แถว 1: STAFF + ชื่อ + ปุ่มออก */
             .nav-row1 {
                 display: flex;
                 align-items: center;
@@ -94,9 +94,10 @@
                 gap: 8px;
             }
             .nav-row1-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
-            .nav-row1-left h6  { font-size: 0.85rem; font-weight: 700; margin: 0; }
-            .nav-row1-left small { font-size: 0.7rem; font-weight: 700; color: #4f46e5; }
+            .nav-row1-left h6    { font-size: 0.85rem; font-weight: 700; margin: 0; }
+            .nav-row1-left small { font-size: 0.7rem;  font-weight: 700; color: #4f46e5; }
 
+            /* แถว 2: ปุ่มวันที่ */
             .nav-row2 {
                 display: flex;
                 gap: 8px;
