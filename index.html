@@ -241,7 +241,7 @@
         /* ============================================================
         5) LOGIN / SCANNER SCREEN
         ============================================================ */
-        #login-form {
+        #login-screen {
             position: fixed;
             inset: 0;
             z-index: 9999;
@@ -461,36 +461,58 @@
             border: 1px solid #e2e8f0;
         }
 
+        /* ส่วนของรหัสผ่านและดวงตา */
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .password-wrapper .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #94a3b8;
+            z-index: 10;
+            font-size: 1.2rem;
+        }
+        /* ข้อความแจ้งเตือน Error */
+        #login-error-msg {
+            font-size: 0.85rem;
+            color: #ef4444;
+            margin-top: 8px;
+            display: none; /* ซ่อนไว้ก่อน */
+            font-weight: 600;
+        }
+        /* ปรับช่อง Input ให้ดูโปรขึ้น */
+        #staff-id.is-invalid {
+            border-color: #ef4444;
+            background-image: none; /* ปิดไอคอน default ของ bootstrap */
+        }
+
     </style>
 </head>
 <body>
 
-    <!-- ===== SPLASH SCREEN ===== -->
     <div id="splash-screen">
         <div class="loader-circle mb-3"></div>
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
     </div>
 
-    <!-- ===== LOGIN SCREEN ===== -->
-    <div id="login-form" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 360px;">
+    <!-- ===== LOGIN  ===== -->
+    <div id="login-form" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 380px;">
         <div class="staff-tag d-inline-block mb-2">STAFF</div>
         <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
         
-    <div class="position-relative mb-1">
-        <input type="password" id="staff-id" 
-            class="form-control form-control-lg text-center rounded-4 fw-bold" 
-            placeholder="รหัสเจ้าหน้าที่" autofocus style="padding-right: 45px;"
-            onkeydown="if(event.key==='Enter'){ login(); }"> <!-- เพิ่มให้กด Enter ได้ -->
-        <button type="button" onclick="togglePasswordVisibility()" class="btn position-absolute top-50 end-0 translate-middle-y border-0" style="margin-right: 8px; background: transparent; z-index: 10;">
-            <i id="eye-icon" class="fa-solid fa-eye text-muted"></i>
-        </button>
-    </div>
-        
-        <div id="login-error-msg" class="text-danger small fw-bold mb-3 d-none">
-            รหัสไม่ถูกต้อง กรุณาลองใหม่
+        <div class="password-wrapper">
+            <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 fw-bold" placeholder="รหัสเจ้าหน้าที่" autofocus>
+            <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
         </div>
+        
+        <!-- ข้อความ Error แจ้งเตือนใต้ช่องกรอก -->
+        <div id="login-error-msg"></div>
 
-        <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow">
+        <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow mt-3">
             <span id="login-text">ลงชื่อเข้าใช้งาน</span>
             <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span> กำลังโหลด...</span>
         </button>
@@ -653,105 +675,65 @@
     <video id="video" playsinline hidden></video>
 
     <script>
-        // ============================================================
-        // 1) CONFIG & VARIABLES
-        // ============================================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec";
-        
+        function setStaffName(name) {
+            const label = `เจ้าหน้าที่: ${name}`;
+            const d = document.getElementById('ui-staff');
+            const m = document.getElementById('ui-staff-m');
+            if (d) d.innerText = label;
+            if (m) m.innerText = label;
+        }
+
+        function setDayButtons(d) {
+            // รายชื่อ ID ของปุ่มทั้งหมดที่มีในระบบ (ทั้ง PC และ Mobile)
+            const allButtonIds = ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'];
+
+            allButtonIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // เพิ่ม class 'active' ให้เฉพาะปุ่มของวันที่เราเลือก (ทำทั้งชุด PC และ Mobile)
+            if (d === 1) {
+                document.getElementById('day1-btn')?.classList.add('active');
+                document.getElementById('day1-btn-m')?.classList.add('active');
+            } else if (d === 2) {
+                document.getElementById('day2-btn')?.classList.add('active');
+                document.getElementById('day2-btn-m')?.classList.add('active');
+            }
+        }
+
         let day = 1;
         let staff = null;
         let isScanning = false;
         let currentStream = null;
         let previewModal = null;
-        let currentPreviewId = null;
+        let currentPreviewId = null; // เก็บ ID ที่กำลัง Preview อยู่
 
         const video = document.getElementById("video");
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // ============================================================
-        // 2) RESET & UI HELPERS
-        // ============================================================
-        function resetAllStates() {
-            staff = null;
-            isScanning = false;
-            currentPreviewId = null;
-            if (currentStream) {
-                currentStream.getTracks().forEach(t => t.stop());
-                currentStream = null;
-            }
-            // คืนสถานะปุ่ม Login
-            const btn = document.getElementById('login-btn');
-            const text = document.getElementById('login-text');
-            const loader = document.getElementById('login-loader');
-            if (btn) {
-                btn.disabled = false;
-                text.classList.remove('d-none');
-                loader.classList.add('d-none');
-            }
-            document.getElementById('staff-id').value = '';
-            showLoginError(false); // ปิดข้อความแจ้งเตือนสีแดง
-            
-            canvas.hidden = true;
-            document.getElementById('placeholder').classList.remove('d-none');
-            document.getElementById('start-btn').classList.remove('d-none');
-            document.getElementById('stop-btn').classList.add('d-none');
-        }
-
-        function togglePasswordVisibility() {
-            const input = document.getElementById('staff-id');
-            const icon = document.getElementById('eye-icon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fa-solid fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fa-solid fa-eye';
-            }
-        }
-
-        function showLoginError(show) {
-            const msg = document.getElementById('login-error-msg');
-            if (show) {
-                msg.classList.remove('d-none');
-            } else {
-                msg.classList.add('d-none');
-            }
-        }
-
-        function setInputsEnabled(enabled) {
-            const btnStart = document.getElementById('start-btn');
-            const inputManual = document.getElementById('manual-input');
-            const btnSubmit = document.querySelector('.manual-box button');
-            if (btnStart) btnStart.disabled = !enabled;
-            if (inputManual) inputManual.disabled = !enabled;
-            if (btnSubmit) btnSubmit.disabled = !enabled;
-        }
-
-        // ============================================================
-        // 3) INIT & EVENT LISTENERS
-        // ============================================================
+        // ===== INIT =====
         window.onload = () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+
+            // ปิด Modal แล้ว reset currentPreviewId
             document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => {
                 currentPreviewId = null;
             });
 
-            const staffInput = document.getElementById('staff-id');
-            if (staffInput) {
-                staffInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); login(); }
-                });
-                staffInput.addEventListener('input', () => showLoginError(false));
-            }
-
+            // ปิดปุ่มไว้ก่อนเสมอ รอผล checkCurrentDay()
             setInputsEnabled(false);
+
             const splash = document.getElementById('splash-screen');
             const savedStaff = localStorage.getItem('staff_session');
 
             if (savedStaff) {
                 staff = JSON.parse(savedStaff);
-                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'none';
                 setStaffName(staff.name);
                 Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
             } else {
@@ -759,10 +741,86 @@
             }
         };
 
-        function setStaffName(name) {
-            const label = `เจ้าหน้าที่: ${name}`;
-            document.getElementById('ui-staff').innerText = label;
-            document.getElementById('ui-staff-m').innerText = label;
+        // ===== เปิด/ปิด ปุ่มสแกน + ช่องกรอก ID =====
+        function setInputsEnabled(enabled) {
+            const btnStart    = document.getElementById('start-btn');
+            const inputManual = document.getElementById('manual-input');
+            const btnSubmit   = document.querySelector('.manual-box button');
+            if (btnStart)    btnStart.disabled    = !enabled;
+            if (inputManual) inputManual.disabled = !enabled;
+            if (btnSubmit)   btnSubmit.disabled   = !enabled;
+        }
+
+        // ===== ฟังก์ชันแสดง Banner แจ้งสถานะเวลา =====
+        function showTimerBanner(type, html) {
+            const banner = document.getElementById('timer-banner');
+            banner.className = `status-${type}`;
+            banner.innerHTML = html;
+            banner.style.display = 'block';
+        }
+
+        function hideTimerBanner() {
+            const banner = document.getElementById('timer-banner');
+            banner.style.display = 'none';
+        }
+
+        // ===== ตรวจสอบเวลาของวันปัจจุบันทันทีที่โหลด =====
+        async function checkCurrentDay() {
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getTimerSettings' })
+                });
+                const timer = await res.json();
+
+                if (!timer || timer.success === false) {
+                    setInputsEnabled(false);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>ไม่สามารถดึงข้อมูลเวลาได้</b> กรุณาลองรีเฟรชหน้า`);
+                    return;
+                }
+
+                const now   = new Date().getTime();
+                const start = (day === 1) ? timer.day1Open  : timer.day2Open;
+                const end   = (day === 1) ? timer.day1Close : timer.day2Close;
+
+                const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                const fmtDate = (ts) => {
+                    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+                    const d = new Date(ts);
+                    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+                };
+
+                if (start === null || end === null) {
+                    setInputsEnabled(false);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดช่วงเวลาลงทะเบียน</b>`);
+
+                } else if (now < start) {
+                    setInputsEnabled(false);
+                    showTimerBanner('closed',
+                        `<i class="fa-solid fa-clock me-2"></i><b>ยังไม่ถึงเวลาลงทะเบียน</b><br>` +
+                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; เปิดรับ <b>${fmt(start)}</b> – <b>${fmt(end)} น.</b>`
+                    );
+
+                } else if (now > end) {
+                    setInputsEnabled(false);
+                    showTimerBanner('closed',
+                        `<i class="fa-solid fa-circle-xmark me-2"></i><b>ปิดรับลงทะเบียนแล้ว</b><br>` +
+                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; ช่วงเวลา <b>${fmt(start)}</b> – <b>${fmt(end)} น.</b>`
+                    );
+
+                } else {
+                    setInputsEnabled(true);
+                    showTimerBanner('open',
+                        `<i class="fa-solid fa-circle-check me-2"></i><b>เปิดรับลงทะเบียน</b><br>` +
+                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; ถึง <b>${fmt(end)} น.</b>`
+                    );
+                }
+
+            } catch (e) {
+                setInputsEnabled(false);
+                showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>เกิดข้อผิดพลาด:</b> ${e.toString()}`);
+                console.error("checkCurrentDay Error:", e);
+            }
         }
 
         function hideSplash(el) {
@@ -770,24 +828,25 @@
             setTimeout(() => { el.style.display = 'none'; }, 400);
         }
 
-        // ============================================================
-        // 4) CORE LOGIC (LOGIN, CHECK TIME)
-        // ============================================================
+        // ===== LOGIN =====
         async function login() {
             const idInput = document.getElementById('staff-id');
             const id = idInput.value.trim();
-            
-            showLoginError(false);
-            if (!id) { idInput.focus(); return; }
-
+            const errorMsg = document.getElementById('login-error-msg');
             const btn = document.getElementById('login-btn');
             const text = document.getElementById('login-text');
             const loader = document.getElementById('login-loader');
 
-            // เริ่มแสดงการโหลด
+            if (!id) {
+                showLoginError("กรุณากรอกรหัสเจ้าหน้าที่");
+                return;
+            }
+
+            // เริ่มโหลด (UI Response ทันที)
             btn.disabled = true;
             text.classList.add('d-none');
             loader.classList.remove('d-none');
+            errorMsg.style.display = 'none';
 
             try {
                 const res = await fetch(GAS_URL, {
@@ -799,201 +858,385 @@
                 if (result.isAllowed) {
                     staff = result;
                     localStorage.setItem('staff_session', JSON.stringify(result));
-                    document.getElementById('login-form').classList.add('d-none');
+                    
+                    // ปิดหน้า Login ทันที (เร็วขึ้นเพราะไม่ต้อง reload)
+                    document.getElementById('login-screen').classList.add('d-none');
                     setStaffName(result.name);
+                    
+                    // โหลดข้อมูลหลังบ้าน
                     fetchHistory();
                     checkCurrentDay();
                 } else {
-                    // รหัสผิด: แจ้งเตือนใต้ช่องกรอกทันที และคืนสถานะปุ่ม
-                    showLoginError(true);
+                    showLoginError("รหัสไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
                     btn.disabled = false;
                     text.classList.remove('d-none');
                     loader.classList.add('d-none');
-                    idInput.value = '';
-                    idInput.focus();
                 }
             } catch (e) {
-                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว', text: 'กรุณาเช็คอินเทอร์เน็ต' });
+                showLoginError("การเชื่อมต่อขัดข้อง กรุณาลองใหม่");
                 btn.disabled = false;
                 text.classList.remove('d-none');
                 loader.classList.add('d-none');
             }
         }
 
-        async function checkCurrentDay() {
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getTimerSettings' }) });
-                const timer = await res.json();
-                if (!timer || !timer.success) return;
-
-                const now = new Date().getTime();
-                const start = (day === 1) ? timer.day1Open : timer.day2Open;
-                const end = (day === 1) ? timer.day1Close : timer.day2Close;
-                const fmtT = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                const fmtD = (ts) => {
-                    const d = new Date(ts);
-                    return `${d.getDate()} ${['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()]} ${d.getFullYear() + 543}`;
-                };
-
-                const banner = document.getElementById('timer-banner');
-                banner.style.display = 'block';
-                const dateStr = start ? fmtD(start) : "";
-
-                if (!start || !end) {
-                    banner.className = 'status-unknown';
-                    banner.innerHTML = `<b>วันที่ ${day}: ยังไม่กำหนดเวลา</b>`;
-                } else if (now < start) {
-                    setInputsEnabled(false);
-                    banner.className = 'status-closed';
-                    banner.innerHTML = `<b>ยังไม่ถึงเวลาลงทะเบียน</b><br><small>วันที่ ${dateStr} | เริ่ม ${fmtT(start)} น.</small>`;
-                } else if (now > end) {
-                    setInputsEnabled(false);
-                    banner.className = 'status-closed';
-                    banner.innerHTML = `<b>ปิดลงทะเบียนแล้ว</b><br><small>วันที่ ${dateStr} | สิ้นสุด ${fmtT(end)} น.</small>`;
-                } else {
-                    setInputsEnabled(true);
-                    banner.className = 'status-open';
-                    banner.innerHTML = `<b>เปิดลงทะเบียน (วันที่ ${day})</b><br><small>วันที่ ${dateStr} | ถึงเวลา ${fmtT(end)} น.</small>`;
-                }
-            } catch (e) { console.error(e); }
+        function showLoginError(msg) {
+            const errorMsg = document.getElementById('login-error-msg');
+            const idInput = document.getElementById('staff-id');
+            errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> ${msg}`;
+            errorMsg.style.display = 'block';
+            idInput.classList.add('is-invalid');
+            idInput.focus();
         }
 
+        // รองรับการกด Enter ในช่อง password
+        document.addEventListener('DOMContentLoaded', () => {
+            const staffInput = document.getElementById('staff-id');
+            const togglePassword = document.getElementById('togglePassword');
+            const errorMsg = document.getElementById('login-error-msg');
+
+            // สลับการมองเห็นรหัสผ่าน (รูปดวงตา)
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function() {
+                    const type = staffInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    staffInput.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+            }
+
+            // เมื่อผู้ใช้เริ่มพิมพ์ใหม่ ให้ซ่อนข้อความ Error ทันที
+            if (staffInput) {
+                staffInput.addEventListener('input', () => {
+                    errorMsg.style.display = 'none';
+                    staffInput.classList.remove('is-invalid');
+                });
+                
+                staffInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); login(); }
+                });
+            }
+        });
+
+        // ===== LOGOUT =====
         function logout() {
             Swal.fire({
-                title: 'ยืนยันออกจากระบบ?',
+                title: 'ออกจากระบบ?',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
-                confirmButtonText: 'ออกจากระบบ'
+                confirmButtonText: 'ตกลง',
+                cancelButtonText: 'ยกเลิก'
             }).then((r) => {
                 if (r.isConfirmed) {
+                    // 1. ล้างข้อมูลในเครื่อง
                     localStorage.removeItem('staff_session');
-                    resetAllStates();
-                    document.getElementById('login-form').classList.remove('d-none');
+                    staff = null;
+
+                    // 2. หยุดกล้องทันที
+                    if (isScanning) toggleScanner(false);
+
+                    // 3. รีเซ็ตหน้าจอ Login
+                    document.getElementById('staff-id').value = '';
+                    document.getElementById('staff-id').classList.remove('is-invalid');
+                    document.getElementById('login-error-msg').style.display = 'none';
+                    document.getElementById('login-screen').classList.remove('d-none');
+
+                    // 4. รีเซ็ตข้อมูลในแอป (ป้องกันคนอื่นมาเห็นข้อมูลเดิม)
+                    document.getElementById('history-box').innerHTML = '<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูล</p>';
+                    document.getElementById('ui-present').innerText = '0';
+                    document.getElementById('ui-absent').innerText = '0';
+                    setStaffName("กำลังโหลด...");
                 }
             });
         }
 
-        // ============================================================
-        // 5) SCAN & RECORDS (ฟังก์ชันเดิมที่ทำงานดีอยู่แล้ว)
-        // ============================================================
+        // ===== PREVIEW USER ก่อนบันทึก (เวอร์ชันอัปเดต: ตรวจสอบการสแกนซ้ำ) =====
         async function previewUser(id) {
             if (currentPreviewId === id) return;
             currentPreviewId = id;
+
+            // ล้างข้อมูลเก่า/รูปเก่าใน Modal
+            document.getElementById('p-img').src = "";
             document.getElementById('p-img').style.display = 'none';
             document.getElementById('p-icon').style.display = 'block';
-            Swal.fire({ title: 'กำลังโหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) });
+                // ส่งค่า day ไปให้ Backend ตรวจสอบด้วยว่าวันนี้ ID นี้สแกนไปหรือยัง
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) 
+                });
                 const result = await res.json();
                 Swal.close();
+
                 if (result.success) {
                     const u = result.user;
-                    if (u.img && u.img !== "-") { 
-                        document.getElementById('p-img').src = u.img; 
-                        document.getElementById('p-img').style.display = 'block'; 
-                        document.getElementById('p-icon').style.display = 'none'; 
+
+                    // 1. จัดการรูปภาพ
+                    const img = document.getElementById('p-img');
+                    const icon = document.getElementById('p-icon');
+                    if (u.img && u.img !== "-" && u.img !== "") {
+                        img.src = u.img;
+                        img.style.display = 'block';
+                        icon.style.display = 'none';
+                    } else {
+                        img.style.display = 'none';
+                        icon.style.display = 'block';
                     }
+
+                    // 2. แสดงข้อมูลพื้นฐาน
                     document.getElementById('p-name').innerText = u.name;
-                    document.getElementById('p-id').innerText = u.id;
+                    document.getElementById('p-id').innerText = u.id; // โชว์เฉพาะรหัสใน Badge
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
-                    document.getElementById('p-dept').innerText = u.dept || '-';
-                    document.getElementById('dept-area').style.display = (u.regType === "สำหรับผู้ลงทะเบียนภายนอก") ? 'none' : 'block';
-                    
+
+                    // 3. จัดการส่วน หน่วยงาน/สังกัด
+                    const deptArea = document.getElementById('dept-area');
+                    const regType = u.regType ? u.regType.toString().trim() : "";
+                    if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
+                        deptArea.style.display = 'none';
+                    } else {
+                        deptArea.style.display = 'block';
+                        document.getElementById('p-dept').innerText = u.dept || '-';
+                    }
+
+                    // 4. ตัวแปรสำหรับควบคุมการแสดงผลปุ่มและสถานะ
+                    const payArea = document.getElementById('pay-status-area');
+                    const stEl = document.getElementById('p-status');
+                    const payWarn = document.getElementById('pay-warning');
                     const btnConfirm = document.getElementById('btn-confirm-record');
                     const alreadyArea = document.getElementById('already-scanned-area');
-                    alreadyArea.classList.toggle('d-none', !result.isAlreadyScanned);
-                    if(result.isAlreadyScanned) {
-                        document.getElementById('scanned-day-label').innerText = day;
-                        document.getElementById('scanned-time-label').innerText = result.scannedTime;
-                        btnConfirm.style.display = 'none';
+                    const dayLabel = document.getElementById('scanned-day-label');
+                    const timeLabel = document.getElementById('scanned-time-label');
+
+                    // --- RESET สถานะก่อนทุกครั้ง ---
+                    alreadyArea.classList.add('d-none');
+                    payWarn.classList.add('d-none');
+                    btnConfirm.style.display = 'block'; // โชว์ปุ่มไว้ก่อน
+                    btnConfirm.disabled = false;
+                    btnConfirm.classList.remove('btn-secondary');
+                    btnConfirm.classList.add('btn-success');
+
+                    // 5. ตรวจสอบการสแกนซ้ำ (ลำดับความสำคัญที่ 1)
+                    if (result.isAlreadyScanned) {
+                        alreadyArea.classList.remove('d-none');
+                        if (dayLabel) dayLabel.innerText = day; // แสดงเลขวันที่สแกนแล้ว
+                        if (timeLabel) timeLabel.innerText = result.scannedTime;
+                        btnConfirm.style.display = 'none';     // ซ่อนปุ่มยืนยันทันที
+                    } 
+                    // 6. ตรวจสอบสถานะการเงิน (ลำดับความสำคัญที่ 2 - เฉพาะกรณีที่ยังไม่ได้สแกน)
+                    else if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
+                        payArea.style.display = 'block';
+                        const payStatus = u.payStatus ? u.payStatus.trim() : "";
+                        stEl.innerText = payStatus || "ยังไม่ได้ชำระเงิน";
+                        stEl.className = `fw-bold ${payStatus === 'ชำระเงินเรียบร้อย' ? 'text-success' : 'text-danger'}`;
+
+                        if (payStatus !== 'ชำระเงินเรียบร้อย') {
+                            btnConfirm.disabled = true;
+                            btnConfirm.classList.remove('btn-success');
+                            btnConfirm.classList.add('btn-secondary');
+                            payWarn.classList.remove('d-none');
+                        }
                     } else {
-                        btnConfirm.style.display = 'block';
-                        btnConfirm.onclick = () => record(id, false);
+                        payArea.style.display = 'none';
                     }
+
+                    // 7. ผูก Event ปุ่มยืนยัน (ถ้าปุ่มยังแสดงอยู่)
+                    btnConfirm.onclick = () => record(id, false);
+
                     previewModal.show();
-                } else { currentPreviewId = null; Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล' }); }
-            } catch (e) { currentPreviewId = null; }
-        }
 
-        async function record(qrText, confirmSkip) {
-            if (previewModal) previewModal.hide();
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip, staffInfo: staff } }) });
-                const result = await res.json();
-                Swal.close();
-                if (result.success) {
-                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
-                    setTimeout(() => fetchHistory(), 500);
-                } else if (result.requireConfirm) {
-                    Swal.fire({ icon: 'question', title: 'ยืนยัน?', text: result.message, showCancelButton: true }).then((r) => { if (r.isConfirmed) record(qrText, true); });
-                } else { Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message }); }
-            } catch (e) { Swal.fire({ icon: 'error', title: 'ขัดข้อง' }); }
-        }
-
-        async function fetchHistory() {
-            const box = document.getElementById('history-box');
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
-                const result = await res.json();
-                if (result.success) {
-                    document.getElementById('ui-present').innerText = result.present;
-                    document.getElementById('ui-absent').innerText = result.absent;
-                    if (result.records.length > 0) {
-                        box.innerHTML = result.records.reverse().map(r => `
-                            <div class="id-item shadow-sm p-3">
-                                <div class="id-num">${r.id}</div>
-                                <div class="flex-grow-1"><h6 class="mb-0 fw-bold">${r.name}</h6><small class="text-muted">${r.time}</small></div>
-                                <i class="fa-solid fa-circle-check text-success fa-2x"></i>
-                            </div>`).join('');
-                    } else { box.innerHTML = '<p class="text-center py-5">ยังไม่มีข้อมูล</p>'; }
+                } else {
+                    currentPreviewId = null;
+                    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message, confirmButtonColor: '#4f46e5' });
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                currentPreviewId = null;
+                Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อขัดข้อง: ' + e.toString() });
+            }
         }
 
+        // ===== MANUAL INPUT =====
+        function handleManual() {
+            const val = document.getElementById('manual-input').value.trim();
+            if (val) {
+                previewUser(val);
+                document.getElementById('manual-input').value = '';
+            }
+        }
+
+        // ===== SCANNER =====
         async function toggleScanner(start) {
             if (start) {
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = currentStream; video.play(); isScanning = true;
-                    document.getElementById('start-btn').classList.add('d-none'); document.getElementById('stop-btn').classList.remove('d-none');
-                    document.getElementById('placeholder').classList.add('d-none'); canvas.hidden = false; requestAnimationFrame(tick);
-                } catch (e) { Swal.fire({ icon: 'error', title: 'กล้องขัดข้อง' }); }
+                    video.srcObject = currentStream;
+                    video.play();
+                    isScanning = true;
+                    document.getElementById('start-btn').classList.add('d-none');
+                    document.getElementById('stop-btn').classList.remove('d-none');
+                    document.getElementById('placeholder').classList.add('d-none');
+                    canvas.hidden = false;
+                    requestAnimationFrame(tick);
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'ไม่สามารถเข้าถึงกล้องได้', text: e.toString() });
+                }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
-                isScanning = false; document.getElementById('start-btn').classList.remove('d-none');
-                document.getElementById('stop-btn').classList.add('d-none'); canvas.hidden = true;
+                isScanning = false;
+                document.getElementById('start-btn').classList.remove('d-none');
+                document.getElementById('stop-btn').classList.add('d-none');
+                canvas.hidden = true;
                 document.getElementById('placeholder').classList.remove('d-none');
             }
         }
 
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
-                canvas.height = video.videoHeight; canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
-                if (code) { if (navigator.vibrate) navigator.vibrate(100); toggleScanner(false); previewUser(code.data); return; }
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) {
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    toggleScanner(false);
+                    previewUser(code.data);
+                    return;
+                }
             }
             if (isScanning) requestAnimationFrame(tick);
         }
 
-        function handleManual() {
-            const val = document.getElementById('manual-input').value.trim();
-            if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
+        // ===== RECORD ATTENDANCE =====
+        async function record(qrText, confirmSkip) {
+            // ปิด Modal ก่อนส่ง
+            if (previewModal) previewModal.hide();
+
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'recordAttendance',
+                        data: { text: qrText, day, confirmSkip: confirmSkip, staffInfo: staff }
+                    })
+                });
+                const result = await res.json();
+                Swal.close();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'บันทึกสำเร็จ ✓',
+                        text: result.user.name,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    // หน่วงเวลาแล้วดึงประวัติใหม่
+                    setTimeout(() => fetchHistory(), 1000);
+
+                } else if (result.requireConfirm) {
+                    // กรณีวันที่ 2 แต่ยังไม่ได้ลงวันที่ 1 — ถามยืนยัน
+                    Swal.fire({
+                        icon: 'question',
+                        title: 'ยืนยัน?',
+                        text: result.message,
+                        showCancelButton: true,
+                        confirmButtonColor: '#4f46e5',
+                        cancelButtonColor: '#94a3b8',
+                        confirmButtonText: 'ยืนยัน บันทึกวันที่ 2',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((r) => {
+                        if (r.isConfirmed) record(qrText, true);
+                    });
+
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'แจ้งเตือน',
+                        text: result.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            } catch (e) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อล้มเหลว: ' + e.toString() });
+            }
         }
 
-        function changeDay(d) {
+        // ===== FETCH HISTORY =====
+        async function fetchHistory() {
+            const box = document.getElementById('history-box');
+            box.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="text-muted fw-bold">กำลังโหลดข้อมูล...</div>
+                </div>`;
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getRecentRecords', data: { day } })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+
+                    // อัปเดตตัวเลขจำนวนที่มุมบนขวา
+                    const presentEl = document.getElementById('ui-present');
+                    const absentEl = document.getElementById('ui-absent');
+                    if (presentEl) presentEl.innerText = result.present;
+                    if (absentEl) absentEl.innerText = result.absent;
+
+                    if (result.records.length > 0) {
+                        box.innerHTML = result.records.reverse().map(r => {
+                            let displayId = r.id.toString().trim();
+                            if (!isNaN(displayId)) displayId = displayId.padStart(3, '0');
+
+                            const idHtml = displayId.includes('-')
+                                ? `<span>${displayId.split('-')[0]}</span><span>${displayId.split('-')[1]}</span>`
+                                : displayId;
+
+                            return `
+                            <div class="id-item shadow-sm p-3">
+                                <div class="id-num">${idHtml}</div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h5 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 1.1rem;">${r.name}</h5>
+                                    <small class="text-muted"><i class="fa-regular fa-clock me-2"></i>${r.time}</small>
+                                </div>
+                                <i class="fa-solid fa-circle-check fa-2x text-success ms-2"></i>
+                            </div>`;
+                        }).join('');
+                    } else {
+                        box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`;
+                    }
+                } else {
+                    box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`;
+                }
+            } catch (e) {
+                box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+                console.error("History Error:", e);
+            }
+        }
+
+        // ===== CHANGE DAY =====
+        async function changeDay(d) {
+            // เปลี่ยนวัน + อัปเดตปุ่ม + โหลดประวัติ
             day = d;
-            ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'].forEach(id => {
-                const b = document.getElementById(id); if(b) b.classList.remove('active');
-            });
-            if(d===1) { document.getElementById('day1-btn').classList.add('active'); document.getElementById('day1-btn-m').classList.add('active'); }
-            else { document.getElementById('day2-btn').classList.add('active'); document.getElementById('day2-btn-m').classList.add('active'); }
-            checkCurrentDay(); fetchHistory();
+            setDayButtons(d);
+
+            // ใช้ checkCurrentDay() จัดการ banner + เปิด/ปิดปุ่มแทน (ไม่ต้องมี Swal)
+            hideTimerBanner();
+            checkCurrentDay();
+            fetchHistory();
         }
     </script>
-
 </body>
 </html>
