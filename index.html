@@ -620,10 +620,15 @@
 
                     // ✅ FIX: แสดงช่วงเวลาจริงให้ Staff ทราบ
                     const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                    const fmtDate = (ts) => {
+                        const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+                        const d = new Date(ts);
+                        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+                    };
                     Swal.fire({
                         icon: 'warning',
                         title: `วันที่ ${d}: ปิดรับลงทะเบียน`,
-                        html: `ช่วงเวลาที่กำหนด: <b>${fmt(start)} – ${fmt(end)} น.</b><br><small class="text-muted">คุณยังสามารถดูประวัติการสแกนได้</small>`,
+                        html: `<b>${fmtDate(start)}</b><br>ช่วงเวลาที่กำหนด: <b>${fmt(start)} – ${fmt(end)} น.</b><br><small class="text-muted">คุณยังสามารถดูประวัติการสแกนได้</small>`,
                         confirmButtonColor: '#4f46e5'
                     });
 
