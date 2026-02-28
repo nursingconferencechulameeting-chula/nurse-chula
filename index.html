@@ -631,8 +631,6 @@
                         ยังไม่มา: <span id="ui-absent" class="fw-bold">0</span>
                     </div>
                 </div>
-
-                <!-- <span id="ui-count" class="badge bg-primary rounded-pill px-3 py-2 fw-bold">0 คน</span> -->
             </div>
             <div id="history-box" class="history-list">
                 <p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูล</p>
@@ -1055,10 +1053,6 @@
                         showConfirmButton: false
                     });
 
-                    // อัปเดตจำนวนนับ
-                    const currentCount = parseInt(document.getElementById('ui-count').innerText) || 0;
-                    document.getElementById('ui-count').innerText = `${currentCount + 1} คน`;
-
                     // หน่วงเวลาแล้วดึงประวัติใหม่
                     setTimeout(() => fetchHistory(), 1000);
 
@@ -1115,8 +1109,6 @@
                     const absentEl = document.getElementById('ui-absent');
                     if (presentEl) presentEl.innerText = result.present;
                     if (absentEl) absentEl.innerText = result.absent;
-                     // ส่วนแสดงผล Badge รวมเดิม (ถ้ายังอยากใช้อยู่)
-                    document.getElementById('ui-count').innerText = `${result.records.length} คน`;
 
                     if (result.records.length > 0) {
                         box.innerHTML = result.records.reverse().map(r => {
