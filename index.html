@@ -252,6 +252,34 @@
             background: #1e293b;
         }
 
+        /* --- ส่วนของช่องรหัสผ่านและดวงตา --- */
+        .password-wrapper {
+            position: relative; width: 100%;
+        }
+
+        #staff-id {
+            padding-right: 45px !important; /* เว้นที่ให้ดวงตา */
+        }
+
+        /* ปิดไอคอนตกใจของ Bootstrap (เพื่อไม่ให้ทับไอคอนดวงตา) */
+        #staff-id.is-invalid {
+            background-image: none !important;
+            border-color: #ef4444 !important;
+        }
+
+        .toggle-password {
+            position: absolute; right: 15px; top: 50%;
+            transform: translateY(-50%); cursor: pointer;
+            color: #94a3b8; z-index: 10; font-size: 1.1rem;
+        }
+
+        /* --- ข้อความ Error ใต้ช่องกรอก --- */
+        #login-error-msg {
+            display: none; color: #ef4444; font-size: 0.85rem;
+            font-weight: 600; margin-top: 8px; text-align: left;
+            padding-left: 5px;
+        }
+
         .scanner-card {
             width: 100%;
             max-width: 480px;
@@ -499,23 +527,25 @@
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
     </div>
 
-    <!-- ===== LOGIN  ===== -->
-    <div id="login-form" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 380px;">
-        <div class="staff-tag d-inline-block mb-2">STAFF</div>
-        <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
-        
-        <div class="password-wrapper">
-            <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 fw-bold" placeholder="รหัสเจ้าหน้าที่" autofocus>
-            <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
-        </div>
-        
-        <!-- ข้อความ Error แจ้งเตือนใต้ช่องกรอก -->
-        <div id="login-error-msg"></div>
+    <!-- ===== LOGIN SCREEN (COMPLETE SET) ===== -->
+    <div id="login-screen">
+        <div id="login-form" class="bg-white p-5 rounded-5 text-center shadow-lg" style="width: 100%; max-width: 380px;">
+            <div class="staff-tag d-inline-block mb-2">STAFF</div>
+            <h4 class="fw-bold mb-4">ลงชื่อเข้าใช้งาน</h4>
+            
+            <div class="password-wrapper">
+                <input type="password" id="staff-id" class="form-control form-control-lg text-center rounded-4 fw-bold" placeholder="รหัสเจ้าหน้าที่" autofocus>
+                <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+            </div>
+            
+            <!-- ข้อความ Error แจ้งเตือนใต้ช่องกรอก -->
+            <div id="login-error-msg"></div>
 
-        <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow mt-3">
-            <span id="login-text">ลงชื่อเข้าใช้งาน</span>
-            <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span> กำลังโหลด...</span>
-        </button>
+            <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow mt-3">
+                <span id="login-text">ลงชื่อเข้าใช้งาน</span>
+                <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm"></span> กำลังโหลด...</span>
+            </button>
+        </div>
     </div>
 
     <!-- ===== PREVIEW MODAL ===== -->
