@@ -795,61 +795,71 @@
         }
 
         // ===== ตรวจสอบเวลาของวันปัจจุบันทันทีที่โหลด =====
+        // --- ฟังก์ชันช่วยแปลงวันที่ภาษาไทย <script> ---
+        function formatThaiFull(ts) {
+            if (!ts) return { date: "-", time: "-" };
+            const d = new Date(ts);
+            const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            return {
+                date: `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`,
+                time: d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0')
+            };
+        }
+        
+        // --- แก้ไขฟังก์ชัน checkCurrentDay เดิม ---
         async function checkCurrentDay() {
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'getTimerSettings' })
                 });
-                const timer = await res.json();
-
-                if (!timer || timer.success === false) {
+                const timerData = await res.json();
+        
+                if (!timerData || timerData.success === false) {
                     setInputsEnabled(false);
-                    showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>ไม่สามารถดึงข้อมูลเวลาได้</b> กรุณาลองรีเฟรชหน้า`);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>ไม่สามารถดึงข้อมูลเวลาได้</b>`);
                     return;
                 }
-
-                const now   = new Date().getTime();
-                const start = (day === 1) ? timer.day1Open  : timer.day2Open;
-                const end   = (day === 1) ? timer.day1Close : timer.day2Close;
-
-                const fmt = (ts) => new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                const fmtDate = (ts) => {
-                    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-                    const d = new Date(ts);
-                    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
-                };
-
-                if (start === null || end === null) {
+        
+                const now = new Date().getTime();
+                // ดึงเวลาตามวันที่เลือก (day 1 หรือ day 2)
+                const config = (day === 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
+                
+                const start = config.start;
+                const end = config.end;
+        
+                if (!start || !end) {
                     setInputsEnabled(false);
-                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดช่วงเวลาลงทะเบียน</b>`);
-
-                } else if (now < start) {
+                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดเวลาลงทะเบียน</b>`);
+                    return;
+                }
+        
+                const fmtStart = formatThaiFull(start);
+                const fmtEnd = formatThaiFull(end);
+        
+                if (now < start) {
                     setInputsEnabled(false);
                     showTimerBanner('closed',
                         `<i class="fa-solid fa-clock me-2"></i><b>ยังไม่ถึงเวลาลงทะเบียน</b><br>` +
-                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; เปิดรับ <b>${fmt(start)}</b> – <b>${fmt(end)} น.</b>`
+                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; เปิดรับ <b>${fmtStart.time}</b> – <b>${fmtEnd.time} น.</b>`
                     );
-
                 } else if (now > end) {
                     setInputsEnabled(false);
                     showTimerBanner('closed',
                         `<i class="fa-solid fa-circle-xmark me-2"></i><b>ปิดรับลงทะเบียนแล้ว</b><br>` +
-                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; ช่วงเวลา <b>${fmt(start)}</b> – <b>${fmt(end)} น.</b>`
+                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; ช่วงเวลา <b>${fmtStart.time}</b> – <b>${fmtEnd.time} น.</b>`
                     );
-
                 } else {
                     setInputsEnabled(true);
                     showTimerBanner('open',
                         `<i class="fa-solid fa-circle-check me-2"></i><b>เปิดรับลงทะเบียน</b><br>` +
-                        `วันที่ ${fmtDate(start)} &nbsp;|&nbsp; ถึง <b>${fmt(end)} น.</b>`
+                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; ถึง <b>${fmtEnd.time} น.</b>`
                     );
                 }
-
+        
             } catch (e) {
                 setInputsEnabled(false);
                 showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>เกิดข้อผิดพลาด:</b> ${e.toString()}`);
-                console.error("checkCurrentDay Error:", e);
             }
         }
 
