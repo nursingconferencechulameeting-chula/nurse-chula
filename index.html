@@ -569,7 +569,10 @@
                         <span class="me-2 opacity-50 small">ID:</span>
                         <span id="p-id">-</span>
                     </div>
-
+                    <div id="license-area" class="mb-3" style="margin-top: -10px;">
+                        <small class="text-secondary">เลขที่ใบประกอบวิชาชีพ:</small>
+                        <div id="p-license" class="fw-bold text-primary">-</div>
+                    </div>
                     <!-- *** ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
                     <div id="already-scanned-area" class="d-none">
                         <div class="scanned-status-badge">
@@ -1031,9 +1034,18 @@
                     // 2. แสดงข้อมูลพื้นฐาน
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = u.id; // โชว์เฉพาะรหัสใน Badge
+                    // --- เพิ่มส่วนการแสดงผล เลขที่ใบประกอบวิชาชีพ ---
+                    const licenseArea = document.getElementById('license-area');
+                    if (u.license && u.license !== "-" && u.license !== "") {
+                        licenseArea.style.display = 'block';
+                        document.getElementById('p-license').innerText = u.license;
+                    } else {
+                        licenseArea.style.display = 'none'; // ซ่อนถ้าไม่มีข้อมูล
+                    }
+                    // -------------------------------------------
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
-
+                    
                     // 3. จัดการส่วน หน่วยงาน/สังกัด
                     const deptArea = document.getElementById('dept-area');
                     const regType = u.regType ? u.regType.toString().trim() : "";
