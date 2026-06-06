@@ -912,13 +912,13 @@
                     setStaffName(result.name);
                     fetchHistory();
                     checkCurrentDay();
-                    resetLoginUI(); // หยุด spinner เตรียมไว้สำหรับรอบหน้า
+                    resetLoginButton(); // หยุด spinner เตรียมไว้สำหรับรอบหน้า
                 } else {
-                    resetLoginUI(); // หยุด spinner ทันทีถ้ารหัสผิด
+                    resetLoginButton(); // หยุด spinner ทันทีถ้ารหัสผิด
                     showLoginError(result.message || "รหัสไม่ถูกต้อง");
                 }
             } catch (e) {
-                resetLoginUI(); // หยุด spinner ทันทีถ้าเน็ตหลุด
+                resetLoginButton(); // หยุด spinner ทันทีถ้าเน็ตหลุด
                 showLoginError("การเชื่อมต่อขัดข้อง");
             }
         }
@@ -978,7 +978,7 @@
 
                     // รีเซ็ตหน้าจอ Login และหยุด Spinner ทันที
                     document.getElementById('staff-id').value = '';
-                    resetLoginUI(); 
+                    resetLoginButton(); 
 
                     document.getElementById('login-error-msg').style.display = 'none';
                     document.getElementById('login-screen').classList.remove('d-none');
