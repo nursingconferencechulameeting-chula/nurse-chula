@@ -556,7 +556,7 @@
                     <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
                 </div>
                 <div class="modal-body text-center p-4">
-                    <!-- ซ่อนไว้ยังไม่ใช้งาน -->
+                  <!-- ซ่อนไว้ก่อนยังไม่ใช่งาน -->
                     <div class="profile-box d-none">
                         <img id="p-img" src="" style="display: none;" alt="profile">
                         <i id="p-icon" class="fa-solid fa-user-tie"></i>
@@ -569,10 +569,7 @@
                         <span class="me-2 opacity-50 small">ID:</span>
                         <span id="p-id">-</span>
                     </div>
-                    <div id="license-area" class="mb-3" style="margin-top: -10px;">
-                        <small class="text-secondary">เลขที่ใบประกอบวิชาชีพ:</small>
-                        <div id="p-license" class="fw-bold text-primary">-</div>
-                    </div>
+
                     <!-- *** ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
                     <div id="already-scanned-area" class="d-none">
                         <div class="scanned-status-badge">
@@ -872,6 +869,16 @@
             setTimeout(() => { el.style.display = 'none'; }, 400);
         }
 
+        function resetLoginButton() {
+            const btn = document.getElementById('login-btn');
+            const text = document.getElementById('login-text');
+            const loader = document.getElementById('login-loader');
+            
+            btn.disabled = false;
+            text.classList.remove('d-none');
+            loader.classList.add('d-none');
+        }
+
         // ===== LOGIN =====
         async function login() {
             const idInput = document.getElementById('staff-id');
@@ -886,7 +893,6 @@
                 return;
             }
 
-            // เริ่มโหลด (UI Response ทันที)
             btn.disabled = true;
             text.classList.add('d-none');
             loader.classList.remove('d-none');
@@ -902,25 +908,18 @@
                 if (result.isAllowed) {
                     staff = result;
                     localStorage.setItem('staff_session', JSON.stringify(result));
-                    
-                    // ปิดหน้า Login ทันที (เร็วขึ้นเพราะไม่ต้อง reload)
                     document.getElementById('login-screen').classList.add('d-none');
                     setStaffName(result.name);
-                    
-                    // โหลดข้อมูลหลังบ้าน
                     fetchHistory();
                     checkCurrentDay();
+                    resetLoginUI(); // หยุด spinner เตรียมไว้สำหรับรอบหน้า
                 } else {
-                    showLoginError("รหัสไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
-                    btn.disabled = false;
-                    text.classList.remove('d-none');
-                    loader.classList.add('d-none');
+                    resetLoginUI(); // หยุด spinner ทันทีถ้ารหัสผิด
+                    showLoginError(result.message || "รหัสไม่ถูกต้อง");
                 }
             } catch (e) {
-                showLoginError("การเชื่อมต่อขัดข้อง กรุณาลองใหม่");
-                btn.disabled = false;
-                text.classList.remove('d-none');
-                loader.classList.add('d-none');
+                resetLoginUI(); // หยุด spinner ทันทีถ้าเน็ตหลุด
+                showLoginError("การเชื่อมต่อขัดข้อง");
             }
         }
 
@@ -973,23 +972,16 @@
                 cancelButtonText: 'ยกเลิก'
             }).then((r) => {
                 if (r.isConfirmed) {
-                    // 1. ล้างข้อมูลในเครื่อง
                     localStorage.removeItem('staff_session');
                     staff = null;
-
-                    // 2. หยุดกล้องทันที
                     if (isScanning) toggleScanner(false);
 
-                    // 3. รีเซ็ตหน้าจอ Login
+                    // รีเซ็ตหน้าจอ Login และหยุด Spinner ทันที
                     document.getElementById('staff-id').value = '';
-                    document.getElementById('staff-id').classList.remove('is-invalid');
+                    resetLoginUI(); 
+
                     document.getElementById('login-error-msg').style.display = 'none';
                     document.getElementById('login-screen').classList.remove('d-none');
-
-                    // 4. รีเซ็ตข้อมูลในแอป (ป้องกันคนอื่นมาเห็นข้อมูลเดิม)
-                    document.getElementById('history-box').innerHTML = '<p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูล</p>';
-                    document.getElementById('ui-present').innerText = '0';
-                    document.getElementById('ui-absent').innerText = '0';
                     setStaffName("กำลังโหลด...");
                 }
             });
@@ -1034,18 +1026,9 @@
                     // 2. แสดงข้อมูลพื้นฐาน
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = u.id; // โชว์เฉพาะรหัสใน Badge
-                    // --- เพิ่มส่วนการแสดงผล เลขที่ใบประกอบวิชาชีพ ---
-                    const licenseArea = document.getElementById('license-area');
-                    if (u.license && u.license !== "-" && u.license !== "") {
-                        licenseArea.style.display = 'block';
-                        document.getElementById('p-license').innerText = u.license;
-                    } else {
-                        licenseArea.style.display = 'none'; // ซ่อนถ้าไม่มีข้อมูล
-                    }
-                    // -------------------------------------------
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
-                    
+
                     // 3. จัดการส่วน หน่วยงาน/สังกัด
                     const deptArea = document.getElementById('dept-area');
                     const regType = u.regType ? u.regType.toString().trim() : "";
