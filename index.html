@@ -165,10 +165,34 @@
         }
 
         .manual-box {
-            display: flex; overflow: hidden; margin-top: 15px; padding: 6px;
-            background: #f1f5f9; border-radius: 1rem; border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;    /* (1) จัดให้ input และปุ่มอยู่กึ่งกลางแนวตั้งพอดีกัน */
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 5px;           /* (2) เพิ่มช่องว่างรอบๆ ปุ่ม เพื่อไม่ให้ปุ่มติดขอบกล่อง */
+            margin-top: 15px;
         }
-        .manual-box input { flex: 1; border: none; outline: none; background: transparent; padding: 4px 8px; text-align: center; font-weight: 700; }
+        
+        .manual-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 10px;
+            text-align: left;
+            font-weight: 500; 
+        }
+        
+        .manual-box button {
+            background: #1e293b;
+            color: #ffffff;
+            border: none;
+            border-radius: 0.8rem;
+            padding: 10px 20px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
 
         /* ============================================================
         6) STATUS, TIMER & LIST ITEMS
