@@ -18,33 +18,28 @@
 
     <style>
         /* ============================================================
-        1) ROOT VARIABLES
+        1) ROOT VARIABLES & BASE
         ============================================================ */
         :root {
-            --nav-h: 70px;              /* ความสูง Navbar (Desktop) */
+            --nav-h: 70px;
             --primary-color: #4f46e5;
         }
 
         @media (max-width: 767px) {
-            :root {
-                --nav-h: 125px;         /* ความสูง Navbar (Mobile 2 แถว) */
-            }
+            :root { --nav-h: 125px; }
         }
 
-        /* ============================================================
-        2) BASE / GLOBAL
-        ============================================================ */
         body {
             font-family: 'Prompt', sans-serif;
             background-color: #f1f5f9;
             height: 100vh;
             overflow: hidden;
             margin: 0;
-            padding-top: var(--nav-h);  /* ดันเนื้อหาลงตามความสูง Navbar */
+            padding-top: var(--nav-h);
         }
 
         /* ============================================================
-        3) NAVBAR
+        2) NAVBAR (PC & MOBILE)
         ============================================================ */
         .navbar {
             position: fixed;
@@ -56,13 +51,8 @@
             align-items: center;
         }
 
-        .navbar .container-fluid {
-            height: 100%;
-            display: flex;
-            padding: 0 16px;
-        }
+        .navbar .container-fluid { height: 100%; display: flex; padding: 0 16px; }
 
-        /* ---------- Navbar Components ---------- */
         .staff-tag {
             background: var(--primary-color);
             color: #ffffff;
@@ -73,581 +63,176 @@
             white-space: nowrap;
         }
 
-        .nav-tabs-custom {
-            display: flex;
-            gap: 4px;
-            background: #f1f5f9;
-            padding: 4px;
-            border-radius: 12px;
-        }
-
+        .nav-tabs-custom { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 12px; }
         .nav-tabs-custom .btn-day {
-            border: none;
-            background: transparent;
-            padding: 6px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #64748b;
-            transition: 0.2s;
+            border: none; background: transparent; padding: 6px 20px;
+            border-radius: 8px; font-weight: 600; font-size: 0.85rem;
+            color: #64748b; transition: 0.2s;
         }
+        .nav-tabs-custom .btn-day.active { background: #ffffff; color: var(--primary-color); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
 
-        .nav-tabs-custom .btn-day.active {
-            background: #ffffff;
-            color: var(--primary-color);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        /* ---------- Layout Switch (PC / Mobile) ---------- */
-        .pc-layout {
-            display: flex;
-            width: 100%;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .mobile-layout {
-            display: none;
-            width: 100%;
-            flex-direction: column;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        @media (max-width: 575px) {
-            .pc-layout { 
-                display: none !important; 
-            }
-
-            .mobile-layout {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                gap: 8px;
-                width: 100%;
-            }
-
-            .mobile-row1 {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
-            }
-
-            .mobile-row2 {
-                width: 100%;
-            }
-
-            /* ปรับปุ่มให้เต็มพื้นที่ในแถวที่ 2 */
-            .mobile-row2 .nav-tabs-custom {
-                width: 100%;
-                display: flex;
-            }
-
-            .mobile-row2 .btn-day {
-                flex: 1;            /* ขยายให้กว้างเท่ากันทั้ง 2 ปุ่ม */
-                text-align: center;
-                padding: 10px 0;    /* เพิ่มความสูงให้กดง่ายขึ้น */
-                font-size: 0.9rem;
-            }
-        }
-
-        @media (min-width: 768px) {
-            .pc-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
-            .mobile-layout { display: none !important; }
-        }
+        .pc-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+        .mobile-layout { display: none; width: 100%; flex-direction: column; gap: 8px; }
 
         @media (max-width: 767px) {
             .pc-layout { display: none !important; }
-            .mobile-layout {
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-                gap: 10px;             /* ระยะห่างระหว่างแถวบนกับแถวล่าง */
-                padding: 5px 0;
-            }
-
-            /* แถวที่ 1: ชื่อระบบ + ปุ่มออก */
-            .mobile-row1 {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
-            }
-
-            /* แถวที่ 2: ปุ่มวันที่แบบเต็มพื้นที่ */
-            .mobile-row2 {
-                width: 100%;
-            }
-
-            .mobile-row2 .nav-tabs-custom {
-                display: flex;
-                width: 100%;           /* แถบสีเทายาวเต็มจอ */
-                background: #f1f5f9;
-                padding: 4px;
-                border-radius: 12px;
-            }
-
-            .mobile-row2 .btn-day {
-                flex: 1;               /* บังคับให้ปุ่มกว้างเท่ากันคนละ 50% */
-                text-align: center;
-                padding: 10px 0;       /* เพิ่มความสูงปุ่มให้กดง่าย */
-                border-radius: 10px;
-                font-size: 0.95rem;    /* ตัวอักษรใหญ่ขึ้นเล็กน้อย */
-            }
+            .mobile-layout { display: flex; }
+            .mobile-row1 { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+            .mobile-row2 { width: 100%; }
+            .mobile-row2 .nav-tabs-custom { width: 100%; display: flex; }
+            .mobile-row2 .btn-day { flex: 1; text-align: center; padding: 10px 0; font-size: 0.95rem; border-radius: 10px; }
         }
+
         /* ============================================================
-        4) MAIN APP LAYOUT
+        3) APP LAYOUT & SIDEBAR
         ============================================================ */
-        .app-wrapper {
-            display: flex;
-            height: calc(100vh - var(--nav-h));
-        }
+        .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
+        .panel-left { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .sidebar-right { width: 480px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; }
 
-        .panel-left {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .sidebar-right {
-            width: 480px;
-            background: #ffffff;
-            border-left: 1px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* ---------- Responsive Layout ---------- */
         @media (max-width: 991px) {
-            body {
-                height: auto;
-                overflow-y: auto;
-            }
-            .app-wrapper {
-                flex-direction: column;
-                height: auto;
-            }
-            .sidebar-right {
-                width: 100%;
-                border-left: none;
-                border-top: 1px solid #e2e8f0;
-            }
+            body { height: auto; overflow-y: auto; }
+            .app-wrapper { flex-direction: column; height: auto; }
+            .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
         }
 
         /* ============================================================
- /* ============================================================
-        5) LOGIN & SCANNER SCREEN (RE-DESIGNED)
+        4) LOGIN SCREEN (GLASSMORPHISM)
         ============================================================ */
         #login-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            /* พื้นหลังไล่เฉดสีให้ดูพรีเมียม */
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
             background: radial-gradient(circle at top right, #4f46e5, #1e293b);
         }
 
         .login-card {
-            width: 100%;
-            max-width: 400px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 2.5rem;
-            padding: 40px 30px;
+            width: 100%; max-width: 400px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            border-radius: 2.5rem; padding: 40px 30px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            animation: fadeInUp 0.6s ease-out;
+            text-align: center; animation: fadeInUp 0.6s ease-out;
         }
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         .login-logo {
-            width: 70px;
-            height: 70px;
-            background: #eef2ff;
-            color: var(--primary-color);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 1.8rem;
+            width: 70px; height: 70px; background: #eef2ff; color: var(--primary-color);
+            border-radius: 20px; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px; font-size: 1.8rem;
         }
 
-        .login-header h4 {
-            color: #1e293b;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
+        .login-header h4 { color: #1e293b; font-weight: 600; margin-bottom: 8px; }
+        .login-header p { color: #64748b; font-size: 0.9rem; margin-bottom: 25px; }
 
-        .login-header p {
-            color: #64748b;
-            font-size: 0.9rem;
-            margin-bottom: 25px;
-        }
-
-        .input-group-custom {
-            position: relative;
-            margin-bottom: 15px;
-        }
-
-        .input-group-custom i.prefix-icon {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            z-index: 5;
-        }
-
-        /* ปรับปรุงช่องกรอก ID เจ้าหน้าที่ */
-        #staff-id {
-            padding-left: 50px !important; 
-            padding-right: 45px !important;
-            height: 55px;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px !important;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-
-        #staff-id:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-        }
-
-        #staff-id.is-invalid {
-            border-color: #ef4444 !important;
-            background-image: none !important;
-        }
-
+        /* Shared Password & Input Styles */
         .password-wrapper { position: relative; width: 100%; }
+        .input-group-custom { position: relative; margin-bottom: 15px; }
+        .input-group-custom i.prefix-icon {
+            position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; z-index: 5;
+        }
+
+        #staff-id {
+            padding-left: 50px !important; padding-right: 45px !important;
+            height: 55px; border: 2px solid #e2e8f0; border-radius: 15px !important;
+            transition: all 0.3s ease; font-size: 1.1rem; font-weight: normal; /* ไม่อ่านยาก */
+        }
+        #staff-id:focus { border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        #staff-id.is-invalid { border-color: #ef4444 !important; background-image: none !important; }
 
         .toggle-password {
-            position: absolute; right: 15px; top: 50%;
-            transform: translateY(-50%); cursor: pointer;
-            color: #94a3b8; z-index: 10; font-size: 1.1rem;
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; color: #94a3b8; z-index: 10; font-size: 1.2rem;
         }
 
+        /* Error Msg - กำหนดครั้งเดียว */
         #login-error-msg {
-            display: none; color: #ef4444; font-size: 0.85rem;
-            font-weight: 600; margin-top: 8px; text-align: left;
-            padding-left: 5px;
+            display: none; color: #ef4444; font-size: 0.85rem; font-weight: 600;
+            margin-top: 8px; text-align: left; padding-left: 5px;
         }
 
-        /* Scanner Box (ส่วนหลังจาก Login แล้ว) */
+        /* ============================================================
+        5) SCANNER & MANUAL ENTRY
+        ============================================================ */
         .scanner-card {
-            width: 100%;
-            max-width: 480px;
-            background: #ffffff;
-            border-radius: 2rem;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%; max-width: 480px; background: #ffffff;
+            border-radius: 2rem; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
         .cam-view {
-            width: 100%;
-            aspect-ratio: 4 / 3;
-            background: #000000;
-            border-radius: 1.2rem;
-            overflow: hidden;
-            margin-bottom: 15px;
-            position: relative;
+            width: 100%; aspect-ratio: 4 / 3; background: #000000;
+            border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative;
         }
 
-        /* ============================================================
-        6) INPUT / MANUAL ENTRY
-        ============================================================ */
         .manual-box {
-            display: flex;
-            overflow: hidden;
-            margin-top: 15px;
-            padding: 6px;
-            background: #f1f5f9;
-            border-radius: 1rem;
-            border: 1px solid #e2e8f0;
+            display: flex; overflow: hidden; margin-top: 15px; padding: 6px;
+            background: #f1f5f9; border-radius: 1rem; border: 1px solid #e2e8f0;
         }
-
-        .manual-box input {
-            flex: 1;
-            border: none;
-            outline: none;
-            background: transparent;
-            padding: 4px 8px;
-            text-align: center;
-            font-weight: 700;
-        }
+        .manual-box input { flex: 1; border: none; outline: none; background: transparent; padding: 4px 8px; text-align: center; font-weight: 700; }
 
         /* ============================================================
-        7) STATUS / TIMER
+        6) STATUS, TIMER & LIST ITEMS
         ============================================================ */
-        #timer-banner {
-            display: none;
-            width: 100%;
-            max-width: 480px;
-            margin-bottom: 15px;
-            padding: 14px 18px;
-            font-size: 0.875rem;
-            border-radius: 1rem;
-        }
+        #timer-banner { display: none; width: 100%; max-width: 480px; margin-bottom: 15px; padding: 14px 18px; font-size: 0.875rem; border-radius: 1rem; }
+        #timer-banner.status-closed { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
+        #timer-banner.status-open { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
 
-        #timer-banner.status-closed {
-            background: #fef2f2;
-            border: 1.5px solid #fca5a5;
-            color: #b91c1c;
-        }
-
-        #timer-banner.status-open {
-            background: #f0fdf4;
-            border: 1.5px solid #86efac;
-            color: #15803d;
-        }
-
-        /* ============================================================
-        8) LIST / PROFILE COMPONENTS
-        ============================================================ */
-        .id-item {
-            display: flex;
-            align-items: center;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-
+        .id-item { display: flex; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 12px; margin-bottom: 10px; }
         .id-num {
-            width: 75px;
-            height: 45px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            background: #eef2ff;
-            color: #4f46e5;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.85rem;
+            width: 75px; height: 45px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; margin-right: 15px; background: #eef2ff;
+            color: #4f46e5; border-radius: 12px; font-weight: 700; font-size: 0.85rem;
         }
 
         .profile-box {
-            width: 150px;
-            height: 180px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            background: #f8fafc;
-            border-radius: 20px;
-            border: 4px solid #ffffff;
-            overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 150px; height: 180px; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 15px; background: #f8fafc; border-radius: 20px;
+            border: 4px solid #ffffff; overflow: hidden; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-
-        .profile-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        .profile-box img { width: 100%; height: 100%; object-fit: cover; }
 
         /* ============================================================
-        9) SPLASH SCREEN
+        7) MODAL & PREVIEW
         ============================================================ */
-        #splash-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #1e293b;
-        }
-
-        .loader-circle {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* ============================================================
-        10) MODAL - PREVIEW USER COMPONENTS
-        ============================================================ */
-
-        /* ชื่อผู้ใช้งานใน Modal */
-        #p-name {
-            font-size: 1.5rem;
-            color: #1e293b;
-            margin-bottom: 5px;
-        }
-
-        /* กรอบ ID ทรงแคปซูลสีฟ้า (เด่นชัด) */
+        #p-name { font-size: 1.5rem; color: #1e293b; margin-bottom: 5px; }
         .modal-id-wrapper {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #eef2ff;      /* สีฟ้าอ่อน */
-            color: var(--primary-color);
-            padding: 5px 18px;
-            border-radius: 50px;      /* ทรงแคปซูล */
-            border: 1px solid #c7d2fe;
-            margin-bottom: 15px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: #eef2ff; color: var(--primary-color); padding: 5px 18px;
+            border-radius: 50px; border: 1px solid #c7d2fe; margin-bottom: 15px;
         }
+        #p-id { font-size: 1.25rem; font-weight: 800; letter-spacing: 0.5px; margin: 0; }
 
-        /* ตัวเลข ID ภายในกรอบ */
-        #p-id {
-            font-size: 1.25rem;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            margin: 0;
-        }
-
-        /* แถบสถานะ "ลงชื่อแล้ว" (สีเขียว + เวลา) */
         .scanned-status-badge {
-            background: #f0fdf4;      /* พื้นเขียวอ่อน */
-            color: #15803d;           /* ตัวอักษรเขียวเข้ม */
-            border: 1px solid #bbf7d0;
-            padding: 12px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 0 auto 15px;
-            width: 100%;
-            max-width: 350px;         /* จำกัดความกว้างบนจอใหญ่ */
+            background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;
+            padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin: 0 auto 15px; width: 100%; max-width: 350px;
         }
 
-        .scanned-status-badge i {
-            font-size: 1.2rem;
-        }
-
-        /* ปรับแต่งส่วนรายละเอียดใน Modal ให้ดูสะอาดขึ้น */
-        .modal-body .bg-light {
-            border: 1px solid #e2e8f0;
-        }
-
-        /* ส่วนของรหัสผ่านและดวงตา */
-        .password-wrapper {
-            position: relative;
-            width: 100%;
-        }
-        .password-wrapper .toggle-password {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: #94a3b8;
-            z-index: 10;
-            font-size: 1.2rem;
-        }
-        /* ข้อความแจ้งเตือน Error */
-        #login-error-msg {
-            font-size: 0.85rem;
-            color: #ef4444;
-            margin-top: 8px;
-            display: none; /* ซ่อนไว้ก่อน */
-            font-weight: 600;
-        }
-        /* ปรับช่อง Input ให้ดูโปรขึ้น */
-        #staff-id.is-invalid {
-            border-color: #ef4444;
-            background-image: none; /* ปิดไอคอน default ของ bootstrap */
-        }
-        
-        /* --- ปรับปรุงรายการประวัติให้ดูน่าสนใจขึ้น --- */
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        /* เน้นรายการล่าสุดที่เพิ่งสแกนเข้ามา */
-        #history-box .id-item:first-child {
-            animation: slideInRight 0.5s ease-out;
-            border-left: 5px solid var(--primary-color);
-            background: linear-gradient(to right, #f8faff, #ffffff);
-        }
-        
-        /* ปรับปรุง Scrollbar ของรายการประวัติ */
-        #history-box {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-        }
-        
-        #history-box::-webkit-scrollbar {
-            width: 6px;
-        }
-        #history-box::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        #history-box::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        #history-box::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        /* ส่วนของช่องค้นหาใน Sidebar */
-        .search-wrapper {
-            padding: 12px 16px;
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .search-input-group {
-            position: relative;
-        }
-        
-        .search-input-group i {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            font-size: 0.9rem;
-        }
-        
+        /* ============================================================
+        8) SEARCH, SCROLLBAR & ANIMATION
+        ============================================================ */
+        .search-wrapper { padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+        .search-input-group { position: relative; }
+        .search-input-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem; }
         .search-input-group input {
-            width: 100%;
-            padding: 8px 12px 8px 35px;
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            transition: all 0.2s;
+            width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9;
+            border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; transition: all 0.2s;
         }
-        
-        .search-input-group input:focus {
-            outline: none;
-            background: #ffffff;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
+        .search-input-group input:focus { outline: none; background: #ffffff; border-color: var(--primary-color); }
+
+        #history-box { flex: 1; overflow-y: auto; padding: 15px; }
+        #history-box::-webkit-scrollbar { width: 6px; }
+        #history-box::-webkit-scrollbar-track { background: #f1f5f9; }
+        #history-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        #history-box .id-item:first-child { animation: slideInRight 0.5s ease-out; border-left: 5px solid var(--primary-color); background: linear-gradient(to right, #f8faff, #ffffff); }
+
+        /* Splash Screen */
+        #splash-screen { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1e293b; }
+        .loader-circle { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -657,7 +242,7 @@
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
     </div>
 
-    <!-- ===== LOGIN SCREEN (COMPLETE SET) ===== -->
+    <!-- ===== LOGIN SCREEN (ห้ามพิมพ์ไทย) ===== -->
     <div id="login-screen">
         <div class="login-card">
             <div class="login-logo">
@@ -665,7 +250,7 @@
             </div>
             <div class="login-header">
                 <div class="staff-tag d-inline-block mb-2">สำหรับเจ้าหน้าที่</div>
-                <h4>เข้าใช้งานระบบลงทะเบียน</h4>
+                <h4 style="font-weight: 600;">เข้าใช้งานระบบลงทะเบียน</h4>
                 <p>งานประชุมวิชาการพยาบาลประจำปี 2569</p>
             </div>
             
@@ -673,14 +258,20 @@
                 <!-- ไอคอนกุญแจหน้าช่องกรอก -->
                 <i class="fa-solid fa-lock prefix-icon"></i>
                 <div class="password-wrapper">
-                    <input type="password" id="staff-id" class="form-control fw-bold" placeholder="รหัสผ่านเจ้าหน้าที่" autofocus>
+                    <!-- ลบ fw-bold ออก และเพิ่มคำสั่งป้องกันภาษาไทย -->
+                    <input type="password" 
+                           id="staff-id" 
+                           class="form-control" 
+                           placeholder="รหัสผ่านเจ้าหน้าที่" 
+                           oninput="this.value = this.value.replace(/[ก-๙]/g, '')"
+                           autofocus>
                     <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
                 </div>
                 <!-- ข้อความแจ้งเตือน Error -->
                 <div id="login-error-msg"></div>
             </div>
 
-            <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 fw-bold shadow-lg mt-2" style="height: 55px;">
+            <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 shadow-lg mt-2" style="height: 55px;">
                 <span id="login-text">ลงชื่อเข้าใช้งาน <i class="fa-solid fa-arrow-right ms-1"></i></span>
                 <span id="login-loader" class="d-none">
                     <span class="spinner-border spinner-border-sm me-2"></span> กำลังตรวจสอบ...
@@ -1092,6 +683,21 @@
             const togglePassword = document.getElementById('togglePassword');
             const errorMsg = document.getElementById('login-error-msg');
 
+            // ป้องกันภาษาไทยจากการพิมพ์และการ Paste (วางข้อมูล)
+            staffInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[ก-๙]/g, '');
+            });
+            staffInput.addEventListener('paste', function(e) {
+                let pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                if (/[ก-๙]/.test(pasteData)) {
+                    e.preventDefault();
+                    // แจ้งเตือนสั้นๆ (ถ้าต้องการ)
+                    const errorMsg = document.getElementById('login-error-msg');
+                    errorMsg.innerText = "ห้ามใช้ตัวอักษรภาษาไทย";
+                    errorMsg.style.display = "block";
+                }
+            });
+            
             // สลับการมองเห็นรหัสผ่าน (รูปดวงตา)
             if (togglePassword) {
                 togglePassword.addEventListener('click', function() {
