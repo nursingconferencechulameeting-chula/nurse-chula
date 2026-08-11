@@ -99,6 +99,10 @@
         /* ============================================================
         4) LOGIN SCREEN (GLASSMORPHISM)
         ============================================================ */
+        /* บังคับให้ SweetAlert2 อยู่หน้าสุดเสมอ (สูงกว่าหน้า Login ที่ตั้งไว้ 9999) */
+        .swal2-container {
+            z-index: 10500 !important;
+        }
         #login-screen {
             position: fixed; 
             inset: 0; 
@@ -536,11 +540,6 @@
                 cancelButtonText: 'ยกเลิก',
                 showCancelButton: true,
                 confirmButtonColor: '#4f46e5',
-                // เพิ่มบรรทัดนี้เพื่อดัน Popup มาไว้หน้าสุด
-                didOpen: () => {
-                    const container = Swal.getContainer();
-                    if (container) container.style.zIndex = '3000';
-                }
             });
         
             if (email) {
