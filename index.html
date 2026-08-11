@@ -770,7 +770,8 @@
 
                 if (result.isAllowed) {
                     staff = result;
-                    localStorage.setItem('staff_session', JSON.stringify(result));
+                    // localStorage.setItem('staff_session', JSON.stringify(result));
+                    document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('login-screen').classList.add('d-none');
                     setStaffName(result.name);
                     fetchHistory();
@@ -852,7 +853,7 @@
             }).then((r) => {
                 if (r.isConfirmed) {
                     stopAutoRefresh();
-                    localStorage.removeItem('staff_session');
+                    // localStorage.removeItem('staff_session');
                     staff = null;
                     if (isScanning) toggleScanner(false);
 
