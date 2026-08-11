@@ -1037,6 +1037,7 @@
                     } else {
                         box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`;
                     }
+                    // ✅ เพิ่มคำสั่งนี้ เพื่อให้ระบบกรองข้อมูลรายชื่อใหม่ (กรณีที่แอดมินพิมพ์ช่องค้นหาค้างไว้)
                     filterHistory();
                 } else {
                     box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`;
