@@ -524,6 +524,12 @@
 
         /** บูรณาการระบบกู้คืนรหัสผ่านเข้ากับ UI ของ Smart QR Check-in */
         async function handleForgotPassword() {
+            // 🟢 1. สั่งปิดหน้าต่าง Modal ที่เปิดอยู่ก่อน (ตามคำสั่งที่คุณให้มา)
+            const activeModal = document.querySelector('.modal.show');
+            if (activeModal) {
+                const modalInstance = bootstrap.Modal.getInstance(activeModal);
+                if (modalInstance) modalInstance.hide();
+            }
             const { value: email } = await Swal.fire({
                 title: 'กู้คืนรหัสผ่าน',
                 input: 'email',
