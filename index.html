@@ -511,6 +511,7 @@
         let currentStream = null;
         let previewModal = null;
         let currentPreviewId = null; // เก็บ ID ที่กำลัง Preview อยู่
+        let autoRefreshInterval = null;
 
         const video = document.getElementById("video");
         const canvas = document.getElementById("canvas");
@@ -535,7 +536,10 @@
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').style.display = 'd-none';
                 setStaffName(staff.name);
-                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
+                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => {
+                    hideSplash(splash);
+                    startAutoRefresh();
+                });
             } else {
                 hideSplash(splash);
             }
@@ -680,6 +684,7 @@
                     setStaffName(result.name);
                     fetchHistory();
                     checkCurrentDay();
+                    startAutoRefresh();
                     resetLoginButton(); // หยุด spinner เตรียมไว้สำหรับรอบหน้า
                 } else {
                     resetLoginButton(); // หยุด spinner ทันทีถ้ารหัสผิด
@@ -755,6 +760,7 @@
                 cancelButtonText: 'ยกเลิก'
             }).then((r) => {
                 if (r.isConfirmed) {
+                    stopAutoRefresh();
                     localStorage.removeItem('staff_session');
                     staff = null;
                     if (isScanning) toggleScanner(false);
@@ -990,15 +996,19 @@
         }
 
         // ===== FETCH HISTORY =====
-        async function fetchHistory() {
+        async function fetchHistory(isBackground = false) {
             const box = document.getElementById('history-box');
-            box.innerHTML = `
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <div class="text-muted fw-bold">กำลังโหลดข้อมูล...</div>
-                </div>`;
+            
+            // จะแสดงวงกลม Loading ก็ต่อเมื่อ "ไม่ได้" เป็นการโหลดเบื้องหลัง (เช่น ตอนแอดมินกดเปลี่ยนวัน)
+            if (!isBackground) {
+                box.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="text-muted fw-bold">กำลังโหลดข้อมูล...</div>
+                    </div>`;
+            }
 
             try {
                 const res = await fetch(GAS_URL, {
@@ -1008,14 +1018,13 @@
                 const result = await res.json();
 
                 if (result.success) {
-
-                    // อัปเดตตัวเลขจำนวนที่มุมบนขวา
                     const presentEl = document.getElementById('ui-present');
                     const absentEl = document.getElementById('ui-absent');
                     if (presentEl) presentEl.innerText = result.present;
                     if (absentEl) absentEl.innerText = result.absent;
 
                     if (result.records.length > 0) {
+                        // นำข้อมูลมาวาด HTML (ใช้โค้ดที่แก้ไขเอา .reverse() ออกจากข้อที่แล้ว)
                         box.innerHTML = result.records.map(r => {
                             let displayId = r.id.toString().trim();
                             if (!isNaN(displayId) && displayId !== "") displayId = displayId.padStart(3, '0');
@@ -1037,13 +1046,15 @@
                     } else {
                         box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`;
                     }
-                    // ✅ เพิ่มคำสั่งนี้ เพื่อให้ระบบกรองข้อมูลรายชื่อใหม่ (กรณีที่แอดมินพิมพ์ช่องค้นหาค้างไว้)
+
+                    // อัปเดตเงื่อนไขการค้นหา
                     filterHistory();
+
                 } else {
-                    box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`;
+                    if (!isBackground) box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`;
                 }
             } catch (e) {
-                box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+                if (!isBackground) box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
                 console.error("History Error:", e);
             }
         }
@@ -1093,6 +1104,23 @@
                 noResultMsg.remove();
             }
         }
+
+        // เริ่มตั้งเวลา Auto-refresh
+        function startAutoRefresh() {
+            stopAutoRefresh(); // ล้างของเก่าทิ้งก่อน ป้องกันการรันซ้ำซ้อน
+            autoRefreshInterval = setInterval(() => {
+                // ให้ดึงข้อมูลใหม่ทุกๆ 15 วินาที โดยส่งค่า true เพื่อบอกว่าเป็นการโหลดเบื้องหลัง
+                fetchHistory(true); 
+            }, 15000); // 15000 มิลลิวินาที = 15 วินาที (ปรับเปลี่ยนได้)
+        }
+
+        // หยุดตั้งเวลา Auto-refresh
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }        
     </script>
 </body>
 </html>
