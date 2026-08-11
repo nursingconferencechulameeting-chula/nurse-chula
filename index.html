@@ -533,7 +533,7 @@
 
             if (savedStaff) {
                 staff = JSON.parse(savedStaff);
-                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'd-none';
                 setStaffName(staff.name);
                 Promise.all([fetchHistory(), checkCurrentDay()]).then(() => hideSplash(splash));
             } else {
@@ -765,6 +765,7 @@
 
                     document.getElementById('login-error-msg').style.display = 'none';
                     document.getElementById('login-screen').classList.remove('d-none');
+                    document.getElementById('login-screen').style.display = '';
                     setStaffName("กำลังโหลด...");
                 }
             });
