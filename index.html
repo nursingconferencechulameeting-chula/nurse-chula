@@ -996,6 +996,7 @@
         }
 
         // ===== FETCH HISTORY =====
+        // รับค่า isBackground ถ้าไม่ได้ส่งมาจะถือว่าเป็น false
         async function fetchHistory(isBackground = false) {
             const box = document.getElementById('history-box');
             
