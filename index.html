@@ -99,6 +99,10 @@
         /* ============================================================
         4) LOGIN SCREEN (GLASSMORPHISM)
         ============================================================ */
+        .swal2-container {
+            z-index: 20000 !important;
+        }
+        
         #login-screen {
             position: fixed; 
             inset: 0; 
@@ -344,7 +348,7 @@
     </div>
 
     <!-- ===== PREVIEW MODAL ===== -->
-    <div class="modal fade" id="previewModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="previewModal" data-bs-backdrop="static" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable" style="margin-top: var(--nav-h); margin-bottom: 1rem;">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
                 <div class="modal-header border-0 pb-0">
