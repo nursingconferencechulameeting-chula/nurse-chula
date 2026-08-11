@@ -1016,9 +1016,9 @@
                     if (absentEl) absentEl.innerText = result.absent;
 
                     if (result.records.length > 0) {
-                        box.innerHTML = result.records.reverse().map(r => {
+                        box.innerHTML = result.records.map(r => {
                             let displayId = r.id.toString().trim();
-                            if (!isNaN(displayId)) displayId = displayId.padStart(3, '0');
+                            if (!isNaN(displayId) && displayId !== "") displayId = displayId.padStart(3, '0');
 
                             const idHtml = displayId.includes('-')
                                 ? `<span>${displayId.split('-')[0]}</span><span>${displayId.split('-')[1]}</span>`
@@ -1037,6 +1037,7 @@
                     } else {
                         box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`;
                     }
+                    filterHistory();
                 } else {
                     box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`;
                 }
