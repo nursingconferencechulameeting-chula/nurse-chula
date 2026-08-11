@@ -99,10 +99,6 @@
         /* ============================================================
         4) LOGIN SCREEN (GLASSMORPHISM)
         ============================================================ */
-        /* บังคับให้ SweetAlert2 อยู่หน้าสุดเสมอ (สูงกว่าหน้า Login ที่ตั้งไว้ 9999) */
-        .swal2-container {
-            z-index: 10500 !important;
-        }
         #login-screen {
             position: fixed; 
             inset: 0; 
@@ -144,7 +140,7 @@
         #staff-id {
             padding-left: 50px !important; padding-right: 45px !important;
             height: 55px; border: 2px solid #e2e8f0; border-radius: 15px !important;
-            transition: all 0.3s ease; font-size: 1.1rem; font-weight: normal; /* ไม่อ่านยาก */
+            transition: all 0.3s ease; font-size: 1.1rem; font-weight: normal; 
         }
         #staff-id:focus { border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
         #staff-id.is-invalid { border-color: #ef4444 !important; background-image: none !important; }
@@ -154,28 +150,15 @@
             cursor: pointer; color: #94a3b8; z-index: 10; font-size: 1.2rem;
         }
 
-        /* Error Msg - กำหนดครั้งเดียว */
         #login-error-msg {
             display: none; color: #ef4444; font-size: 0.85rem; font-weight: 600;
             margin-top: 8px; text-align: left; padding-left: 5px;
         }
 
-        .login-footer-links {
-            margin-top: 15px;
-            font-size: 0.85rem;
-        }
-        .btn-forgot {
-            color: #64748b;
-            text-decoration: none;
-            transition: 0.2s;
-            background: none;
-            border: none;
-            padding: 0;
-        }
-        .btn-forgot:hover {
-            color: var(--primary-color);
-            text-decoration: underline;
-        }
+        .login-footer-links { margin-top: 15px; font-size: 0.85rem; }
+        .btn-forgot { color: #64748b; text-decoration: none; transition: 0.2s; background: none; border: none; padding: 0; }
+        .btn-forgot:hover { color: var(--primary-color); text-decoration: underline; }
+
         /* ============================================================
         5) SCANNER & MANUAL ENTRY
         ============================================================ */
@@ -183,41 +166,16 @@
             width: 100%; max-width: 480px; background: #ffffff;
             border-radius: 2rem; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
-
         .cam-view {
             width: 100%; aspect-ratio: 4 / 3; background: #000000;
             border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative;
         }
-
         .manual-box {
-            display: flex;
-            align-items: center;    /* (1) จัดให้ input และปุ่มอยู่กึ่งกลางแนวตั้งพอดีกัน */
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 5px;           /* (2) เพิ่มช่องว่างรอบๆ ปุ่ม เพื่อไม่ให้ปุ่มติดขอบกล่อง */
-            margin-top: 15px;
+            display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0;
+            border-radius: 1rem; padding: 5px; margin-top: 15px;
         }
-        
-        .manual-box input {
-            flex: 1;
-            border: none;
-            outline: none;
-            background: transparent;
-            padding: 10px;
-            text-align: left;
-            font-weight: 500; 
-        }
-        
-        .manual-box button {
-            background: #1e293b;
-            color: #ffffff;
-            border: none;
-            border-radius: 0.8rem;
-            padding: 10px 20px;
-            white-space: nowrap;
-            cursor: pointer;
-        }
+        .manual-box input { flex: 1; border: none; outline: none; background: transparent; padding: 10px; text-align: left; font-weight: 500; }
+        .manual-box button { background: #1e293b; color: #ffffff; border: none; border-radius: 0.8rem; padding: 10px 20px; white-space: nowrap; cursor: pointer; }
 
         /* ============================================================
         6) STATUS, TIMER & LIST ITEMS
@@ -225,38 +183,18 @@
         #timer-banner { display: none; width: 100%; max-width: 480px; margin-bottom: 15px; padding: 14px 18px; font-size: 0.875rem; border-radius: 1rem; }
         #timer-banner.status-closed { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
         #timer-banner.status-open { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
-
         .id-item { display: flex; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 12px; margin-bottom: 10px; }
-        .id-num {
-            width: 75px; height: 45px; display: flex; flex-direction: column; align-items: center;
-            justify-content: center; margin-right: 15px; background: #eef2ff;
-            color: #4f46e5; border-radius: 12px; font-weight: 700; font-size: 0.85rem;
-        }
-
-        .profile-box {
-            width: 150px; height: 180px; display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 15px; background: #f8fafc; border-radius: 20px;
-            border: 4px solid #ffffff; overflow: hidden; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
+        .id-num { width: 75px; height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-right: 15px; background: #eef2ff; color: #4f46e5; border-radius: 12px; font-weight: 700; font-size: 0.85rem; }
+        .profile-box { width: 150px; height: 180px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; background: #f8fafc; border-radius: 20px; border: 4px solid #ffffff; overflow: hidden; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
         .profile-box img { width: 100%; height: 100%; object-fit: cover; }
 
         /* ============================================================
         7) MODAL & PREVIEW
         ============================================================ */
         #p-name { font-size: 1.5rem; color: #1e293b; margin-bottom: 5px; }
-        .modal-id-wrapper {
-            display: inline-flex; align-items: center; justify-content: center;
-            background: #eef2ff; color: var(--primary-color); padding: 5px 18px;
-            border-radius: 50px; border: 1px solid #c7d2fe; margin-bottom: 15px;
-        }
+        .modal-id-wrapper { display: inline-flex; align-items: center; justify-content: center; background: #eef2ff; color: var(--primary-color); padding: 5px 18px; border-radius: 50px; border: 1px solid #c7d2fe; margin-bottom: 15px; }
         #p-id { font-size: 1.25rem; font-weight: 800; letter-spacing: 0.5px; margin: 0; }
-
-        .scanned-status-badge {
-            background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;
-            padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.9rem;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            margin: 0 auto 15px; width: 100%; max-width: 350px;
-        }
+        .scanned-status-badge { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto 15px; width: 100%; max-width: 350px; }
 
         /* ============================================================
         8) SEARCH, SCROLLBAR & ANIMATION
@@ -264,22 +202,19 @@
         .search-wrapper { padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
         .search-input-group { position: relative; }
         .search-input-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem; }
-        .search-input-group input {
-            width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9;
-            border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; transition: all 0.2s;
-        }
+        .search-input-group input { width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; transition: all 0.2s; }
         .search-input-group input:focus { outline: none; background: #ffffff; border-color: var(--primary-color); }
-
         #history-box { flex: 1; overflow-y: auto; padding: 15px; }
         #history-box::-webkit-scrollbar { width: 6px; }
         #history-box::-webkit-scrollbar-track { background: #f1f5f9; }
         #history-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
         @keyframes slideInRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
         #history-box .id-item:first-child { animation: slideInRight 0.5s ease-out; border-left: 5px solid var(--primary-color); background: linear-gradient(to right, #f8faff, #ffffff); }
 
-        /* Splash Screen */
-       #splash-screen { 
+        /* ============================================================
+        9) BUG FIXES (Splash Screen Transition + SweetAlert Z-Index)
+        ============================================================ */
+        #splash-screen { 
             position: fixed; 
             inset: 0; 
             z-index: 10000;
@@ -288,21 +223,28 @@
             align-items: center; 
             justify-content: center; 
             background: #1e293b; 
-           transition: opacity 0.4s ease;
+            /* เพิ่มเพื่อให้จางลงเนียนๆ ไม่กระพริบ */
+            transition: opacity 0.4s ease; 
         }
         .loader-circle { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* บังคับให้ SweetAlert2 อยู่หน้าสุดเสมอ ป้องกันค้างเวลากดลืมรหัสผ่าน */
+        .swal2-container {
+            z-index: 10500 !important;
+        }
     </style>
 </head>
 <body>
 
-    <div id="splash-screen" style="display: none !important;">
+    <!-- นำ style="display: none !important;" ออก เพื่อให้กลับไปใช้ระบบโหลดเดิมของคุณ -->
+    <div id="splash-screen">
         <div class="loader-circle mb-3"></div>
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
     </div>
 
-    <!-- ===== LOGIN SCREEN (ห้ามพิมพ์ไทย) ===== -->
-    <div id="login-screen" style="display: none;">
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div id="login-screen">
         <div class="login-card">
             <div class="login-logo">
                 <i class="fa-solid fa-user-shield"></i>
@@ -314,10 +256,8 @@
             </div>
             
             <div class="input-group-custom">
-                <!-- ไอคอนกุญแจหน้าช่องกรอก -->
                 <i class="fa-solid fa-lock prefix-icon"></i>
                 <div class="password-wrapper">
-                    <!-- ลบ fw-bold ออก และเพิ่มคำสั่งป้องกันภาษาไทย -->
                     <input type="password" 
                            id="staff-id" 
                            class="form-control" 
@@ -326,7 +266,6 @@
                            autofocus>
                     <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
                 </div>
-                <!-- ข้อความแจ้งเตือน Error -->
                 <div id="login-error-msg"></div>
             </div>
 
@@ -356,21 +295,15 @@
                     <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
                 </div>
                 <div class="modal-body text-center p-4">
-                  <!-- ซ่อนไว้ก่อนยังไม่ใช่งาน -->
                     <div class="profile-box d-none">
                         <img id="p-img" src="" style="display: none;" alt="profile">
                         <i id="p-icon" class="fa-solid fa-user-tie"></i>
                     </div>
-
                     <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
-
-                    <!-- ส่วน ID -->
                     <div class="modal-id-wrapper">
                         <span class="me-2 opacity-50 small">ID:</span>
                         <span id="p-id">-</span>
                     </div>
-
-                    <!-- *** ข้อความแจ้งเตือนเมื่อสแกนแล้ว *** -->
                     <div id="already-scanned-area" class="d-none">
                         <div class="scanned-status-badge">
                             <i class="fa-solid fa-circle-check"></i>
@@ -378,31 +311,24 @@
                             เวลา <span id="scanned-time-label" class="ms-1">-</span> น.
                         </div>
                     </div>
-
                     <div class="bg-light p-3 rounded-4 text-start mb-3">
                         <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
                         <div id="p-regType" class="fw-bold mb-2">-</div>
-
                         <small class="text-secondary d-block">ตำแหน่ง / สถานะ</small>
                         <div id="p-pos" class="fw-bold mb-2">-</div>
-
                         <div id="dept-area">
                             <small class="text-secondary d-block">หน่วยงาน / สังกัด</small>
                             <div id="p-dept" class="fw-bold mb-2">-</div>
                         </div>
-                        
                         <div id="pay-status-area">
                             <hr class="my-2 opacity-10">
                             <small class="text-secondary d-block">สถานะการชำระเงิน</small>
                             <div id="p-status" class="fw-bold">-</div>
                         </div>
                     </div>
-
-                    <!-- แจ้งเตือนกรณียังไม่ชำระเงิน -->
                     <div id="pay-warning" class="alert alert-danger rounded-3 fw-bold d-none mb-3" style="font-size:0.9rem;">
                         <i class="fa-solid fa-ban me-2"></i>ไม่สามารถลงชื่อได้ — ยังไม่ได้ชำระเงิน
                     </div>
-
                     <div class="d-grid gap-2">
                         <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm">
                             <i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน
@@ -419,7 +345,6 @@
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar shadow-sm">
         <div class="container-fluid">
-            
             <!-- PC VIEW -->
             <div class="pc-layout">
                 <div class="d-flex align-items-center gap-3">
@@ -437,7 +362,6 @@
                     <i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ
                 </button>
             </div>
-
             <!-- MOBILE VIEW (2 Rows) -->
             <div class="mobile-layout">
                 <div class="mobile-row1">
@@ -457,7 +381,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </nav>
 
@@ -495,17 +418,13 @@
                     </div>
                 </div>
             </div>
-
-            <!-- เพิ่มช่องค้นหา (Search Box) ตรงนี้ -->
             <div class="search-wrapper">
                 <div class="search-input-group">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="history-search" placeholder="ค้นหาชื่อ หรือ รหัส ID..." oninput="filterHistory()">
                 </div>
             </div>
-
             <div id="history-box" class="history-list">
-                <!-- ข้อมูลจะถูกโหลดใส่ที่นี่ -->
                 <p class="text-center py-5 text-muted small italic">ยังไม่มีข้อมูล</p>
             </div>
         </aside>
@@ -523,14 +442,13 @@
             if (m) m.innerText = label;
         }
 
-        /** บูรณาการระบบกู้คืนรหัสผ่านเข้ากับ UI ของ Smart QR Check-in */
         async function handleForgotPassword() {
-            // 🟢 1. สั่งปิดหน้าต่าง Modal ที่เปิดอยู่ก่อน (ตามคำสั่งที่คุณให้มา)
             const activeModal = document.querySelector('.modal.show');
             if (activeModal) {
                 const modalInstance = bootstrap.Modal.getInstance(activeModal);
                 if (modalInstance) modalInstance.hide();
             }
+            // เรียกใช้งาน SweetAlert2 โดยไม่ต้องตั้งค่า didOpen ซับซ้อน เพราะเราใช้ CSS คุมแล้ว
             const { value: email } = await Swal.fire({
                 title: 'กู้คืนรหัสผ่าน',
                 input: 'email',
@@ -539,7 +457,7 @@
                 confirmButtonText: 'ส่งข้อมูล',
                 cancelButtonText: 'ยกเลิก',
                 showCancelButton: true,
-                confirmButtonColor: '#4f46e5',
+                confirmButtonColor: '#4f46e5'
             });
         
             if (email) {
@@ -583,17 +501,11 @@
         }
         
         function setDayButtons(d) {
-            // รายชื่อ ID ของปุ่มทั้งหมดที่มีในระบบ (ทั้ง PC และ Mobile)
             const allButtonIds = ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'];
-
             allButtonIds.forEach(id => {
                 const btn = document.getElementById(id);
-                if (btn) {
-                    btn.classList.remove('active');
-                }
+                if (btn) btn.classList.remove('active');
             });
-
-            // เพิ่ม class 'active' ให้เฉพาะปุ่มของวันที่เราเลือก (ทำทั้งชุด PC และ Mobile)
             if (d === 1) {
                 document.getElementById('day1-btn')?.classList.add('active');
                 document.getElementById('day1-btn-m')?.classList.add('active');
@@ -608,35 +520,39 @@
         let isScanning = false;
         let currentStream = null;
         let previewModal = null;
-        let currentPreviewId = null; // เก็บ ID ที่กำลัง Preview อยู่
+        let currentPreviewId = null;
         let autoRefreshInterval = null;
 
         const video = document.getElementById("video");
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // ===== INIT =====
+        // ===== INIT (โค้ดดั้งเดิมของคุณทั้งหมด นำกลับมาใช้) =====
         window.onload = () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
 
-            // ปิด Modal แล้ว reset currentPreviewId
             document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => {
                 currentPreviewId = null;
             });
 
-            // ปิดปุ่มไว้ก่อนเสมอ รอผล checkCurrentDay()
             setInputsEnabled(false);
 
-            // บังคับให้แสดงหน้า Login ทันที
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('login-screen').classList.remove('d-none');
-            
-            // ซ่อน splash-screen ทันทีเพื่อป้องกันการกะพริบ
             const splash = document.getElementById('splash-screen');
-            if (splash) splash.style.display = 'none';
+            const savedStaff = localStorage.getItem('staff_session');
+
+            if (savedStaff) {
+                staff = JSON.parse(savedStaff);
+                document.getElementById('login-screen').classList.add('d-none');
+                setStaffName(staff.name);
+                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => {
+                    hideSplash(splash);
+                    startAutoRefresh();
+                });
+            } else {
+                hideSplash(splash);
+            }
         };
 
-        // ===== เปิด/ปิด ปุ่มสแกน + ช่องกรอก ID =====
         function setInputsEnabled(enabled) {
             const btnStart    = document.getElementById('start-btn');
             const inputManual = document.getElementById('manual-input');
@@ -646,7 +562,6 @@
             if (btnSubmit)   btnSubmit.disabled   = !enabled;
         }
 
-        // ===== ฟังก์ชันแสดง Banner แจ้งสถานะเวลา =====
         function showTimerBanner(type, html) {
             const banner = document.getElementById('timer-banner');
             banner.className = `status-${type}`;
@@ -659,8 +574,6 @@
             banner.style.display = 'none';
         }
 
-        // ===== ตรวจสอบเวลาของวันปัจจุบันทันทีที่โหลด =====
-        // --- ฟังก์ชันช่วยแปลงวันที่ภาษาไทย <script> ---
         function formatThaiFull(ts) {
             if (!ts) return { date: "-", time: "-" };
             const d = new Date(ts);
@@ -686,7 +599,6 @@
                 }
         
                 const now = new Date().getTime();
-                // ดึงเวลาตามวันที่เลือก (day 1 หรือ day 2)
                 const config = (day === 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
                 
                 const start = config.start;
@@ -727,6 +639,7 @@
             }
         }
 
+        // ฟังก์ชันสั่งหน้าจอจางลง
         function hideSplash(el) {
             el.style.opacity = '0';
             setTimeout(() => { el.style.display = 'none'; }, 400);
@@ -770,20 +683,19 @@
 
                 if (result.isAllowed) {
                     staff = result;
-                    // localStorage.setItem('staff_session', JSON.stringify(result));
-                    document.getElementById('login-screen').style.display = 'none';
+                    localStorage.setItem('staff_session', JSON.stringify(result));
                     document.getElementById('login-screen').classList.add('d-none');
                     setStaffName(result.name);
                     fetchHistory();
                     checkCurrentDay();
                     startAutoRefresh();
-                    resetLoginButton(); // หยุด spinner เตรียมไว้สำหรับรอบหน้า
+                    resetLoginButton();
                 } else {
-                    resetLoginButton(); // หยุด spinner ทันทีถ้ารหัสผิด
+                    resetLoginButton();
                     showLoginError(result.message || "รหัสไม่ถูกต้อง");
                 }
             } catch (e) {
-                resetLoginButton(); // หยุด spinner ทันทีถ้าเน็ตหลุด
+                resetLoginButton();
                 showLoginError("การเชื่อมต่อขัดข้อง");
             }
         }
@@ -797,13 +709,11 @@
             idInput.focus();
         }
 
-        // รองรับการกด Enter ในช่อง password
         document.addEventListener('DOMContentLoaded', () => {
             const staffInput = document.getElementById('staff-id');
             const togglePassword = document.getElementById('togglePassword');
             const errorMsg = document.getElementById('login-error-msg');
 
-            // ป้องกันภาษาไทยจากการพิมพ์และการ Paste (วางข้อมูล)
             staffInput.addEventListener('input', function() {
                 this.value = this.value.replace(/[ก-๙]/g, '');
             });
@@ -811,14 +721,12 @@
                 let pasteData = (e.clipboardData || window.clipboardData).getData('text');
                 if (/[ก-๙]/.test(pasteData)) {
                     e.preventDefault();
-                    // แจ้งเตือนสั้นๆ (ถ้าต้องการ)
                     const errorMsg = document.getElementById('login-error-msg');
                     errorMsg.innerText = "ห้ามใช้ตัวอักษรภาษาไทย";
                     errorMsg.style.display = "block";
                 }
             });
             
-            // สลับการมองเห็นรหัสผ่าน (รูปดวงตา)
             if (togglePassword) {
                 togglePassword.addEventListener('click', function() {
                     const type = staffInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -828,7 +736,6 @@
                 });
             }
 
-            // เมื่อผู้ใช้เริ่มพิมพ์ใหม่ ให้ซ่อนข้อความ Error ทันที
             if (staffInput) {
                 staffInput.addEventListener('input', () => {
                     errorMsg.style.display = 'none';
@@ -853,11 +760,10 @@
             }).then((r) => {
                 if (r.isConfirmed) {
                     stopAutoRefresh();
-                    // localStorage.removeItem('staff_session');
+                    localStorage.removeItem('staff_session');
                     staff = null;
                     if (isScanning) toggleScanner(false);
 
-                    // รีเซ็ตหน้าจอ Login และหยุด Spinner ทันที
                     document.getElementById('staff-id').value = '';
                     resetLoginButton(); 
 
@@ -869,12 +775,10 @@
             });
         }
 
-        // ===== PREVIEW USER ก่อนบันทึก (เวอร์ชันอัปเดต: ตรวจสอบการสแกนซ้ำ) =====
         async function previewUser(id) {
             if (currentPreviewId === id) return;
             currentPreviewId = id;
 
-            // ล้างข้อมูลเก่า/รูปเก่าใน Modal
             document.getElementById('p-img').src = "";
             document.getElementById('p-img').style.display = 'none';
             document.getElementById('p-icon').style.display = 'block';
@@ -882,7 +786,6 @@
             Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                // ส่งค่า day ไปให้ Backend ตรวจสอบด้วยว่าวันนี้ ID นี้สแกนไปหรือยัง
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) 
@@ -893,7 +796,6 @@
                 if (result.success) {
                     const u = result.user;
 
-                    // 1. จัดการรูปภาพ
                     const img = document.getElementById('p-img');
                     const icon = document.getElementById('p-icon');
                     if (u.img && u.img !== "-" && u.img !== "") {
@@ -905,13 +807,11 @@
                         icon.style.display = 'block';
                     }
 
-                    // 2. แสดงข้อมูลพื้นฐาน
                     document.getElementById('p-name').innerText = u.name;
-                    document.getElementById('p-id').innerText = u.id; // โชว์เฉพาะรหัสใน Badge
+                    document.getElementById('p-id').innerText = u.id;
                     document.getElementById('p-pos').innerText = u.position || '-';
                     document.getElementById('p-regType').innerText = u.regType || '-';
 
-                    // 3. จัดการส่วน หน่วยงาน/สังกัด
                     const deptArea = document.getElementById('dept-area');
                     const regType = u.regType ? u.regType.toString().trim() : "";
                     if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
@@ -921,7 +821,6 @@
                         document.getElementById('p-dept').innerText = u.dept || '-';
                     }
 
-                    // 4. ตัวแปรสำหรับควบคุมการแสดงผลปุ่มและสถานะ
                     const payArea = document.getElementById('pay-status-area');
                     const stEl = document.getElementById('p-status');
                     const payWarn = document.getElementById('pay-warning');
@@ -930,22 +829,19 @@
                     const dayLabel = document.getElementById('scanned-day-label');
                     const timeLabel = document.getElementById('scanned-time-label');
 
-                    // --- RESET สถานะก่อนทุกครั้ง ---
                     alreadyArea.classList.add('d-none');
                     payWarn.classList.add('d-none');
-                    btnConfirm.style.display = 'block'; // โชว์ปุ่มไว้ก่อน
+                    btnConfirm.style.display = 'block';
                     btnConfirm.disabled = false;
                     btnConfirm.classList.remove('btn-secondary');
                     btnConfirm.classList.add('btn-success');
 
-                    // 5. ตรวจสอบการสแกนซ้ำ (ลำดับความสำคัญที่ 1)
                     if (result.isAlreadyScanned) {
                         alreadyArea.classList.remove('d-none');
-                        if (dayLabel) dayLabel.innerText = day; // แสดงเลขวันที่สแกนแล้ว
+                        if (dayLabel) dayLabel.innerText = day;
                         if (timeLabel) timeLabel.innerText = result.scannedTime;
-                        btnConfirm.style.display = 'none';     // ซ่อนปุ่มยืนยันทันที
+                        btnConfirm.style.display = 'none';
                     } 
-                    // 6. ตรวจสอบสถานะการเงิน (ลำดับความสำคัญที่ 2 - เฉพาะกรณีที่ยังไม่ได้สแกน)
                     else if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
                         payArea.style.display = 'block';
                         const payStatus = u.payStatus ? u.payStatus.trim() : "";
@@ -962,9 +858,7 @@
                         payArea.style.display = 'none';
                     }
 
-                    // 7. ผูก Event ปุ่มยืนยัน (ถ้าปุ่มยังแสดงอยู่)
                     btnConfirm.onclick = () => record(id, false);
-
                     previewModal.show();
 
                 } else {
@@ -977,7 +871,6 @@
             }
         }
 
-        // ===== MANUAL INPUT =====
         function handleManual() {
             const val = document.getElementById('manual-input').value.trim();
             if (val) {
@@ -986,7 +879,6 @@
             }
         }
 
-        // ===== SCANNER =====
         async function toggleScanner(start) {
             if (start) {
                 try {
@@ -1029,9 +921,7 @@
             if (isScanning) requestAnimationFrame(tick);
         }
 
-        // ===== RECORD ATTENDANCE =====
         async function record(qrText, confirmSkip) {
-            // ปิด Modal ก่อนส่ง
             if (previewModal) previewModal.hide();
 
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -1056,11 +946,9 @@
                         showConfirmButton: false
                     });
 
-                    // หน่วงเวลาแล้วดึงประวัติใหม่
                     setTimeout(() => fetchHistory(), 1000);
 
                 } else if (result.requireConfirm) {
-                    // กรณีวันที่ 2 แต่ยังไม่ได้ลงวันที่ 1 — ถามยืนยัน
                     Swal.fire({
                         icon: 'question',
                         title: 'ยืนยัน?',
@@ -1087,12 +975,9 @@
             }
         }
 
-        // ===== FETCH HISTORY =====
-        // รับค่า isBackground ถ้าไม่ได้ส่งมาจะถือว่าเป็น false
         async function fetchHistory(isBackground = false) {
             const box = document.getElementById('history-box');
             
-            // จะแสดงวงกลม Loading ก็ต่อเมื่อ "ไม่ได้" เป็นการโหลดเบื้องหลัง (เช่น ตอนแอดมินกดเปลี่ยนวัน)
             if (!isBackground) {
                 box.innerHTML = `
                     <div class="text-center py-5">
@@ -1117,7 +1002,6 @@
                     if (absentEl) absentEl.innerText = result.absent;
 
                     if (result.records.length > 0) {
-                        // นำข้อมูลมาวาด HTML (ใช้โค้ดที่แก้ไขเอา .reverse() ออกจากข้อที่แล้ว)
                         box.innerHTML = result.records.map(r => {
                             let displayId = r.id.toString().trim();
                             if (!isNaN(displayId) && displayId !== "") displayId = displayId.padStart(3, '0');
@@ -1140,7 +1024,6 @@
                         box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`;
                     }
 
-                    // อัปเดตเงื่อนไขการค้นหา
                     filterHistory();
 
                 } else {
@@ -1152,26 +1035,20 @@
             }
         }
 
-        // ===== CHANGE DAY =====
         async function changeDay(d) {
-            // เปลี่ยนวัน + อัปเดตปุ่ม + โหลดประวัติ
             day = d;
             setDayButtons(d);
-
-            // ใช้ checkCurrentDay() จัดการ banner + เปิด/ปิดปุ่มแทน (ไม่ต้องมี Swal)
             hideTimerBanner();
             checkCurrentDay();
             fetchHistory();
         }
 
-        // ===== ระบบกรองข้อมูลในประวัติ (Search Filter) =====
         function filterHistory() {
             const query = document.getElementById('history-search').value.toLowerCase().trim();
             const items = document.querySelectorAll('.id-item');
             let hasResult = false;
 
             items.forEach(item => {
-                // ค้นหาจากข้อความทั้งหมดใน Item (รวมชื่อและ ID)
                 const text = item.innerText.toLowerCase();
                 if (text.includes(query)) {
                     item.style.display = 'flex';
@@ -1181,7 +1058,6 @@
                 }
             });
 
-            // ถ้าค้นหาไม่เจอเลย ให้แสดงข้อความแจ้ง (ถ้าต้องการ)
             const box = document.getElementById('history-box');
             let noResultMsg = document.getElementById('no-search-result');
             
@@ -1198,16 +1074,13 @@
             }
         }
 
-        // เริ่มตั้งเวลา Auto-refresh
         function startAutoRefresh() {
-            stopAutoRefresh(); // ล้างของเก่าทิ้งก่อน ป้องกันการรันซ้ำซ้อน
+            stopAutoRefresh();
             autoRefreshInterval = setInterval(() => {
-                // ให้ดึงข้อมูลใหม่ทุกๆ 15 วินาที โดยส่งค่า true เพื่อบอกว่าเป็นการโหลดเบื้องหลัง
                 fetchHistory(true); 
-            }, 15000); // 15000 มิลลิวินาที = 15 วินาที (ปรับเปลี่ยนได้)
+            }, 15000); 
         }
 
-        // หยุดตั้งเวลา Auto-refresh
         function stopAutoRefresh() {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
