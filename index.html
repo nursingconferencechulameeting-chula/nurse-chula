@@ -151,6 +151,22 @@
             margin-top: 8px; text-align: left; padding-left: 5px;
         }
 
+        .login-footer-links {
+            margin-top: 15px;
+            font-size: 0.85rem;
+        }
+        .btn-forgot {
+            color: #64748b;
+            text-decoration: none;
+            transition: 0.2s;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        .btn-forgot:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
         /* ============================================================
         5) SCANNER & MANUAL ENTRY
         ============================================================ */
@@ -301,7 +317,11 @@
                     <span class="spinner-border spinner-border-sm me-2"></span> กำลังตรวจสอบ...
                 </span>
             </button>
-
+            <div class="login-footer-links">
+                <button type="button" class="btn-forgot" onclick="handleForgotPassword()">
+                    <i class="fa-solid fa-key me-1"></i> ลืมรหัสผ่าน?
+                </button>
+            </div>
             <div class="mt-4 text-secondary" style="font-size: 0.75rem;">
                 <i class="fa-solid fa-circle-info me-1"></i> 
                 ระบบลงทะเบียนอัตโนมัติสำหรับ เจ้าหน้าที่
@@ -1106,6 +1126,63 @@
             }
         }
 
+        /** บูรณาการระบบกู้คืนรหัสผ่านเข้ากับ UI ของ Smart QR Check-in */
+        async function handleForgotPassword() {
+            const { value: email } = await Swal.fire({
+                title: 'กู้คืนรหัสผ่าน',
+                input: 'email',
+                inputLabel: 'กรุณากรอกอีเมลที่ลงทะเบียนไว้',
+                inputPlaceholder: 'example@email.com',
+                confirmButtonText: 'ส่งข้อมูล',
+                cancelButtonText: 'ยกเลิก',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                buttonsStyling: true,
+                customClass: {
+                    confirmButton: 'px-4 py-2 rounded-3',
+                    cancelButton: 'px-4 py-2 rounded-3'
+                }
+            });
+        
+            if (email) {
+                Swal.fire({
+                    title: 'กำลังตรวจสอบ...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+        
+                try {
+                    const res = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'forgotPassword', email: email })
+                    });
+                    const result = await res.json();
+        
+                    if (result.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ส่งสำเร็จ',
+                            text: result.message,
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่สำเร็จ',
+                            text: result.message,
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    }
+                } catch (e) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ข้อผิดพลาด',
+                        text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
+                        confirmButtonColor: '#ef4444'
+                    });
+                }
+            }
+        }
         // เริ่มตั้งเวลา Auto-refresh
         function startAutoRefresh() {
             stopAutoRefresh(); // ล้างของเก่าทิ้งก่อน ป้องกันการรันซ้ำซ้อน
