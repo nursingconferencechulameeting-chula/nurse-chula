@@ -628,19 +628,12 @@
             setInputsEnabled(false);
 
             const splash = document.getElementById('splash-screen');
-            const savedStaff = localStorage.getItem('staff_session');
-
-            if (savedStaff) {
-                staff = JSON.parse(savedStaff);
-                document.getElementById('login-screen').style.display = 'flex';
-                setStaffName(staff.name);
-                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => {
-                    hideSplash(splash);
-                    startAutoRefresh();
-                });
-            } else {
-                hideSplash(splash);
-            }
+            
+            // บังคับให้แสดงหน้า Login เสมอเมื่อเปิดหน้าเว็บใหม่
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('login-screen').classList.remove('d-none');
+            
+            hideSplash(splash);
         };
 
         // ===== เปิด/ปิด ปุ่มสแกน + ช่องกรอก ID =====
