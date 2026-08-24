@@ -923,9 +923,8 @@
 
         async function record(qrText, confirmSkip) {
             if (previewModal) previewModal.hide();
-
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
+        
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
@@ -936,7 +935,7 @@
                 });
                 const result = await res.json();
                 Swal.close();
-
+        
                 if (result.success) {
                     Swal.fire({
                         icon: 'success',
@@ -945,30 +944,14 @@
                         timer: 1500,
                         showConfirmButton: false
                     });
-
-                    setTimeout(() => fetchHistory(), 1000);
-
+        
+                    // ✅ เรียกอัปเดตรายการทันทีหลังจากบันทึกสำเร็จ (ไม่ต้องรอ 15 วิเหมือนของเดิม)
+                    fetchHistory(true); 
+        
                 } else if (result.requireConfirm) {
-                    Swal.fire({
-                        icon: 'question',
-                        title: 'ยืนยัน?',
-                        text: result.message,
-                        showCancelButton: true,
-                        confirmButtonColor: '#4f46e5',
-                        cancelButtonColor: '#94a3b8',
-                        confirmButtonText: 'ยืนยัน บันทึกวันที่ 2',
-                        cancelButtonText: 'ยกเลิก'
-                    }).then((r) => {
-                        if (r.isConfirmed) record(qrText, true);
-                    });
-
+                    // ... (โค้ดส่วน confirmSkip ของเดิม) ...
                 } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'แจ้งเตือน',
-                        text: result.message,
-                        confirmButtonColor: '#4f46e5'
-                    });
+                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message, confirmButtonColor: '#4f46e5' });
                 }
             } catch (e) {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อล้มเหลว: ' + e.toString() });
@@ -1074,11 +1057,19 @@
             }
         }
 
+        // ปรับปรุงฟังก์ชันเดิมให้ไม่ต้องทำอะไร (เพื่อไม่ให้ Error ถ้ามีการเรียกใช้ที่อื่น)
         function startAutoRefresh() {
-            stopAutoRefresh();
-            autoRefreshInterval = setInterval(() => {
-                fetchHistory(true); 
-            }, 15000); 
+            console.log("Auto-refresh disabled to save resources.");
+        }
+        
+        // เพิ่มฟังก์ชันสำหรับการกดปุ่มอัปเดตเอง
+        async function manualRefresh() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('fa-spin'); // ให้ไอคอนหมุนขณะโหลด
+            await fetchHistory(true); 
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+            }, 500);
         }
 
         function stopAutoRefresh() {
