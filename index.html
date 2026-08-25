@@ -128,7 +128,13 @@
                 <div class="modal-header border-0 pb-0"><h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5></div>
                 <div class="modal-body text-center p-4">
                     <div class="profile-box d-none"><img id="p-img" src="" style="display: none;" alt="profile"><i id="p-icon" class="fa-solid fa-user-tie"></i></div>
+                    
                     <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
+                    <!-- พื้นที่แสดงวันที่/เวลาที่สแกนซ้ำ -->
+                    <div id="p-scanned-info" class="text-danger small fw-bold mb-3 d-none">
+                        <i class="fa-regular fa-calendar-xmark me-1"></i> สแกนไปแล้วเมื่อ: <span id="p-scanned-time"></span>
+                    </div>
+
                     <div class="bg-light p-3 rounded-4 text-start mb-3 mt-3">
                         <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
                         <div id="p-regType" class="fw-bold mb-2">-</div>
@@ -244,7 +250,7 @@
     <video id="video" playsinline hidden></video>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec"; // ถ้ามีการนำไปใช้งานจริง อย่าลืมเช็คให้ตรงกับ URL ใหม่ที่ Deploy
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec"; 
         let day = 1;
         let session = 'am'; 
         let staff = null, isScanning = false, currentStream = null, previewModal = null;
@@ -264,7 +270,6 @@
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 400);
             
-            // Toggle Password Feature
             const togglePassword = document.getElementById('togglePassword');
             const staffInput = document.getElementById('staff-id');
             if (togglePassword && staffInput) {
@@ -438,22 +443,58 @@
                     document.getElementById('p-pos').innerText = u.position || '-';
                     
                     const btn = document.getElementById('btn-confirm-record');
+                    const scannedInfoArea = document.getElementById('p-scanned-info');
+                    const scannedTimeText = document.getElementById('p-scanned-time');
+
                     if (result.isAlreadyScanned) {
+                        // ป้องกันข้อมูลซ้ำ: แสดงแจ้งเตือน SweetAlert ขึ้นมา
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ข้อมูลซ้ำ!',
+                            text: `ผู้เข้าร่วมรายนี้ทำการสแกนไปแล้วเมื่อ\n${result.scannedTime}`,
+                            confirmButtonColor: '#ef4444',
+                            confirmButtonText: 'รับทราบ'
+                        });
+
                         btn.disabled = true;
                         btn.classList.remove('btn-success');
                         btn.classList.add('btn-secondary');
-                        btn.innerHTML = `ลงชื่อไปแล้ว (${result.scannedTime})`;
-                    } else if (u.regType === "สำหรับผู้ลงทะเบียนภายนอก" && u.payStatus !== "ชำระเงินเรียบร้อย") {
+                        btn.innerHTML = `<i class="fa-solid fa-check-double me-2"></i>บันทึกไปแล้ว`;
+                        
+                        scannedInfoArea.classList.remove('d-none');
+                        scannedTimeText.innerText = result.scannedTime;
+                    } 
+                    else if (u.regType === "สำหรับผู้ลงทะเบียนภายนอก" && u.payStatus !== "ชำระเงินเรียบร้อย") {
+                        scannedInfoArea.classList.add('d-none');
                         btn.disabled = true;
                         btn.classList.remove('btn-success');
                         btn.classList.add('btn-danger');
                         btn.innerHTML = `<i class="fa-solid fa-ban me-2"></i>ยังไม่ได้ชำระเงิน`;
-                    } else {
+                    } 
+                    else {
+                        scannedInfoArea.classList.add('d-none');
                         btn.disabled = false;
                         btn.classList.remove('btn-secondary', 'btn-danger');
                         btn.classList.add('btn-success');
                         btn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน`;
-                        btn.onclick = () => record(id, false);
+                        
+                        // ฟังก์ชันกดยืนยันให้มีแจ้งเตือน Confirm ก่อนบันทึก
+                        btn.onclick = () => {
+                            Swal.fire({
+                                title: 'ยืนยันการบันทึก?',
+                                html: `ต้องการบันทึกชื่อ <b>${u.name}</b> ใช่หรือไม่?`,
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#10b981',
+                                cancelButtonColor: '#ef4444',
+                                confirmButtonText: 'ยืนยัน',
+                                cancelButtonText: 'ยกเลิก'
+                            }).then((resAlert) => {
+                                if (resAlert.isConfirmed) {
+                                    record(id, false);
+                                }
+                            });
+                        };
                     }
                     previewModal.show();
                 } else {
@@ -487,26 +528,27 @@
                 if (result.success) {
                     document.getElementById('ui-present').innerText = result.present;
                     if (result.records.length > 0) {
-                        box.innerHTML = result.records.map(r => `
+                        box.innerHTML = result.records.map(r => {
+                            // r.time จะมีรูปแบบเป็น "25 ส.ค. 2569 เวลา 20:00 น. (ช่วง...)" โดยตรงจาก Backend
+                            return `
                             <div class="id-item shadow-sm p-3">
                                 <div class="flex-grow-1 overflow-hidden">
                                     <h5 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 1.05rem;">${r.name}</h5>
-                                    <small class="text-muted"><i class="fa-regular fa-clock me-2"></i>${r.time}</small>
+                                    <small class="text-muted d-block mt-1">
+                                        <i class="fa-regular fa-calendar-check me-1"></i>${r.time}
+                                    </small>
                                 </div>
                                 <i class="fa-solid fa-circle-check fa-2x text-success ms-2"></i>
-                            </div>`).join('');
+                            </div>`;
+                        }).join('');
                     } else {
                         box.innerHTML = '<p class="text-center py-4 text-muted small fw-bold">ยังไม่มีข้อมูล</p>';
                     }
-                    // เรียกใช้งาน filterHistory ทุกครั้งที่ดึงข้อมูลใหม่ เพื่อคงผลการค้นหาไว้
                     filterHistory();
                 }
             } catch (e) { console.error(e); }
         }
 
-        // --------------------------------------------------------
-        // เพิ่มฟังก์ชัน filterHistory() ที่หายไป
-        // --------------------------------------------------------
         function filterHistory() {
             const query = document.getElementById('history-search').value.toLowerCase().trim();
             const items = document.querySelectorAll('.id-item');
