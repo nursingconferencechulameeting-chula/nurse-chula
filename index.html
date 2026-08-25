@@ -223,13 +223,11 @@
             align-items: center; 
             justify-content: center; 
             background: #1e293b; 
-            /* เพิ่มเพื่อให้จางลงเนียนๆ ไม่กระพริบ */
             transition: opacity 0.4s ease; 
         }
         .loader-circle { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* บังคับให้ SweetAlert2 อยู่หน้าสุดเสมอ ป้องกันค้างเวลากดลืมรหัสผ่าน */
         .swal2-container {
             z-index: 10500 !important;
         }
@@ -237,7 +235,6 @@
 </head>
 <body>
 
-    <!-- นำ style="display: none !important;" ออก เพื่อให้กลับไปใช้ระบบโหลดเดิมของคุณ -->
     <div id="splash-screen">
         <div class="loader-circle mb-3"></div>
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
@@ -345,7 +342,6 @@
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar shadow-sm">
         <div class="container-fluid">
-            <!-- PC VIEW -->
             <div class="pc-layout">
                 <div class="d-flex align-items-center gap-3">
                     <div class="staff-tag">STAFF</div>
@@ -362,7 +358,6 @@
                     <i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ
                 </button>
             </div>
-            <!-- MOBILE VIEW (2 Rows) -->
             <div class="mobile-layout">
                 <div class="mobile-row1">
                     <div class="d-flex align-items-center gap-2">
@@ -408,7 +403,7 @@
 
         <aside class="sidebar-right">
             <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0">รายการสแกนล่าสุด</h6>
+                <h6 class="fw-bold mb-0">รายการสแกนล่าสุด <span id="session-label-ui" class="badge bg-primary ms-1" style="font-size:0.7rem;"></span></h6>
                 <div class="d-flex gap-2 text-end">
                     <div class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.75rem;">
                         มาแล้ว: <span id="ui-present" class="fw-bold">0</span>
@@ -432,6 +427,353 @@
 
     <video id="video" playsinline hidden></video>
 
+    <!-- ===== SCRIPT ===== -->
+    <script>
+/**
+ * ✅ Backend: ระบบเช็คชื่อเข้าประชุม (AM-PM System)
+ */
+const SHEET_ID = "17faKl37i60zOf5iZsqPgIkmr4U23y2xs0eXSTMHy0yM"; 
+const SHEET_DATA = "Responses"; 
+const SHEET_STAFF = "formLogin";
+const SHEET_LOG_CHECKIN = "logCheckinApp";
+const SHEET_TIMER = "Timer";
+
+// กำหนดชื่อหัวคอลัมน์ใหม่ แบ่งเช้า-บ่าย
+const HEADERS = {
+  DATA: {
+    ID: "ID",
+    TIMESTAMP: "Timestamp",
+    EMAIL: "Email",
+    TITLE: "คำนำหน้า",
+    FNAME: "ชื่อ",
+    LNAME: "นามสกุล",
+    PHONE: "เบอร์โทรศัพท์",
+    LICENSE: "เลขที่ใบประกอบวิชาชีพ",
+    REG_TYPE: "ประเภทการลงทะเบียน",
+    POSITION: "ตำแหน่งปัจจุบัน",
+    FOOD: "ประเภทอาหาร",
+    WORK_GROUP: "กลุ่มงาน",
+    DEPT: "หน่วยงาน",
+    WORKPLACE: "สถานที่ทำงานปัจจุบัน",
+    RECEIPT_NAME: "ชื่อที่ระบุในใบเสร็จรับเงิน",
+    ADDRESS: "ที่อยู่",
+    TAX_ID: "เลขประจำตัวผู้เสียภาษี",    
+    PAYIN_STATUS: "สถานะ Pay-in",
+    PAY_STATUS: "สถานะชำระเงิน",
+    SLIP: "slip", 
+    
+    // คอลัมน์ที่ถูกปรับปรุงใหม่
+    ATT1_AM: "วันที่ 1 (เช้า)",
+    TIME1_AM: "Timestamp Day1 (เช้า)",
+    ATT1_PM: "วันที่ 1 (บ่าย)",
+    TIME1_PM: "Timestamp Day1 (บ่าย)",
+    ATT2_AM: "วันที่ 2 (เช้า)",
+    TIME2_AM: "Timestamp Day2 (เช้า)",
+    ATT2_PM: "วันที่ 2 (บ่าย)",
+    TIME2_PM: "Timestamp Day2 (บ่าย)",
+    
+    IMAGE: "รูปภาพ", 
+  },
+  STAFF: { PASSWARD: "Passward", NAME: "ชื่อ", ROLE: "สิทธิ์" }, 
+  LOG: { TIME: "Timestamp", TID: "Target ID", TNAME: "Target Name", ACT: "Action", BY: "Recorded By", ROLE: "Staff Role" }
+};
+
+const STAFF_COL = { PASSWORD: 0, NAME: 1, COMMITTEE: 2, ROLE: 3, STATUS: 4, EMAIL: 5 };
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({success: false, message: "POST Method Required"})).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const res = (obj) => ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+  try {
+    if (!e.postData || !e.postData.contents) return res({ success: false, message: "No post data" });
+    const params = JSON.parse(e.postData.contents);
+    
+    if (params.action === 'getUserPreview') return res(getUserPreview(params.id, params.day));
+    if (params.action === 'checkStaffPrivilege') return res(checkStaffPrivilege(params.PASSWARD));
+    if (params.action === 'recordAttendance') return res(recordAttendance(params.data));
+    if (params.action === 'getRecentRecords') return res(getRecentRecords(params.data.day));
+    if (params.action === 'getTimerSettings') return res(getTimerSettings());
+    if (params.action === 'forgotPassword') return res(forgotPassword(params.email));
+    
+    return res({ success: false, message: "Invalid action" });
+  } catch (err) {
+    return res({ success: false, message: "Backend Error: " + err.toString() });
+  }
+}
+
+function getColumnMapping(sheetHeaders) {
+  let map = {};
+  sheetHeaders.forEach((name, index) => { if (name) map[name.toString().trim()] = index; });
+  return map;
+}
+
+function checkStaffPrivilege(pass) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const data = ss.getSheetByName(SHEET_STAFF).getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][STAFF_COL.PASSWORD]).trim() === String(pass).trim()) {
+        if (data[i][STAFF_COL.STATUS] !== true) return { isAllowed: false, message: "บัญชีถูกระงับการใช้งาน" };
+        return { isAllowed: true, name: data[i][STAFF_COL.NAME] || "Unknown", role: data[i][STAFF_COL.ROLE] || "Staff" };
+      }
+    }
+    return { isAllowed: false, message: "รหัสผ่านไม่ถูกต้อง" };
+  } catch (err) { return { isAllowed: false, message: "Error: " + err.toString() }; }
+}
+
+function forgotPassword(email) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const rows = ss.getSheetByName(SHEET_STAFF).getDataRange().getValues().slice(1);
+    const staff = rows.find(r => r[STAFF_COL.EMAIL] && String(r[STAFF_COL.EMAIL]).trim().toLowerCase() === String(email).trim().toLowerCase());
+
+    if (!staff) return { success: false, message: "ไม่พบอีเมลนี้ในระบบ" };
+    if (staff[STAFF_COL.STATUS] !== true) return { success: false, message: "บัญชีนี้ถูกระงับการใช้งาน โปรดติดต่อแอดมิน" };
+
+    const htmlBody = `<div style="font-family: 'Prompt', sans-serif; color: #1e293b; line-height: 1.6;">
+        <div style="max-width: 500px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #4f46e5; padding: 20px; text-align: center;"><h2 style="color: #ffffff; margin: 0;">กู้คืนรหัสผ่านเจ้าหน้าที่</h2></div>
+          <div style="padding: 30px; background-color: #fff;">
+            <p>สวัสดีคุณ <strong>${staff[STAFF_COL.NAME]}</strong></p>
+            <p>รหัสผ่านสำหรับเข้าใช้งานระบบ Smart QR Check-in ของคุณคือ:</p>
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0; border: 1px dashed #4f46e5;">
+              <strong style="font-size: 28px; color: #4f46e5; letter-spacing: 2px;">${staff[STAFF_COL.PASSWORD]}</strong>
+            </div>
+            <p style="font-size: 13px; color: #64748b;">* โปรดเก็บรักษาข้อมูลนี้เป็นความลับ</p>
+          </div>
+        </div>
+      </div>`;
+
+    MailApp.sendEmail({ to: email, subject: 'แจ้งกู้คืนรหัสผ่านระบบ Smart QR Check-in', htmlBody: htmlBody, name: "Smart Check-in System" });
+    return { success: true, message: "ส่งรหัสผ่านไปยังอีเมลเรียบร้อยแล้ว" };
+  } catch (err) { return { success: false, message: "Error: " + err.toString() }; }
+}
+
+function getTimerSettings() {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const data = ss.getSheetByName(SHEET_TIMER).getDataRange().getValues();
+    const timer = {};
+    data.forEach(row => { timer[row[0]] = { item1: row[2], item2: row[3] }; });
+
+    const getTime = (val) => {
+      if (!val || val === "") return null;
+      const dateObj = new Date(val);
+      return isNaN(dateObj.getTime()) ? null : dateObj.getTime();
+    };
+
+    return {
+      success: true,
+      registrationTime: { 
+        day1: { 
+          am: { start: getTime(timer["T-03"]?.item1), end: getTime(timer["T-03"]?.item2) },
+          pm: { start: getTime(timer["T-03-PM"]?.item1), end: getTime(timer["T-03-PM"]?.item2) }
+        },
+        day2: { 
+          am: { start: getTime(timer["T-04"]?.item1), end: getTime(timer["T-04"]?.item2) },
+          pm: { start: getTime(timer["T-04-PM"]?.item1), end: getTime(timer["T-04-PM"]?.item2) }
+        }
+      }
+    };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+function recordAttendance(d) {
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(10000)) return { success: false, message: "⚠️ ระบบไม่ว่าง (Busy) กรุณาลองใหม่อีกครั้ง" };
+
+    const timerData = getTimerSettings();
+    if (!timerData.success) return { success: false, message: "⚠️ ไม่สามารถดึงข้อมูลเวลาได้: " + timerData.message };
+
+    const now = new Date().getTime();
+    const timeConfig = (d.day == 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
+    
+    let session = '';
+    
+    // ตรวจสอบช่วงเวลาว่าตกอยู่ในรอบเช้าหรือรอบบ่าย
+    if (timeConfig.am.start && now >= timeConfig.am.start && now <= timeConfig.am.end) {
+        session = 'am';
+    } else if (timeConfig.pm.start && now >= timeConfig.pm.start && now <= timeConfig.pm.end) {
+        session = 'pm';
+    } else if (timeConfig.am.start && now < timeConfig.am.start) {
+        const str = Utilities.formatDate(new Date(timeConfig.am.start), "GMT+7", "HH:mm");
+        return { success: false, message: "⚠️ ยังไม่ถึงเวลาลงทะเบียนช่วงเช้า (เริ่ม " + str + " น.)" };
+    } else if (timeConfig.pm.start && now > timeConfig.am.end && now < timeConfig.pm.start) {
+        const str = Utilities.formatDate(new Date(timeConfig.pm.start), "GMT+7", "HH:mm");
+        return { success: false, message: "⚠️ หมดเวลาช่วงเช้าแล้ว รอลงทะเบียนช่วงบ่าย (เริ่ม " + str + " น.)" };
+    } else {
+        return { success: false, message: "⚠️ หมดเวลาลงทะเบียนสำหรับวันนี้แล้ว หรือยังไม่มีการตั้งเวลา" };
+    }
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_DATA);
+    const data = sheet.getDataRange().getValues();
+    const map = getColumnMapping(data[0]);
+    const h = HEADERS.DATA;
+
+    const rawInput = (d.data && d.data.text) ? d.data.text.toString().trim() : (d.text ? d.text.toString().trim() : "");
+    const inputId = rawInput.includes('|') ? rawInput.split('|')[0].trim() : rawInput;
+    const normalize = (val) => { const num = val.toString().replace(/\D/g, ''); return num ? num.padStart(3, '0') : val; };
+    const targetIdNorm = normalize(inputId);
+
+    let colAtt, colTime;
+    if (d.day == 1) {
+        colAtt = (session === 'am') ? map[h.ATT1_AM] : map[h.ATT1_PM];
+        colTime = (session === 'am') ? map[h.TIME1_AM] : map[h.TIME1_PM];
+    } else {
+        colAtt = (session === 'am') ? map[h.ATT2_AM] : map[h.ATT2_PM];
+        colTime = (session === 'am') ? map[h.TIME2_AM] : map[h.TIME2_PM];
+    }
+
+    for (let i = 1; i < data.length; i++) {
+      const sheetId = String(data[i][map[h.ID]]).trim();
+      if (sheetId.toUpperCase() === inputId.toUpperCase() || normalize(sheetId) === targetIdNorm) {
+        const fullName = data[i][map[h.FNAME]] + " " + data[i][map[h.LNAME]];
+
+        if (data[i][map[h.REG_TYPE]] === "สำหรับผู้ลงทะเบียนภายนอก" && data[i][map[h.PAY_STATUS]] !== "ชำระเงินเรียบร้อย") {
+          return { success: false, message: "⚠️ บุคคลภายนอกต้องชำระเงินก่อน" };
+        }
+
+        if (data[i][colAtt] === "เข้าประชุม") {
+          const sLabel = session === 'am' ? "เช้า" : "บ่าย";
+          return { success: false, message: "ID: " + sheetId + " ลงชื่อวันนี้ (" + sLabel + ") ไปแล้ว" };
+        }
+
+        if (d.day == 2 && data[i][map[h.ATT1_AM]] !== "เข้าประชุม" && data[i][map[h.ATT1_PM]] !== "เข้าประชุม" && !d.confirmSkip) {
+          return { success: false, requireConfirm: true, message: "ยังไม่ได้ลงชื่อวันที่ 1 เลย ยืนยันบันทึกวันที่ 2 หรือไม่?" };
+        }
+
+        const currentTime = new Date();
+        sheet.getRange(i + 1, colAtt + 1).setValue("เข้าประชุม");
+        sheet.getRange(i + 1, colTime + 1).setValue(currentTime);
+        
+        const sLabel = session === 'am' ? "เช้า" : "บ่าย";
+        writeLog(sheetId, fullName, d.day + " (" + sLabel + ")", d.staffInfo);
+
+        return { 
+          success: true, 
+          user: { id: sheetId, name: fullName, time: Utilities.formatDate(currentTime, "GMT+7", "HH:mm:ss") } 
+        };
+      }
+    }
+    return { success: false, message: "ไม่พบข้อมูลรหัส: " + inputId };
+  } catch (err) { return { success: false, message: "Backend Error: " + err.toString() }; } finally { lock.releaseLock(); }
+}
+
+function writeLog(targetId, targetName, day, staff) {
+  const ss = SpreadsheetApp.openById(SHEET_ID); 
+  let sheet = ss.getSheetByName(SHEET_LOG_CHECKIN) || ss.insertSheet(SHEET_LOG_CHECKIN);
+  if (sheet.getLastRow() === 0) sheet.appendRow([HEADERS.LOG.TIME, HEADERS.LOG.TID, HEADERS.LOG.TNAME, HEADERS.LOG.ACT, HEADERS.LOG.BY, HEADERS.LOG.ROLE]);
+  let roleStr = (staff && staff.role) ? (Array.isArray(staff.role) ? staff.role.join(', ') : String(staff.role)) : "-";
+  sheet.appendRow([new Date(), targetId, targetName, "สแกนวันที่ " + day, staff ? (staff.name || "Unknown") : "System", roleStr]);
+}
+
+function getUserPreview(inputId, day) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const data = ss.getSheetByName(SHEET_DATA).getDataRange().getValues();
+  const map = getColumnMapping(data[0]);
+  const h = HEADERS.DATA;
+
+  // หา session ปัจจุบัน
+  const timerData = getTimerSettings();
+  let session = 'am';
+  if (timerData.success) {
+      const now = new Date().getTime();
+      const config = (day == 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
+      if (config.pm.start && now > config.am.end) session = 'pm';
+  }
+
+  let colAtt, colTime, sessionLabel;
+  if (day == 1) {
+      colAtt = (session === 'am') ? map[h.ATT1_AM] : map[h.ATT1_PM];
+      colTime = (session === 'am') ? map[h.TIME1_AM] : map[h.TIME1_PM];
+      sessionLabel = (session === 'am') ? "เช้า" : "บ่าย";
+  } else {
+      colAtt = (session === 'am') ? map[h.ATT2_AM] : map[h.ATT2_PM];
+      colTime = (session === 'am') ? map[h.TIME2_AM] : map[h.TIME2_PM];
+      sessionLabel = (session === 'am') ? "เช้า" : "บ่าย";
+  }
+
+  const cleanId = inputId.toString().trim().split('|')[0].trim();
+  const targetIdNorm = cleanId.replace(/\D/g, '').padStart(3, '0');
+
+  for (let i = 1; i < data.length; i++) {
+    const sheetId = String(data[i][map[h.ID]]).trim();
+    if (sheetId.toUpperCase() === cleanId.toUpperCase() || sheetId.replace(/\D/g, '').padStart(3, '0') === targetIdNorm) {
+      const isAlreadyScanned = (data[i][colAtt] === "เข้าประชุม");
+      let formattedTime = "-";
+      if (isAlreadyScanned && data[i][colTime]) formattedTime = Utilities.formatDate(new Date(data[i][colTime]), "GMT+7", "HH:mm:ss");
+
+      return {
+        success: true,
+        isAlreadyScanned: isAlreadyScanned,
+        scannedTime: formattedTime,
+        scannedSession: sessionLabel,
+        user: {
+          id: sheetId,
+          name: data[i][map[h.FNAME]] + " " + data[i][map[h.LNAME]],
+          dept: data[i][map[h.DEPT]],
+          position: data[i][map[h.POSITION]],
+          regType: data[i][map[h.REG_TYPE]],
+          payStatus: String(data[i][map[h.PAY_STATUS]]).trim(),
+          img: data[i][map[h.IMAGE]]
+        }
+      };
+    }
+  }
+  return { success: false, message: "ไม่พบข้อมูลรหัส: " + cleanId };
+}
+
+function getRecentRecords(day) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const data = ss.getSheetByName(SHEET_DATA).getDataRange().getValues();
+  const map = getColumnMapping(data[0]);
+  const h = HEADERS.DATA;
+
+  const timerData = getTimerSettings();
+  let session = 'am';
+  if (timerData.success) {
+      const now = new Date().getTime();
+      const config = (day == 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
+      if (config.pm.start && now > config.am.end) session = 'pm';
+  }
+
+  let colAtt, colTime, sessionLabel;
+  if (day == 1) {
+      colAtt = (session === 'am') ? map[h.ATT1_AM] : map[h.ATT1_PM];
+      colTime = (session === 'am') ? map[h.TIME1_AM] : map[h.TIME1_PM];
+      sessionLabel = (session === 'am') ? "เช้า" : "บ่าย";
+  } else {
+      colAtt = (session === 'am') ? map[h.ATT2_AM] : map[h.ATT2_PM];
+      colTime = (session === 'am') ? map[h.TIME2_AM] : map[h.TIME2_PM];
+      sessionLabel = (session === 'am') ? "เช้า" : "บ่าย";
+  }
+
+  let records = [];
+  let presentCount = 0;
+  let totalRows = data.length - 1;
+
+  for (let i = data.length - 1; i > 0; i--) {
+    if (data[i][colAtt] === "เข้าประชุม") {
+      presentCount++;
+      if (records.length < 15) {
+        records.push({ 
+          id: data[i][map[h.ID]], 
+          name: data[i][map[h.FNAME]] + " " + data[i][map[h.LNAME]], 
+          time: data[i][colTime] ? Utilities.formatDate(new Date(data[i][colTime]), "GMT+7", "HH:mm:ss") : "-" 
+        });
+      }
+    }
+  }
+  return { success: true, sessionLabel: sessionLabel, records: records, present: presentCount, absent: totalRows - presentCount };
+}
+
+    </script>
+
+    <!-- ===== FRONTEND SCRIPT ===== -->
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec";
         function setStaffName(name) {
@@ -448,7 +790,6 @@
                 const modalInstance = bootstrap.Modal.getInstance(activeModal);
                 if (modalInstance) modalInstance.hide();
             }
-            // เรียกใช้งาน SweetAlert2 โดยไม่ต้องตั้งค่า didOpen ซับซ้อน เพราะเราใช้ CSS คุมแล้ว
             const { value: email } = await Swal.fire({
                 title: 'กู้คืนรหัสผ่าน',
                 input: 'email',
@@ -461,48 +802,20 @@
             });
         
             if (email) {
-                Swal.fire({
-                    title: 'กำลังตรวจสอบ...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-        
+                Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
                 try {
-                    const res = await fetch(GAS_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'forgotPassword', email: email })
-                    });
+                    const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'forgotPassword', email: email }) });
                     const result = await res.json();
-        
-                    if (result.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งสำเร็จ',
-                            text: result.message,
-                            confirmButtonColor: '#4f46e5'
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'ไม่สำเร็จ',
-                            text: result.message,
-                            confirmButtonColor: '#4f46e5'
-                        });
-                    }
+                    if (result.success) Swal.fire({ icon: 'success', title: 'ส่งสำเร็จ', text: result.message, confirmButtonColor: '#4f46e5' });
+                    else Swal.fire({ icon: 'warning', title: 'ไม่สำเร็จ', text: result.message, confirmButtonColor: '#4f46e5' });
                 } catch (e) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ข้อผิดพลาด',
-                        text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้',
-                        confirmButtonColor: '#ef4444'
-                    });
+                    Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', confirmButtonColor: '#ef4444' });
                 }
             }
         }
         
         function setDayButtons(d) {
-            const allButtonIds = ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'];
-            allButtonIds.forEach(id => {
+            ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'].forEach(id => {
                 const btn = document.getElementById(id);
                 if (btn) btn.classList.remove('active');
             });
@@ -521,20 +834,14 @@
         let currentStream = null;
         let previewModal = null;
         let currentPreviewId = null;
-        let autoRefreshInterval = null;
 
         const video = document.getElementById("video");
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        // ===== INIT (โค้ดดั้งเดิมของคุณทั้งหมด นำกลับมาใช้) =====
         window.onload = () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-
-            document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => {
-                currentPreviewId = null;
-            });
-
+            document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => { currentPreviewId = null; });
             setInputsEnabled(false);
 
             const splash = document.getElementById('splash-screen');
@@ -544,13 +851,8 @@
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').classList.add('d-none');
                 setStaffName(staff.name);
-                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => {
-                    hideSplash(splash);
-                    startAutoRefresh();
-                });
-            } else {
-                hideSplash(splash);
-            }
+                Promise.all([fetchHistory(), checkCurrentDay()]).then(() => { hideSplash(splash); });
+            } else { hideSplash(splash); }
         };
 
         function setInputsEnabled(enabled) {
@@ -569,10 +871,7 @@
             banner.style.display = 'block';
         }
 
-        function hideTimerBanner() {
-            const banner = document.getElementById('timer-banner');
-            banner.style.display = 'none';
-        }
+        function hideTimerBanner() { document.getElementById('timer-banner').style.display = 'none'; }
 
         function formatThaiFull(ts) {
             if (!ts) return { date: "-", time: "-" };
@@ -586,10 +885,7 @@
         
         async function checkCurrentDay() {
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getTimerSettings' })
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getTimerSettings' }) });
                 const timerData = await res.json();
         
                 if (!timerData || timerData.success === false) {
@@ -600,87 +896,80 @@
         
                 const now = new Date().getTime();
                 const config = (day === 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
-                
-                const start = config.start;
-                const end = config.end;
         
-                if (!start || !end) {
+                if (!config.am.start || !config.am.end) {
                     setInputsEnabled(false);
-                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดเวลาลงทะเบียน</b>`);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดเวลา</b>`);
                     return;
                 }
+
+                let currentConfig, label;
+                if (now <= config.am.end) {
+                    currentConfig = config.am;
+                    label = "เช้า";
+                } else if (config.pm.start && now < config.pm.start) {
+                    setInputsEnabled(false);
+                    const pms = formatThaiFull(config.pm.start);
+                    showTimerBanner('closed', `<i class="fa-solid fa-clock me-2"></i><b>พักเบรก</b><br>รอเปิดระบบลงทะเบียนรอบบ่าย: <b>${pms.time} น.</b>`);
+                    return;
+                } else if (config.pm.start) {
+                    currentConfig = config.pm;
+                    label = "บ่าย";
+                } else {
+                    currentConfig = config.am; // Fallback
+                    label = "เช้า";
+                }
         
-                const fmtStart = formatThaiFull(start);
-                const fmtEnd = formatThaiFull(end);
+                const fmtStart = formatThaiFull(currentConfig.start);
+                const fmtEnd = formatThaiFull(currentConfig.end);
         
-                if (now < start) {
+                if (now < currentConfig.start) {
                     setInputsEnabled(false);
                     showTimerBanner('closed',
-                        `<i class="fa-solid fa-clock me-2"></i><b>ยังไม่ถึงเวลาลงทะเบียน</b><br>` +
+                        `<i class="fa-solid fa-clock me-2"></i><b>ยังไม่ถึงเวลาลงทะเบียน (${label})</b><br>` +
                         `วันที่ ${fmtStart.date} &nbsp;|&nbsp; เปิดรับ <b>${fmtStart.time}</b> – <b>${fmtEnd.time} น.</b>`
                     );
-                } else if (now > end) {
+                } else if (now > currentConfig.end) {
                     setInputsEnabled(false);
                     showTimerBanner('closed',
-                        `<i class="fa-solid fa-circle-xmark me-2"></i><b>ปิดรับลงทะเบียนแล้ว</b><br>` +
-                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; ช่วงเวลา <b>${fmtStart.time}</b> – <b>${fmtEnd.time} น.</b>`
+                        `<i class="fa-solid fa-circle-xmark me-2"></i><b>ปิดรับลงทะเบียนแล้ว (${label})</b><br>` +
+                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; หมดเวลาเมื่อ <b>${fmtEnd.time} น.</b>`
                     );
                 } else {
                     setInputsEnabled(true);
                     showTimerBanner('open',
-                        `<i class="fa-solid fa-circle-check me-2"></i><b>เปิดรับลงทะเบียน</b><br>` +
-                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; ถึง <b>${fmtEnd.time} น.</b>`
+                        `<i class="fa-solid fa-circle-check me-2"></i><b>กำลังเปิดรับลงทะเบียน (${label})</b><br>` +
+                        `วันที่ ${fmtStart.date} &nbsp;|&nbsp; ปิดระบบเวลา <b>${fmtEnd.time} น.</b>`
                     );
                 }
-        
             } catch (e) {
                 setInputsEnabled(false);
                 showTimerBanner('unknown', `<i class="fa-solid fa-triangle-exclamation me-2"></i><b>เกิดข้อผิดพลาด:</b> ${e.toString()}`);
             }
         }
 
-        // ฟังก์ชันสั่งหน้าจอจางลง
-        function hideSplash(el) {
-            el.style.opacity = '0';
-            setTimeout(() => { el.style.display = 'none'; }, 400);
-        }
+        function hideSplash(el) { el.style.opacity = '0'; setTimeout(() => { el.style.display = 'none'; }, 400); }
 
         function resetLoginButton() {
             const btn = document.getElementById('login-btn');
-            const text = document.getElementById('login-text');
-            const loader = document.getElementById('login-loader');
-            
             btn.disabled = false;
-            text.classList.remove('d-none');
-            loader.classList.add('d-none');
+            document.getElementById('login-text').classList.remove('d-none');
+            document.getElementById('login-loader').classList.add('d-none');
         }
 
-        // ===== LOGIN =====
         async function login() {
             const idInput = document.getElementById('staff-id');
             const id = idInput.value.trim();
-            const errorMsg = document.getElementById('login-error-msg');
-            const btn = document.getElementById('login-btn');
-            const text = document.getElementById('login-text');
-            const loader = document.getElementById('login-loader');
+            if (!id) return showLoginError("กรุณากรอกรหัสเจ้าหน้าที่");
 
-            if (!id) {
-                showLoginError("กรุณากรอกรหัสเจ้าหน้าที่");
-                return;
-            }
-
-            btn.disabled = true;
-            text.classList.add('d-none');
-            loader.classList.remove('d-none');
-            errorMsg.style.display = 'none';
+            document.getElementById('login-btn').disabled = true;
+            document.getElementById('login-text').classList.add('d-none');
+            document.getElementById('login-loader').classList.remove('d-none');
+            document.getElementById('login-error-msg').style.display = 'none';
 
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id })
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id }) });
                 const result = await res.json();
-
                 if (result.isAllowed) {
                     staff = result;
                     localStorage.setItem('staff_session', JSON.stringify(result));
@@ -688,16 +977,12 @@
                     setStaffName(result.name);
                     fetchHistory();
                     checkCurrentDay();
-                    startAutoRefresh();
                     resetLoginButton();
                 } else {
                     resetLoginButton();
                     showLoginError(result.message || "รหัสไม่ถูกต้อง");
                 }
-            } catch (e) {
-                resetLoginButton();
-                showLoginError("การเชื่อมต่อขัดข้อง");
-            }
+            } catch (e) { resetLoginButton(); showLoginError("การเชื่อมต่อขัดข้อง"); }
         }
 
         function showLoginError(msg) {
@@ -712,21 +997,15 @@
         document.addEventListener('DOMContentLoaded', () => {
             const staffInput = document.getElementById('staff-id');
             const togglePassword = document.getElementById('togglePassword');
-            const errorMsg = document.getElementById('login-error-msg');
-
-            staffInput.addEventListener('input', function() {
-                this.value = this.value.replace(/[ก-๙]/g, '');
-            });
-            staffInput.addEventListener('paste', function(e) {
-                let pasteData = (e.clipboardData || window.clipboardData).getData('text');
-                if (/[ก-๙]/.test(pasteData)) {
-                    e.preventDefault();
-                    const errorMsg = document.getElementById('login-error-msg');
-                    errorMsg.innerText = "ห้ามใช้ตัวอักษรภาษาไทย";
-                    errorMsg.style.display = "block";
-                }
-            });
-            
+            if(staffInput) {
+                staffInput.addEventListener('input', function() { this.value = this.value.replace(/[ก-๙]/g, ''); });
+                staffInput.addEventListener('paste', function(e) {
+                    let pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                    if (/[ก-๙]/.test(pasteData)) { e.preventDefault(); showLoginError("ห้ามใช้ตัวอักษรภาษาไทย"); }
+                });
+                staffInput.addEventListener('input', () => { document.getElementById('login-error-msg').style.display = 'none'; staffInput.classList.remove('is-invalid'); });
+                staffInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); login(); } });
+            }
             if (togglePassword) {
                 togglePassword.addEventListener('click', function() {
                     const type = staffInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -735,41 +1014,20 @@
                     this.classList.toggle('fa-eye-slash');
                 });
             }
-
-            if (staffInput) {
-                staffInput.addEventListener('input', () => {
-                    errorMsg.style.display = 'none';
-                    staffInput.classList.remove('is-invalid');
-                });
-                
-                staffInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); login(); }
-                });
-            }
         });
 
-        // ===== LOGOUT =====
         function logout() {
             Swal.fire({
-                title: 'ออกจากระบบ?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'ตกลง',
-                cancelButtonText: 'ยกเลิก'
+                title: 'ออกจากระบบ?', icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#ef4444', confirmButtonText: 'ตกลง', cancelButtonText: 'ยกเลิก'
             }).then((r) => {
                 if (r.isConfirmed) {
-                    stopAutoRefresh();
-                    localStorage.removeItem('staff_session');
-                    staff = null;
+                    localStorage.removeItem('staff_session'); staff = null;
                     if (isScanning) toggleScanner(false);
-
                     document.getElementById('staff-id').value = '';
                     resetLoginButton(); 
-
                     document.getElementById('login-error-msg').style.display = 'none';
                     document.getElementById('login-screen').classList.remove('d-none');
-                    document.getElementById('login-screen').style.display = '';
                     setStaffName("กำลังโหลด...");
                 }
             });
@@ -786,26 +1044,17 @@
             Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) 
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) });
                 const result = await res.json();
                 Swal.close();
 
                 if (result.success) {
                     const u = result.user;
-
                     const img = document.getElementById('p-img');
                     const icon = document.getElementById('p-icon');
                     if (u.img && u.img !== "-" && u.img !== "") {
-                        img.src = u.img;
-                        img.style.display = 'block';
-                        icon.style.display = 'none';
-                    } else {
-                        img.style.display = 'none';
-                        icon.style.display = 'block';
-                    }
+                        img.src = u.img; img.style.display = 'block'; icon.style.display = 'none';
+                    } else { img.style.display = 'none'; icon.style.display = 'block'; }
 
                     document.getElementById('p-name').innerText = u.name;
                     document.getElementById('p-id').innerText = u.id;
@@ -814,12 +1063,8 @@
 
                     const deptArea = document.getElementById('dept-area');
                     const regType = u.regType ? u.regType.toString().trim() : "";
-                    if (regType === "สำหรับผู้ลงทะเบียนภายนอก") {
-                        deptArea.style.display = 'none';
-                    } else {
-                        deptArea.style.display = 'block';
-                        document.getElementById('p-dept').innerText = u.dept || '-';
-                    }
+                    if (regType === "สำหรับผู้ลงทะเบียนภายนอก") { deptArea.style.display = 'none'; } 
+                    else { deptArea.style.display = 'block'; document.getElementById('p-dept').innerText = u.dept || '-'; }
 
                     const payArea = document.getElementById('pay-status-area');
                     const stEl = document.getElementById('p-status');
@@ -829,16 +1074,14 @@
                     const dayLabel = document.getElementById('scanned-day-label');
                     const timeLabel = document.getElementById('scanned-time-label');
 
-                    alreadyArea.classList.add('d-none');
-                    payWarn.classList.add('d-none');
-                    btnConfirm.style.display = 'block';
-                    btnConfirm.disabled = false;
-                    btnConfirm.classList.remove('btn-secondary');
-                    btnConfirm.classList.add('btn-success');
+                    alreadyArea.classList.add('d-none'); payWarn.classList.add('d-none');
+                    btnConfirm.style.display = 'block'; btnConfirm.disabled = false;
+                    btnConfirm.classList.remove('btn-secondary'); btnConfirm.classList.add('btn-success');
 
                     if (result.isAlreadyScanned) {
                         alreadyArea.classList.remove('d-none');
-                        if (dayLabel) dayLabel.innerText = day;
+                        // เปลี่ยนการแสดงผลให้บอกว่าลงชื่อรอบเช้าหรือบ่ายแล้ว
+                        if (dayLabel) dayLabel.innerText = `${day} (${result.scannedSession || ''})`;
                         if (timeLabel) timeLabel.innerText = result.scannedTime;
                         btnConfirm.style.display = 'none';
                     } 
@@ -849,18 +1092,13 @@
                         stEl.className = `fw-bold ${payStatus === 'ชำระเงินเรียบร้อย' ? 'text-success' : 'text-danger'}`;
 
                         if (payStatus !== 'ชำระเงินเรียบร้อย') {
-                            btnConfirm.disabled = true;
-                            btnConfirm.classList.remove('btn-success');
-                            btnConfirm.classList.add('btn-secondary');
+                            btnConfirm.disabled = true; btnConfirm.classList.remove('btn-success'); btnConfirm.classList.add('btn-secondary');
                             payWarn.classList.remove('d-none');
                         }
-                    } else {
-                        payArea.style.display = 'none';
-                    }
+                    } else { payArea.style.display = 'none'; }
 
                     btnConfirm.onclick = () => record(id, false);
                     previewModal.show();
-
                 } else {
                     currentPreviewId = null;
                     Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message, confirmButtonColor: '#4f46e5' });
@@ -873,49 +1111,35 @@
 
         function handleManual() {
             const val = document.getElementById('manual-input').value.trim();
-            if (val) {
-                previewUser(val);
-                document.getElementById('manual-input').value = '';
-            }
+            if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
         }
 
         async function toggleScanner(start) {
             if (start) {
                 try {
                     currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = currentStream;
-                    video.play();
-                    isScanning = true;
-                    document.getElementById('start-btn').classList.add('d-none');
-                    document.getElementById('stop-btn').classList.remove('d-none');
-                    document.getElementById('placeholder').classList.add('d-none');
-                    canvas.hidden = false;
+                    video.srcObject = currentStream; video.play(); isScanning = true;
+                    document.getElementById('start-btn').classList.add('d-none'); document.getElementById('stop-btn').classList.remove('d-none');
+                    document.getElementById('placeholder').classList.add('d-none'); canvas.hidden = false;
                     requestAnimationFrame(tick);
-                } catch (e) {
-                    Swal.fire({ icon: 'error', title: 'ไม่สามารถเข้าถึงกล้องได้', text: e.toString() });
-                }
+                } catch (e) { Swal.fire({ icon: 'error', title: 'ไม่สามารถเข้าถึงกล้องได้', text: e.toString() }); }
             } else {
                 if (currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
-                document.getElementById('start-btn').classList.remove('d-none');
-                document.getElementById('stop-btn').classList.add('d-none');
-                canvas.hidden = true;
-                document.getElementById('placeholder').classList.remove('d-none');
+                document.getElementById('start-btn').classList.remove('d-none'); document.getElementById('stop-btn').classList.add('d-none');
+                canvas.hidden = true; document.getElementById('placeholder').classList.remove('d-none');
             }
         }
 
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight; canvas.width = video.videoWidth;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
                 if (code) {
                     if (navigator.vibrate) navigator.vibrate(100);
-                    toggleScanner(false);
-                    previewUser(code.data);
-                    return;
+                    toggleScanner(false); previewUser(code.data); return;
                 }
             }
             if (isScanning) requestAnimationFrame(tick);
@@ -928,57 +1152,41 @@
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        action: 'recordAttendance',
-                        data: { text: qrText, day, confirmSkip: confirmSkip, staffInfo: staff }
-                    })
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirmSkip, staffInfo: staff } })
                 });
                 const result = await res.json();
                 Swal.close();
         
                 if (result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'บันทึกสำเร็จ ✓',
-                        text: result.user.name,
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-        
-                    // ✅ เรียกอัปเดตรายการทันทีหลังจากบันทึกสำเร็จ (ไม่ต้องรอ 15 วิเหมือนของเดิม)
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ ✓', text: result.user.name, timer: 1500, showConfirmButton: false });
                     fetchHistory(true); 
-        
                 } else if (result.requireConfirm) {
-                    // ... (โค้ดส่วน confirmSkip ของเดิม) ...
+                    Swal.fire({
+                        title: 'ยืนยันการบันทึกข้ามวัน', text: result.message, icon: 'warning',
+                        showCancelButton: true, confirmButtonColor: '#4f46e5', cancelButtonColor: '#ef4444',
+                        confirmButtonText: 'ยืนยันบันทึก', cancelButtonText: 'ยกเลิก'
+                    }).then((r) => { if (r.isConfirmed) { record(qrText, true); } });
                 } else {
                     Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message, confirmButtonColor: '#4f46e5' });
                 }
-            } catch (e) {
-                Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อล้มเหลว: ' + e.toString() });
-            }
+            } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อล้มเหลว: ' + e.toString() }); }
         }
 
         async function fetchHistory(isBackground = false) {
             const box = document.getElementById('history-box');
-            
             if (!isBackground) {
-                box.innerHTML = `
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <div class="text-muted fw-bold">กำลังโหลดข้อมูล...</div>
-                    </div>`;
+                box.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div><div class="text-muted fw-bold">กำลังโหลดข้อมูล...</div></div>`;
             }
 
             try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getRecentRecords', data: { day } })
-                });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
                 const result = await res.json();
 
                 if (result.success) {
+                    // Update Session Label Badge in Sidebar
+                    const labelUi = document.getElementById('session-label-ui');
+                    if(labelUi) labelUi.innerText = result.sessionLabel ? `(รอบ${result.sessionLabel})` : '';
+
                     const presentEl = document.getElementById('ui-present');
                     const absentEl = document.getElementById('ui-absent');
                     if (presentEl) presentEl.innerText = result.present;
@@ -988,13 +1196,9 @@
                         box.innerHTML = result.records.map(r => {
                             let displayId = r.id.toString().trim();
                             if (!isNaN(displayId) && displayId !== "") displayId = displayId.padStart(3, '0');
+                            const idHtml = displayId.includes('-') ? `<span>${displayId.split('-')[0]}</span><span>${displayId.split('-')[1]}</span>` : displayId;
 
-                            const idHtml = displayId.includes('-')
-                                ? `<span>${displayId.split('-')[0]}</span><span>${displayId.split('-')[1]}</span>`
-                                : displayId;
-
-                            return `
-                            <div class="id-item shadow-sm p-3">
+                            return `<div class="id-item shadow-sm p-3">
                                 <div class="id-num">${idHtml}</div>
                                 <div class="flex-grow-1 overflow-hidden">
                                     <h5 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 1.1rem;">${r.name}</h5>
@@ -1004,80 +1208,36 @@
                             </div>`;
                         }).join('');
                     } else {
-                        box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลวันนี้</p>`;
+                        box.innerHTML = `<p class="text-center py-5 text-muted small italic fw-bold">ยังไม่มีข้อมูลสำหรับรอบนี้</p>`;
                     }
-
                     filterHistory();
-
-                } else {
-                    if (!isBackground) box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`;
-                }
+                } else { if (!isBackground) box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่สำเร็จ</p>`; }
             } catch (e) {
                 if (!isBackground) box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
-                console.error("History Error:", e);
             }
         }
 
-        async function changeDay(d) {
-            day = d;
-            setDayButtons(d);
-            hideTimerBanner();
-            checkCurrentDay();
-            fetchHistory();
-        }
+        async function changeDay(d) { day = d; setDayButtons(d); hideTimerBanner(); checkCurrentDay(); fetchHistory(); }
 
         function filterHistory() {
             const query = document.getElementById('history-search').value.toLowerCase().trim();
             const items = document.querySelectorAll('.id-item');
             let hasResult = false;
-
             items.forEach(item => {
-                const text = item.innerText.toLowerCase();
-                if (text.includes(query)) {
-                    item.style.display = 'flex';
-                    hasResult = true;
-                } else {
-                    item.style.display = 'none';
-                }
+                if (item.innerText.toLowerCase().includes(query)) { item.style.display = 'flex'; hasResult = true; } 
+                else { item.style.display = 'none'; }
             });
 
             const box = document.getElementById('history-box');
             let noResultMsg = document.getElementById('no-search-result');
-            
             if (!hasResult && query !== "") {
                 if (!noResultMsg) {
-                    noResultMsg = document.createElement('p');
-                    noResultMsg.id = 'no-search-result';
-                    noResultMsg.className = 'text-center py-4 text-muted small';
-                    noResultMsg.innerText = '--- ไม่พบข้อมูลที่ค้นหา ---';
+                    noResultMsg = document.createElement('p'); noResultMsg.id = 'no-search-result';
+                    noResultMsg.className = 'text-center py-4 text-muted small'; noResultMsg.innerText = '--- ไม่พบข้อมูลที่ค้นหา ---';
                     box.appendChild(noResultMsg);
                 }
-            } else if (noResultMsg) {
-                noResultMsg.remove();
-            }
+            } else if (noResultMsg) { noResultMsg.remove(); }
         }
-
-        // ปรับปรุงฟังก์ชันเดิมให้ไม่ต้องทำอะไร (เพื่อไม่ให้ Error ถ้ามีการเรียกใช้ที่อื่น)
-        function startAutoRefresh() {
-            console.log("Auto-refresh disabled to save resources.");
-        }
-        
-        // เพิ่มฟังก์ชันสำหรับการกดปุ่มอัปเดตเอง
-        async function manualRefresh() {
-            const icon = document.getElementById('refresh-icon');
-            icon.classList.add('fa-spin'); // ให้ไอคอนหมุนขณะโหลด
-            await fetchHistory(true); 
-            setTimeout(() => {
-                icon.classList.remove('fa-spin');
-            }, 500);
-        }
-
-        function stopAutoRefresh() {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-                autoRefreshInterval = null;
-            }
-        }        
     </script>
 </body>
 </html>
