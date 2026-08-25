@@ -331,9 +331,15 @@
                         <small id="ui-staff" class="text-primary fw-bold">กำลังโหลด...</small>
                     </div>
                 </div>
-                <div class="nav-tabs-custom">
-                    <button onclick="changeDay(1)" id="day1-btn" class="btn-day active">วันที่ 1</button>
-                    <button onclick="changeDay(2)" id="day2-btn" class="btn-day">วันที่ 2</button>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeDay(1)" id="day1-btn" class="btn-day active">วันที่ 1</button>
+                        <button onclick="changeDay(2)" id="day2-btn" class="btn-day">วันที่ 2</button>
+                    </div>
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeSession('am')" id="am-btn" class="btn-day active">รอบเช้า</button>
+                        <button onclick="changeSession('pm')" id="pm-btn" class="btn-day">รอบบ่าย</button>
+                    </div>
                 </div>
                 <button onclick="logout()" class="btn btn-outline-danger btn-sm fw-bold px-3">
                     <i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ
@@ -351,10 +357,14 @@
                     </div>
                     <button onclick="logout()" class="btn btn-sm btn-light text-danger border fw-bold">ออก <i class="fa-solid fa-power-off ms-1"></i></button>
                 </div>
-                <div class="mobile-row2">
-                    <div class="nav-tabs-custom">
-                        <button onclick="changeDay(1)" id="day1-btn-m" class="btn-day active">วันที่ 1</button>
-                        <button onclick="changeDay(2)" id="day2-btn-m" class="btn-day">วันที่ 2</button>
+                <div class="mobile-row2 d-flex gap-2">
+                    <div class="nav-tabs-custom w-50">
+                        <button onclick="changeDay(1)" id="day1-btn-m" class="btn-day active w-100">วันที่ 1</button>
+                        <button onclick="changeDay(2)" id="day2-btn-m" class="btn-day w-100">วันที่ 2</button>
+                    </div>
+                    <div class="nav-tabs-custom w-50">
+                        <button onclick="changeSession('am')" id="am-btn-m" class="btn-day active w-100">เช้า</button>
+                        <button onclick="changeSession('pm')" id="pm-btn-m" class="btn-day w-100">บ่าย</button>
                     </div>
                 </div>
             </div>
@@ -415,6 +425,7 @@
         const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec";
         
         let day = 1;
+        let currentSession = 'am'; // เพิ่มตัวแปรเก็บรอบ เช้า/บ่าย
         let staff = null;
         let isScanning = false;
         let currentStream = null;
@@ -492,31 +503,15 @@
                 }
         
                 const now = new Date().getTime();
-                // เลือก Config ตามวันที่เลือก
+                // เลือก Config ตามวันที่ และ รอบที่ผู้ใช้เลือกบน UI
                 const config = (day === 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
+                const currentConfig = config[currentSession];
+                const label = currentSession === 'am' ? "เช้า" : "บ่าย";
         
-                if (!config.am.start || !config.am.end) {
+                if (!currentConfig.start || !currentConfig.end) {
                     setInputsEnabled(false);
-                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day}: ยังไม่ได้กำหนดเวลา</b>`);
+                    showTimerBanner('unknown', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day} (${label}): ยังไม่ได้กำหนดเวลา</b>`);
                     return;
-                }
-
-                let currentConfig, label;
-                // ตรวจสอบว่าเป็นรอบเช้า รอบบ่าย หรือพักเบรก
-                if (now <= config.am.end) {
-                    currentConfig = config.am;
-                    label = "เช้า";
-                } else if (config.pm.start && now < config.pm.start) {
-                    setInputsEnabled(false);
-                    const pms = formatThaiFull(config.pm.start);
-                    showTimerBanner('closed', `<i class="fa-solid fa-mug-hot me-2"></i><b>พักเบรก</b><br>รอเปิดระบบลงทะเบียนรอบบ่าย: <b>${pms.time} น.</b>`);
-                    return;
-                } else if (config.pm.start) {
-                    currentConfig = config.pm;
-                    label = "บ่าย";
-                } else {
-                    currentConfig = config.am; // สำรองกรณีไม่มีรอบบ่าย
-                    label = "เช้า";
                 }
         
                 const fmtStart = formatThaiFull(currentConfig.start);
@@ -666,7 +661,7 @@
             Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day }) });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day, session: currentSession }) });
                 const result = await res.json();
                 Swal.close();
 
@@ -773,7 +768,7 @@
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, confirmSkip: confirmSkip, staffInfo: staff } })
+                    body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day: day, session: currentSession, confirmSkip: confirmSkip, staffInfo: staff } })
                 });
                 const result = await res.json();
                 Swal.close();
@@ -800,7 +795,7 @@
             }
 
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day } }) });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: day, session: currentSession } }) });
                 const result = await res.json();
 
                 if (result.success) {
@@ -850,6 +845,24 @@
             } else if (d === 2) {
                 document.getElementById('day2-btn')?.classList.add('active');
                 document.getElementById('day2-btn-m')?.classList.add('active');
+            }
+            hideTimerBanner(); 
+            checkCurrentDay(); 
+            fetchHistory(); 
+        }
+
+        function changeSession(s) {
+            currentSession = s;
+            ['am-btn', 'pm-btn', 'am-btn-m', 'pm-btn-m'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('active');
+            });
+            if (s === 'am') {
+                document.getElementById('am-btn')?.classList.add('active');
+                document.getElementById('am-btn-m')?.classList.add('active');
+            } else if (s === 'pm') {
+                document.getElementById('pm-btn')?.classList.add('active');
+                document.getElementById('pm-btn-m')?.classList.add('active');
             }
             hideTimerBanner(); 
             checkCurrentDay(); 
