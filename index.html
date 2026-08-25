@@ -472,7 +472,7 @@
             if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
         }
 
-        async function previewUser(id) {
+async function previewUser(id) {
             Swal.fire({ title: 'กำลังตรวจสอบ...', didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day, session: session }) });
@@ -489,15 +489,6 @@
                     const scannedTimeText = document.getElementById('p-scanned-time');
 
                     if (result.isAlreadyScanned) {
-                        // ป้องกันข้อมูลซ้ำ แจ้งเตือนเด้ง SweetAlert
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'ข้อมูลซ้ำ!',
-                            text: `ผู้เข้าร่วมรายนี้ทำการสแกนไปแล้วเมื่อ\n${result.scannedTime}`,
-                            confirmButtonColor: '#ef4444',
-                            confirmButtonText: 'รับทราบ'
-                        });
-
                         btn.disabled = true;
                         btn.classList.remove('btn-success');
                         btn.classList.add('btn-secondary');
@@ -520,7 +511,6 @@
                         btn.classList.add('btn-success');
                         btn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน`;
                         
-                        // ฟังก์ชันกดยืนยันให้มีแจ้งเตือน Confirm ก่อนบันทึก
                         btn.onclick = () => {
                             Swal.fire({
                                 title: 'ยืนยันการบันทึก?',
