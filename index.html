@@ -257,7 +257,7 @@
         </main>
 
         <aside class="sidebar-right">
-            <!-- Stats Dashboard (NEW) -->
+            <!-- Stats Dashboard -->
             <div class="stats-dashboard">
                 <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>สรุปยอดการลงทะเบียน</h6>
                 <div class="row g-2">
@@ -310,7 +310,8 @@
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').classList.add('d-none');
                 document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                await updateData(false);
+                // เรียกข้อมูลตอนเริ่มต้น 
+                await updateData();
             }
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 500);
@@ -330,19 +331,9 @@
             }
         };
 
-        async function updateData(showSpinner = true) {
-            if (showSpinner) {
-                Swal.fire({
-                    title: 'กำลังอัปเดตข้อมูล...',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-            }
-            
+        // ฟังก์ชันดึงข้อมูล โดยไม่ต้องแสดง Popup ตรงกลางแล้ว ให้โหลดเฉพาะด้านข้าง
+        async function updateData() {
             await Promise.all([checkCurrentDay(), fetchHistory()]);
-            
-            if (showSpinner) Swal.close();
         }
 
         async function login() {
@@ -362,7 +353,7 @@
                     localStorage.setItem('staff_session', JSON.stringify(result));
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                    updateData(true);
+                    updateData(); // อัปเดตข้อมูลเมื่อ Login สำเร็จ
                 } else {
                     const errorMsg = document.getElementById('login-error-msg');
                     errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> ${result.message}`;
@@ -395,7 +386,7 @@
             document.getElementById('day1-btn').classList.toggle('active', day === 1);
             document.getElementById('day2-btn').classList.toggle('active', day === 2);
             document.getElementById('mobile-day').value = day;
-            updateData(true);
+            updateData(); // เปลี่ยนเมนูไม่ต้องมี Popup
         }
 
         function changeSession(s) {
@@ -403,7 +394,7 @@
             document.getElementById('am-btn').classList.toggle('active', session === 'am');
             document.getElementById('pm-btn').classList.toggle('active', session === 'pm');
             document.getElementById('mobile-session').value = session;
-            updateData(true);
+            updateData(); // เปลี่ยนเมนูไม่ต้องมี Popup
         }
 
         async function checkCurrentDay() {
@@ -584,8 +575,10 @@
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day, session } }) });
                 const result = await res.json();
                 if (result.success) {
-                    // อัปเดตตัวเลขแสดงผล จำนวนทั้งหมด, มาแล้ว, ยังไม่มา
-                    document.getElementById('ui-total').innerText = result.total;
+                    // ป้องกัน Error undefined โดยใช้การคำนวณ fallback (เผื่อ backend ไม่อัปเดต)
+                    const totalCount = result.total !== undefined ? result.total : (result.present + result.absent);
+                    
+                    document.getElementById('ui-total').innerText = totalCount;
                     document.getElementById('ui-present').innerText = result.present;
                     document.getElementById('ui-absent').innerText = result.absent;
 
