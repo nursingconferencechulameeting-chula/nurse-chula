@@ -536,16 +536,20 @@ async function previewUser(id) {
         }
 
         async function record(qrText, confirmSkip) {
-            previewModal.hide();
+            previewModal.hide(); // ปิด Modal ทันทีที่กดบันทึก
             Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, session, confirmSkip, staffInfo: staff } }) });
                 const result = await res.json();
+                
                 if (result.success) {
-                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
+                    // บันทึกสำเร็จ: แสดงแค่เครื่องหมายถูกสั้นๆ แล้วหายไปเอง
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1000, showConfirmButton: false });
                     fetchHistory();
                 } else if (result.requireConfirm) {
-                    Swal.fire({ title: 'ยืนยันการบันทึก?', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก', confirmButtonColor: '#10b981' }).then(r => { if (r.isConfirmed) record(qrText, true); });
+                    // ถ้า Server บอกว่าต้องยืนยันเงื่อนไขพิเศษ ให้ส่งบันทึกซ้ำแบบ Auto (confirmSkip = true) เพื่อลดขั้นตอน
+                    record(qrText, true);
                 } else { 
                     Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message, confirmButtonColor: '#4f46e5' }); 
                 }
