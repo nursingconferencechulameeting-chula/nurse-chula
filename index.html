@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smart QR Check-in System</title>
+    
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/241/241528.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,6 +18,7 @@
         @media (max-width: 767px) { :root { --nav-h: 140px; } }
 
         body { font-family: 'Prompt', sans-serif; background-color: #f1f5f9; height: 100vh; overflow: hidden; margin: 0; padding-top: var(--nav-h); }
+        
         .navbar { position: fixed; top: 0; width: 100%; z-index: 2000; height: var(--nav-h); background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; }
         .navbar .container-fluid { height: 100%; display: flex; padding: 0 16px; align-items: center;}
         
@@ -74,8 +76,12 @@
         .search-wrapper { padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
         .search-input-group { position: relative; }
         .search-input-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem; }
-        .search-input-group input { width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; }
+        .search-input-group input { width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; transition: all 0.2s; }
+        .search-input-group input:focus { outline: none; background: #ffffff; border-color: var(--primary-color); }
         #history-box { flex: 1; overflow-y: auto; padding: 15px; }
+        #history-box::-webkit-scrollbar { width: 6px; }
+        #history-box::-webkit-scrollbar-track { background: #f1f5f9; }
+        #history-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
         #splash-screen { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1e293b; transition: opacity 0.4s ease; }
         .loader-circle { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -90,6 +96,7 @@
         <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
     </div>
 
+    <!-- ===== LOGIN SCREEN ===== -->
     <div id="login-screen">
         <div class="login-card">
             <div class="login-logo"><i class="fa-solid fa-user-shield"></i></div>
@@ -237,9 +244,9 @@
     <video id="video" playsinline hidden></video>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec"; // ตรวจสอบ URL อีกครั้ง
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec"; // ถ้ามีการนำไปใช้งานจริง อย่าลืมเช็คให้ตรงกับ URL ใหม่ที่ Deploy
         let day = 1;
-        let session = 'am'; // ค่าเริ่มต้นเป็นรอบเช้า
+        let session = 'am'; 
         let staff = null, isScanning = false, currentStream = null, previewModal = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
@@ -256,6 +263,21 @@
             }
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 400);
+            
+            // Toggle Password Feature
+            const togglePassword = document.getElementById('togglePassword');
+            const staffInput = document.getElementById('staff-id');
+            if (togglePassword && staffInput) {
+                togglePassword.addEventListener('click', function() {
+                    const type = staffInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    staffInput.setAttribute('type', type);
+                    this.classList.toggle('fa-eye');
+                    this.classList.toggle('fa-eye-slash');
+                });
+                staffInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); login(); }
+                });
+            }
         };
 
         function updateData() {
@@ -266,7 +288,14 @@
         async function login() {
             const id = document.getElementById('staff-id').value.trim();
             if (!id) return;
-            document.getElementById('login-btn').disabled = true;
+            const btn = document.getElementById('login-btn');
+            const text = document.getElementById('login-text');
+            const loader = document.getElementById('login-loader');
+            
+            btn.disabled = true;
+            text.classList.add('d-none');
+            loader.classList.remove('d-none');
+            
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id }) });
                 const result = await res.json();
@@ -277,16 +306,32 @@
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
                     updateData();
                 } else {
-                    document.getElementById('login-error-msg').innerText = result.message;
-                    document.getElementById('login-error-msg').style.display = 'block';
+                    const errorMsg = document.getElementById('login-error-msg');
+                    errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> ${result.message}`;
+                    errorMsg.style.display = 'block';
                 }
-            } catch (e) { alert("เชื่อมต่อล้มเหลว"); }
-            document.getElementById('login-btn').disabled = false;
+            } catch (e) { 
+                Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้' });
+            }
+            btn.disabled = false;
+            text.classList.remove('d-none');
+            loader.classList.add('d-none');
         }
 
         function logout() {
-            localStorage.removeItem('staff_session');
-            location.reload();
+            Swal.fire({
+                title: 'ออกจากระบบ?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'ตกลง',
+                cancelButtonText: 'ยกเลิก'
+            }).then((r) => {
+                if (r.isConfirmed) {
+                    localStorage.removeItem('staff_session');
+                    location.reload();
+                }
+            });
         }
 
         function changeDay(d) {
@@ -321,19 +366,19 @@
 
                 if (!activeSession.start) {
                     banner.className = 'status-closed';
-                    banner.innerHTML = `⚠️ วันที่ ${day} รอบ${sessionLabel} ยังไม่ได้กำหนดเวลา`;
+                    banner.innerHTML = `<i class="fa-solid fa-clock me-2"></i> วันที่ ${day} รอบ${sessionLabel} ยังไม่ได้กำหนดเวลา`;
                     btnStart.disabled = true;
                 } else if (now < activeSession.start) {
                     banner.className = 'status-closed';
-                    banner.innerHTML = `⏳ ยังไม่ถึงเวลาลงทะเบียน รอบ${sessionLabel}`;
+                    banner.innerHTML = `<i class="fa-solid fa-clock me-2"></i> ⏳ ยังไม่ถึงเวลาลงทะเบียน รอบ${sessionLabel}`;
                     btnStart.disabled = true;
                 } else if (now > activeSession.end) {
                     banner.className = 'status-closed';
-                    banner.innerHTML = `❌ ปิดรับลงทะเบียน รอบ${sessionLabel} แล้ว`;
+                    banner.innerHTML = `<i class="fa-solid fa-circle-xmark me-2"></i> ❌ ปิดรับลงทะเบียน รอบ${sessionLabel} แล้ว`;
                     btnStart.disabled = true;
                 } else {
                     banner.className = 'status-open';
-                    banner.innerHTML = `✅ เปิดรับลงทะเบียน รอบ${sessionLabel}`;
+                    banner.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i> ✅ เปิดรับลงทะเบียน รอบ${sessionLabel}`;
                     btnStart.disabled = false;
                 }
                 banner.style.display = 'block';
@@ -342,12 +387,16 @@
 
         async function toggleScanner(start) {
             if (start) {
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                video.srcObject = currentStream; video.play(); isScanning = true;
-                document.getElementById('start-btn').classList.add('d-none');
-                document.getElementById('stop-btn').classList.remove('d-none');
-                document.getElementById('placeholder').classList.add('d-none');
-                canvas.hidden = false; requestAnimationFrame(tick);
+                try {
+                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    video.srcObject = currentStream; video.play(); isScanning = true;
+                    document.getElementById('start-btn').classList.add('d-none');
+                    document.getElementById('stop-btn').classList.remove('d-none');
+                    document.getElementById('placeholder').classList.add('d-none');
+                    canvas.hidden = false; requestAnimationFrame(tick);
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'ไม่สามารถเข้าถึงกล้องได้', text: e.toString() });
+                }
             } else {
                 if(currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
@@ -364,6 +413,7 @@
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
                 if (code) {
+                    if (navigator.vibrate) navigator.vibrate(100);
                     toggleScanner(false); previewUser(code.data); return;
                 }
             }
@@ -390,25 +440,31 @@
                     const btn = document.getElementById('btn-confirm-record');
                     if (result.isAlreadyScanned) {
                         btn.disabled = true;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-secondary');
                         btn.innerHTML = `ลงชื่อไปแล้ว (${result.scannedTime})`;
                     } else if (u.regType === "สำหรับผู้ลงทะเบียนภายนอก" && u.payStatus !== "ชำระเงินเรียบร้อย") {
                         btn.disabled = true;
-                        btn.innerHTML = `ยังไม่ได้ชำระเงิน`;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-danger');
+                        btn.innerHTML = `<i class="fa-solid fa-ban me-2"></i>ยังไม่ได้ชำระเงิน`;
                     } else {
                         btn.disabled = false;
+                        btn.classList.remove('btn-secondary', 'btn-danger');
+                        btn.classList.add('btn-success');
                         btn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน`;
                         btn.onclick = () => record(id, false);
                     }
                     previewModal.show();
                 } else {
-                    Swal.fire('ไม่พบข้อมูล', result.message, 'error');
+                    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message, confirmButtonColor: '#4f46e5' });
                 }
             } catch (e) { Swal.fire('Error', e.toString(), 'error'); }
         }
 
         async function record(qrText, confirmSkip) {
             previewModal.hide();
-            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, session, confirmSkip, staffInfo: staff } }) });
                 const result = await res.json();
@@ -416,8 +472,10 @@
                     Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
                     fetchHistory();
                 } else if (result.requireConfirm) {
-                    Swal.fire({ title: 'ยืนยัน?', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก' }).then(r => { if (r.isConfirmed) record(qrText, true); });
-                } else { Swal.fire('แจ้งเตือน', result.message, 'warning'); }
+                    Swal.fire({ title: 'ยืนยันการบันทึก?', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก', confirmButtonColor: '#10b981' }).then(r => { if (r.isConfirmed) record(qrText, true); });
+                } else { 
+                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message, confirmButtonColor: '#4f46e5' }); 
+                }
             } catch (e) { Swal.fire('Error', e.toString(), 'error'); }
         }
 
@@ -428,13 +486,56 @@
                 const result = await res.json();
                 if (result.success) {
                     document.getElementById('ui-present').innerText = result.present;
-                    box.innerHTML = result.records.length ? result.records.map(r => `
-                        <div class="id-item shadow-sm p-3">
-                            <div class="flex-grow-1"><h5 class="mb-1 fw-bold">${r.name}</h5><small class="text-muted">${r.time}</small></div>
-                            <i class="fa-solid fa-circle-check fa-2x text-success"></i>
-                        </div>`).join('') : '<p class="text-center py-4">ยังไม่มีข้อมูล</p>';
+                    if (result.records.length > 0) {
+                        box.innerHTML = result.records.map(r => `
+                            <div class="id-item shadow-sm p-3">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h5 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 1.05rem;">${r.name}</h5>
+                                    <small class="text-muted"><i class="fa-regular fa-clock me-2"></i>${r.time}</small>
+                                </div>
+                                <i class="fa-solid fa-circle-check fa-2x text-success ms-2"></i>
+                            </div>`).join('');
+                    } else {
+                        box.innerHTML = '<p class="text-center py-4 text-muted small fw-bold">ยังไม่มีข้อมูล</p>';
+                    }
+                    // เรียกใช้งาน filterHistory ทุกครั้งที่ดึงข้อมูลใหม่ เพื่อคงผลการค้นหาไว้
+                    filterHistory();
                 }
             } catch (e) { console.error(e); }
+        }
+
+        // --------------------------------------------------------
+        // เพิ่มฟังก์ชัน filterHistory() ที่หายไป
+        // --------------------------------------------------------
+        function filterHistory() {
+            const query = document.getElementById('history-search').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.id-item');
+            let hasResult = false;
+
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                if (text.includes(query)) {
+                    item.style.display = 'flex';
+                    hasResult = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            const box = document.getElementById('history-box');
+            let noResultMsg = document.getElementById('no-search-result');
+            
+            if (!hasResult && query !== "") {
+                if (!noResultMsg) {
+                    noResultMsg = document.createElement('p');
+                    noResultMsg.id = 'no-search-result';
+                    noResultMsg.className = 'text-center py-4 text-danger small fw-bold';
+                    noResultMsg.innerText = '--- ไม่พบข้อมูลที่ค้นหา ---';
+                    box.appendChild(noResultMsg);
+                }
+            } else if (noResultMsg) {
+                noResultMsg.remove();
+            }
         }
     </script>
 </body>
