@@ -69,7 +69,6 @@
         #timer-banner.status-closed { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
         #timer-banner.status-open { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
         .id-item { display: flex; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 12px; margin-bottom: 10px; }
-        .id-num { width: 75px; height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-right: 15px; background: #eef2ff; color: #4f46e5; border-radius: 12px; font-weight: 700; font-size: 0.85rem; }
         .profile-box { width: 150px; height: 180px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; background: #f8fafc; border-radius: 20px; border: 4px solid #ffffff; overflow: hidden; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
         .profile-box img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -256,7 +255,7 @@
         let staff = null, isScanning = false, currentStream = null, previewModal = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
-        window.onload = () => {
+        window.onload = async () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
             const splash = document.getElementById('splash-screen');
             const savedStaff = localStorage.getItem('staff_session');
@@ -265,7 +264,8 @@
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').classList.add('d-none');
                 document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                updateData();
+                // เรียกข้อมูลโดยไม่ต้องขึ้น Popup Swal ตอนเปิดหน้าแรก
+                await updateData(false);
             }
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 400);
@@ -285,9 +285,23 @@
             }
         };
 
-        function updateData() {
-            checkCurrentDay();
-            fetchHistory();
+        // เพิ่มพารามิเตอร์ showSpinner เพื่อจัดการการแสดงผล
+        async function updateData(showSpinner = true) {
+            if (showSpinner) {
+                Swal.fire({
+                    title: 'กำลังอัปเดตข้อมูล...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+            }
+            
+            // รอโหลดข้อมูลทั้งคู่ให้เสร็จพร้อมกัน
+            await Promise.all([checkCurrentDay(), fetchHistory()]);
+            
+            if (showSpinner) {
+                Swal.close();
+            }
         }
 
         async function login() {
@@ -309,7 +323,7 @@
                     localStorage.setItem('staff_session', JSON.stringify(result));
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                    updateData();
+                    updateData(true);
                 } else {
                     const errorMsg = document.getElementById('login-error-msg');
                     errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> ${result.message}`;
@@ -339,20 +353,22 @@
             });
         }
 
+        // เพิ่มการเรียกใช้ Spinner (updateData(true)) เมื่อผู้ใช้กดเปลี่ยนเมนู
         function changeDay(d) {
             day = parseInt(d);
             document.getElementById('day1-btn').classList.toggle('active', day === 1);
             document.getElementById('day2-btn').classList.toggle('active', day === 2);
             document.getElementById('mobile-day').value = day;
-            updateData();
+            updateData(true);
         }
 
+        // เพิ่มการเรียกใช้ Spinner (updateData(true)) เมื่อผู้ใช้กดเปลี่ยนเมนู
         function changeSession(s) {
             session = s;
             document.getElementById('am-btn').classList.toggle('active', session === 'am');
             document.getElementById('pm-btn').classList.toggle('active', session === 'pm');
             document.getElementById('mobile-session').value = session;
-            updateData();
+            updateData(true);
         }
 
         async function checkCurrentDay() {
@@ -447,7 +463,7 @@
                     const scannedTimeText = document.getElementById('p-scanned-time');
 
                     if (result.isAlreadyScanned) {
-                        // ป้องกันข้อมูลซ้ำ: แสดงแจ้งเตือน SweetAlert ขึ้นมา
+                        // แจ้งเตือนเมื่อข้อมูลซ้ำ
                         Swal.fire({
                             icon: 'warning',
                             title: 'ข้อมูลซ้ำ!',
@@ -478,7 +494,7 @@
                         btn.classList.add('btn-success');
                         btn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน`;
                         
-                        // ฟังก์ชันกดยืนยันให้มีแจ้งเตือน Confirm ก่อนบันทึก
+                        // ฟังก์ชันยืนยันก่อนบันทึก
                         btn.onclick = () => {
                             Swal.fire({
                                 title: 'ยืนยันการบันทึก?',
@@ -522,6 +538,14 @@
 
         async function fetchHistory() {
             const box = document.getElementById('history-box');
+            
+            // แสดง Inline Spinner ระหว่างรอโหลดรายการทางขวามือ
+            box.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                    <div class="text-muted fw-bold" style="font-size: 0.9rem;">กำลังโหลดประวัติ...</div>
+                </div>`;
+
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day, session } }) });
                 const result = await res.json();
@@ -529,7 +553,6 @@
                     document.getElementById('ui-present').innerText = result.present;
                     if (result.records.length > 0) {
                         box.innerHTML = result.records.map(r => {
-                            // r.time จะมีรูปแบบเป็น "25 ส.ค. 2569 เวลา 20:00 น. (ช่วง...)" โดยตรงจาก Backend
                             return `
                             <div class="id-item shadow-sm p-3">
                                 <div class="flex-grow-1 overflow-hidden">
