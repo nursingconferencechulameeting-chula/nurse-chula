@@ -535,25 +535,39 @@ async function previewUser(id) {
             } catch (e) { Swal.fire('Error', e.toString(), 'error'); }
         }
 
-        async function record(qrText, confirmSkip) {
-            previewModal.hide(); // ปิด Modal ทันทีที่กดบันทึก
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        async function record(qrText) {
+            // 1. ปิดหน้าต่าง Modal ทันทีเพื่อให้หน้าจอว่างและพร้อมทำงานต่อ
+            previewModal.hide(); 
             
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, session, confirmSkip, staffInfo: staff } }) });
+                // 2. ส่งข้อมูลไปที่ Server โดยกำหนด confirmSkip เป็น true เพื่อให้บันทึกทันที
+                const res = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ 
+                        action: 'recordAttendance', 
+                        data: { 
+                            text: qrText, 
+                            day: day, 
+                            session: session, 
+                            confirmSkip: true, // ข้ามการถามยืนยันซ้ำซ้อน
+                            staffInfo: staff 
+                        } 
+                    }) 
+                });
+                
                 const result = await res.json();
                 
                 if (result.success) {
-                    // บันทึกสำเร็จ: แสดงแค่เครื่องหมายถูกสั้นๆ แล้วหายไปเอง
-                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1000, showConfirmButton: false });
+                    // 3. เมื่อบันทึกสำเร็จ ให้ดึงประวัติมาอัปเดตที่แถบด้านข้างทันที
+                    // เจ้าหน้าที่จะเห็นชื่อปรากฏที่รายการล่าสุดโดยไม่ต้องกด OK ที่ Popup ใดๆ
                     fetchHistory();
-                } else if (result.requireConfirm) {
-                    // ถ้า Server บอกว่าต้องยืนยันเงื่อนไขพิเศษ ให้ส่งบันทึกซ้ำแบบ Auto (confirmSkip = true) เพื่อลดขั้นตอน
-                    record(qrText, true);
-                } else { 
-                    Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message, confirmButtonColor: '#4f46e5' }); 
+                } else {
+                    // กรณีเกิดข้อผิดพลาด ให้แสดงใน Console แทนการเด้ง Popup ขวางหน้าจอ
+                    console.error("บันทึกล้มเหลว:", result.message);
                 }
-            } catch (e) { Swal.fire('Error', e.toString(), 'error'); }
+            } catch (e) { 
+                console.error("Error:", e); 
+            }
         }
 
         async function fetchHistory() {
