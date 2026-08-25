@@ -285,33 +285,37 @@
             <!-- Modern Stats Dashboard -->
             <div class="stats-dashboard">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>สรุปยอดการลงทะเบียน</h6>
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="fa-solid fa-chart-pie text-primary me-2 fs-5"></i>สรุปยอดการลงทะเบียน
+                    </h6>
                     <button onclick="generateAISummary()" class="btn btn-outline-primary btn-sm rounded-pill fw-bold" style="font-size: 0.75rem;">
                         <i class="fa-solid fa-wand-magic-sparkles me-1"></i> AI Summary
                     </button>
                 </div>
                 
-                <div class="stat-main-card mb-3 border">
-                    <i class="fa-solid fa-users bg-icon text-secondary"></i>
+                <div class="stat-main-card mb-3 bg-white border-0 shadow-sm" style="border-radius: 20px;">
+                    <div class="text-primary mb-2">
+                        <i class="fa-solid fa-user-group fs-5"></i>
+                    </div>
                     <div class="text-muted fw-bold small mb-1">ผู้ลงทะเบียนทั้งหมด (คน)</div>
-                    <div class="fs-1 fw-bold text-dark lh-1" id="ui-total">0</div>
+                    <div class="fw-bold text-dark lh-1" style="font-size: 2.8rem;" id="ui-total">0</div>
                     
-                    <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress mt-4" style="height: 6px;">
                         <div id="ui-progress-bar" class="progress-bar bg-primary rounded-pill" role="progressbar" style="width: 0%"></div>
                     </div>
-                    <div class="text-end mt-1"><small class="text-muted fw-bold" id="ui-progress-text">รอข้อมูล...</small></div>
+                    <div class="text-center mt-2"><small class="text-muted fw-bold" id="ui-progress-text">รอข้อมูล...</small></div>
                 </div>
 
                 <div class="row g-2">
                     <div class="col-6">
-                        <div class="stat-sub-card bg-success-subtle border border-success-subtle h-100">
+                        <div class="stat-sub-card bg-success-subtle h-100 border-0" style="border-radius: 16px;">
                             <i class="fa-solid fa-user-check bg-icon text-success"></i>
                             <div class="text-success fw-bold small mb-1">มาแล้ว</div>
                             <div class="fs-2 fw-bold text-success lh-1" id="ui-present">0</div>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-sub-card bg-danger-subtle border border-danger-subtle h-100">
+                        <div class="stat-sub-card bg-danger-subtle h-100 border-0" style="border-radius: 16px;">
                             <i class="fa-solid fa-user-xmark bg-icon text-danger"></i>
                             <div class="text-danger fw-bold small mb-1">ขาด</div>
                             <div class="fs-2 fw-bold text-danger lh-1" id="ui-absent">0</div>
