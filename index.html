@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/241/241528.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -36,14 +36,15 @@
             .pc-layout { display: none !important; }
             .mobile-layout { display: flex; margin-top: 10px;}
             .mobile-row1 { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-            .mobile-row2 { width: 100%; display: flex; gap: 10px; }
-            .mobile-row2 select { border-radius: 10px; font-weight: 600; font-family: 'Prompt', sans-serif;}
+            .mobile-row2 { width: 100%; display: flex; gap: 8px; }
+            .mobile-row2 .nav-tabs-custom { width: 50%; padding: 4px; display: flex; }
+            .mobile-row2 .btn-toggle { flex: 1; padding: 6px 2px; font-size: 0.75rem; text-align: center; white-space: nowrap; }
         }
 
         /* App Layout */
         .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
         .panel-left { flex: 1; overflow-y: auto; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; }
-        .sidebar-right { width: 420px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.02); }
+        .sidebar-right { width: 450px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.02); }
 
         @media (max-width: 991px) {
             body { height: auto; overflow-y: auto; }
@@ -51,7 +52,7 @@
             .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
         }
 
-        /* Cards & Scanner */
+        /* Scanner Area */
         .scanner-card { width: 100%; max-width: 450px; background: #ffffff; border-radius: 1.5rem; padding: 25px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01); border: 1px solid #f1f5f9; }
         .cam-view { width: 100%; aspect-ratio: 4 / 3; background: #0f172a; border-radius: 1rem; overflow: hidden; margin-bottom: 20px; position: relative; border: 4px solid #f8fafc; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
         .manual-box { display: flex; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 6px; margin-top: 15px; transition: all 0.2s; }
@@ -60,28 +61,81 @@
         .manual-box button { background: #1e293b; color: #ffffff; border: none; border-radius: 0.8rem; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .manual-box button:hover { background: #334155; }
 
-        /* Banners */
         #timer-banner { display: none; width: 100%; max-width: 450px; margin-bottom: 20px; padding: 16px 20px; font-size: 0.9rem; border-radius: 1.2rem; font-weight: 500; }
         #timer-banner.status-closed { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
         #timer-banner.status-open { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
         
-        /* Stats Dashboard in Sidebar */
-        .stats-dashboard { background: #ffffff; padding: 20px; border-bottom: 1px solid #e2e8f0; }
-        .stat-card { text-align: center; padding: 12px 5px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); }
-        .stat-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-        .stat-val { font-size: 1.2rem; font-weight: 800; line-height: 1; }
+        /* ====================================================
+           MODERN STATS DASHBOARD UI
+           ==================================================== */
+        .stats-premium-container { background: #ffffff; padding: 25px; border-bottom: 1px solid #f1f5f9; }
+        
+        .stat-card-pro {
+            position: relative;
+            border-radius: 20px;
+            padding: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.03);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card-pro:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        }
+
+        /* Background Watermark Icons */
+        .stat-card-pro .bg-icon {
+            position: absolute;
+            right: -10px;
+            bottom: -15px;
+            font-size: 6rem;
+            opacity: 0.04;
+            transform: rotate(-15deg);
+            pointer-events: none;
+        }
+
+        /* Specific Card Themes */
+        .stat-card-pro.total {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+        }
+        .stat-card-pro.total .bg-icon { color: var(--primary-color); opacity: 0.05; font-size: 8rem; right: -15px; bottom: -25px; transform: rotate(0deg); }
+        
+        .stat-card-pro.present {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+        }
+        .stat-card-pro.present .bg-icon { opacity: 0.1; right: -5px; bottom: -10px; font-size: 5rem; }
+
+        .stat-card-pro.absent {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fecaca;
+        }
+        .stat-card-pro.absent .bg-icon { opacity: 0.1; right: -5px; bottom: -10px; font-size: 5rem; }
+
+        /* Typography for numbers */
+        .stat-number { font-family: 'Prompt', sans-serif; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+        .stat-card-pro.total .stat-number { font-size: 3rem; }
+        .stat-card-pro.present .stat-number { font-size: 2.2rem; }
+        .stat-card-pro.absent .stat-number { font-size: 2.2rem; }
+
+        /* Custom Progress Bar inside Total */
+        .stat-progress-bg { height: 8px; background-color: #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 15px; }
+        .stat-progress-bar { height: 100%; background: linear-gradient(90deg, #4f46e5, #818cf8); border-radius: 10px; width: 0%; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* ==================================================== */
 
         /* History Items */
         .id-item { display: flex; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1.2rem; padding: 15px; margin-bottom: 12px; transition: all 0.2s; }
         .id-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-color: #cbd5e1; }
         
-        .search-wrapper { padding: 15px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .search-wrapper { padding: 15px 25px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
         .search-input-group { position: relative; }
         .search-input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
         .search-input-group input { width: 100%; padding: 12px 15px 12px 40px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 0.9rem; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
         .search-input-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
         
-        #history-box { flex: 1; overflow-y: auto; padding: 20px; background: #f8fafc; }
+        #history-box { flex: 1; overflow-y: auto; padding: 20px 25px; background: #f8fafc; }
         #history-box::-webkit-scrollbar { width: 8px; }
         #history-box::-webkit-scrollbar-track { background: transparent; }
         #history-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -102,7 +156,6 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .swal2-container { z-index: 10500 !important; font-family: 'Prompt', sans-serif; }
         
-        /* Helpers */
         .password-wrapper { position: relative; width: 100%; }
         .input-group-custom { position: relative; margin-bottom: 20px; }
         .input-group-custom i.prefix-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 5; }
@@ -152,7 +205,6 @@
                     <div class="profile-box d-none"><img id="p-img" src="" style="display: none;" alt="profile"><i id="p-icon" class="fa-solid fa-user-tie fa-4x text-muted opacity-25"></i></div>
                     
                     <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
-                    <!-- พื้นที่แสดงวันที่/เวลาที่สแกนซ้ำ -->
                     <div id="p-scanned-info" class="text-danger small fw-bold mb-3 d-none bg-danger-subtle p-2 rounded-3 d-inline-block mt-2">
                         <i class="fa-solid fa-triangle-exclamation me-1"></i> สแกนไปแล้วเมื่อ: <span id="p-scanned-time"></span>
                     </div>
@@ -175,6 +227,36 @@
                         <button class="btn btn-light py-3 rounded-4 fw-bold shadow-sm text-dark border" data-bs-dismiss="modal">
                             <i class="fa-solid fa-qrcode me-2"></i>ยกเลิก / สแกนใหม่
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== AI SUMMARY MODAL ===== -->
+    <div class="modal fade" id="aiSummaryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 1.5rem;">
+                <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-primary"></i> AI Report Summary
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="ai-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                        <h6 class="text-muted fw-bold">Gemini is generating your report...</h6>
+                    </div>
+                    <div id="ai-content" class="d-none">
+                        <div class="bg-light p-4 rounded-4" style="font-size: 0.95rem; line-height: 1.6; color: #334155;">
+                            <!-- AI Output will be injected here -->
+                        </div>
+                        <div class="d-flex justify-content-end mt-4">
+                            <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="copyAiReport()">
+                                <i class="fa-regular fa-copy"></i> Copy Report
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,14 +299,14 @@
                     <button onclick="logout()" class="btn btn-sm btn-danger fw-bold rounded-3"><i class="fa-solid fa-power-off"></i></button>
                 </div>
                 <div class="mobile-row2">
-                    <select class="form-select form-select-sm" id="mobile-day" onchange="changeDay(this.value)">
-                        <option value="1">วันที่ 1</option>
-                        <option value="2">วันที่ 2</option>
-                    </select>
-                    <select class="form-select form-select-sm" id="mobile-session" onchange="changeSession(this.value)">
-                        <option value="am">☀️ รอบเช้า</option>
-                        <option value="pm">🌤️ รอบบ่าย</option>
-                    </select>
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeDay(1)" id="m-day1-btn" class="btn-toggle active">วันที่ 1</button>
+                        <button onclick="changeDay(2)" id="m-day2-btn" class="btn-toggle">วันที่ 2</button>
+                    </div>
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeSession('am')" id="m-am-btn" class="btn-toggle active">เช้า</button>
+                        <button onclick="changeSession('pm')" id="m-pm-btn" class="btn-toggle">บ่าย</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -259,24 +341,40 @@
         <aside class="sidebar-right">
             <!-- Stats Dashboard -->
             <div class="stats-dashboard">
-                <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>สรุปยอดการลงทะเบียน</h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>สรุปยอดการลงทะเบียน</h6>
+                    <button class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="generateAiSummary()" title="Generate AI Summary">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> AI Summary
+                    </button>
+                </div>
                 <div class="row g-2">
                     <div class="col-4">
-                        <div class="stat-card bg-light">
-                            <div class="stat-title text-muted">ทั้งหมด</div>
-                            <div class="stat-val text-dark" id="ui-total">0</div>
+                    <i class="fa-solid fa-users bg-icon text-primary"></i>
+                    <div class="text-muted fw-semibold mb-1" style="font-size: 0.85rem;">ผู้ลงทะเบียนทั้งหมด (คน)</div>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h2 class="mb-0 stat-number text-dark" id="ui-total">0</h2>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="stat-progress-bg">
+                        <div id="ui-progress-bar" class="stat-progress-bar"></div>
+                    </div>
+                    <div class="text-end mt-1 text-muted" style="font-size: 0.7rem;" id="ui-progress-text">รอข้อมูล...</div>
+                </div>
+
+                <!-- Present & Absent Cards (Side by Side) -->
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="stat-card-pro present">
+                            <i class="fa-solid fa-user-check bg-icon text-success"></i>
+                            <div class="text-success fw-semibold mb-1" style="font-size: 0.85rem;">มาแล้ว</div>
+                            <h3 class="mb-0 stat-number text-success" id="ui-present">0</h3>
                         </div>
                     </div>
-                    <div class="col-4">
-                        <div class="stat-card bg-success-subtle border-success-subtle">
-                            <div class="stat-title text-success">มาแล้ว</div>
-                            <div class="stat-val text-success" id="ui-present">0</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="stat-card bg-danger-subtle border-danger-subtle">
-                            <div class="stat-title text-danger">ขาด</div>
-                            <div class="stat-val text-danger" id="ui-absent">0</div>
+                    <div class="col-6">
+                        <div class="stat-card-pro absent">
+                            <i class="fa-solid fa-user-xmark bg-icon text-danger"></i>
+                            <div class="text-danger fw-semibold mb-1" style="font-size: 0.85rem;">ขาด</div>
+                            <h3 class="mb-0 stat-number text-danger" id="ui-absent">0</h3>
                         </div>
                     </div>
                 </div>
@@ -294,15 +392,26 @@
 
     <video id="video" playsinline hidden></video>
 
+    <!-- Import Gemini SDK -->
+    <script type="module">
+        import { GoogleGenAI } from "https://esm.run/@google/genai";
+        // Expose to global scope for use in our script
+        window.GoogleGenAI = GoogleGenAI;
+    </script>
+
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec"; 
         let day = 1;
         let session = 'am'; 
-        let staff = null, isScanning = false, currentStream = null, previewModal = null;
+        let staff = null, isScanning = false, currentStream = null, previewModal = null, aiSummaryModal = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
+
+        // Keep track of current history records for AI summary
+        let currentRecords = [];
 
         window.onload = async () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            aiSummaryModal = new bootstrap.Modal(document.getElementById('aiSummaryModal'));
             const splash = document.getElementById('splash-screen');
             const savedStaff = localStorage.getItem('staff_session');
 
@@ -310,7 +419,6 @@
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').classList.add('d-none');
                 document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                // เรียกข้อมูลตอนเริ่มต้น 
                 await updateData();
             }
             splash.style.opacity = '0';
@@ -331,9 +439,32 @@
             }
         };
 
-        // ฟังก์ชันดึงข้อมูล โดยไม่ต้องแสดง Popup ตรงกลางแล้ว ให้โหลดเฉพาะด้านข้าง
         async function updateData() {
             await Promise.all([checkCurrentDay(), fetchHistory()]);
+        }
+
+        /* 
+         * ฟังก์ชันสร้าง Animation ตัวเลขวิ่ง
+         */
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // easing แบบ ease-out ให้ตัวเลขค่อยๆ ช้าลงตอนใกล้จบ
+                const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                const currentVal = Math.floor(easeOutQuart * (end - start) + start);
+                
+                obj.innerText = currentVal.toLocaleString(); // ใส่ comma อัตโนมัติ
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerText = end.toLocaleString();
+                }
+            };
+            window.requestAnimationFrame(step);
         }
 
         async function login() {
@@ -353,7 +484,7 @@
                     localStorage.setItem('staff_session', JSON.stringify(result));
                     document.getElementById('login-screen').classList.add('d-none');
                     document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
-                    updateData(); // อัปเดตข้อมูลเมื่อ Login สำเร็จ
+                    updateData();
                 } else {
                     const errorMsg = document.getElementById('login-error-msg');
                     errorMsg.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> ${result.message}`;
@@ -385,16 +516,18 @@
             day = parseInt(d);
             document.getElementById('day1-btn').classList.toggle('active', day === 1);
             document.getElementById('day2-btn').classList.toggle('active', day === 2);
-            document.getElementById('mobile-day').value = day;
-            updateData(); // เปลี่ยนเมนูไม่ต้องมี Popup
+            if(document.getElementById('m-day1-btn')) document.getElementById('m-day1-btn').classList.toggle('active', day === 1);
+            if(document.getElementById('m-day2-btn')) document.getElementById('m-day2-btn').classList.toggle('active', day === 2);
+            updateData(); 
         }
 
         function changeSession(s) {
             session = s;
             document.getElementById('am-btn').classList.toggle('active', session === 'am');
             document.getElementById('pm-btn').classList.toggle('active', session === 'pm');
-            document.getElementById('mobile-session').value = session;
-            updateData(); // เปลี่ยนเมนูไม่ต้องมี Popup
+            if(document.getElementById('m-am-btn')) document.getElementById('m-am-btn').classList.toggle('active', session === 'am');
+            if(document.getElementById('m-pm-btn')) document.getElementById('m-pm-btn').classList.toggle('active', session === 'pm');
+            updateData(); 
         }
 
         async function checkCurrentDay() {
@@ -472,7 +605,7 @@
             if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
         }
 
-async function previewUser(id) {
+        async function previewUser(id) {
             Swal.fire({ title: 'กำลังตรวจสอบ...', didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day, session: session }) });
@@ -536,38 +669,19 @@ async function previewUser(id) {
         }
 
         async function record(qrText) {
-            // 1. ปิดหน้าต่าง Modal ทันทีเพื่อให้หน้าจอว่างและพร้อมทำงานต่อ
             previewModal.hide(); 
-            
             try {
-                // 2. ส่งข้อมูลไปที่ Server โดยกำหนด confirmSkip เป็น true เพื่อให้บันทึกทันที
                 const res = await fetch(GAS_URL, { 
                     method: 'POST', 
                     body: JSON.stringify({ 
                         action: 'recordAttendance', 
-                        data: { 
-                            text: qrText, 
-                            day: day, 
-                            session: session, 
-                            confirmSkip: true, // ข้ามการถามยืนยันซ้ำซ้อน
-                            staffInfo: staff 
-                        } 
+                        data: { text: qrText, day: day, session: session, confirmSkip: true, staffInfo: staff } 
                     }) 
                 });
-                
                 const result = await res.json();
-                
-                if (result.success) {
-                    // 3. เมื่อบันทึกสำเร็จ ให้ดึงประวัติมาอัปเดตที่แถบด้านข้างทันที
-                    // เจ้าหน้าที่จะเห็นชื่อปรากฏที่รายการล่าสุดโดยไม่ต้องกด OK ที่ Popup ใดๆ
-                    fetchHistory();
-                } else {
-                    // กรณีเกิดข้อผิดพลาด ให้แสดงใน Console แทนการเด้ง Popup ขวางหน้าจอ
-                    console.error("บันทึกล้มเหลว:", result.message);
-                }
-            } catch (e) { 
-                console.error("Error:", e); 
-            }
+                if (result.success) { fetchHistory(); } 
+                else { console.error("บันทึกล้มเหลว:", result.message); }
+            } catch (e) { console.error("Error:", e); }
         }
 
         async function fetchHistory() {
@@ -589,6 +703,8 @@ async function previewUser(id) {
                     document.getElementById('ui-total').innerText = totalCount;
                     document.getElementById('ui-present').innerText = result.present;
                     document.getElementById('ui-absent').innerText = result.absent;
+
+                    currentRecords = result.records || [];
 
                     if (result.records.length > 0) {
                         box.innerHTML = result.records.map(r => {
@@ -644,6 +760,98 @@ async function previewUser(id) {
             } else if (noResultMsg) {
                 noResultMsg.remove();
             }
+        }
+
+        // --- New Feature: Generate AI Summary using Gemini API ---
+        async function generateAiSummary() {
+            if (!window.GoogleGenAI) {
+                Swal.fire('Error', 'Gemini SDK is still loading. Please try again in a moment.', 'error');
+                return;
+            }
+
+            aiSummaryModal.show();
+            document.getElementById('ai-loading').classList.remove('d-none');
+            document.getElementById('ai-content').classList.add('d-none');
+
+            // Gather data for the prompt
+            const total = document.getElementById('ui-total').innerText;
+            const present = document.getElementById('ui-present').innerText;
+            const absent = document.getElementById('ui-absent').innerText;
+            const sessionName = session === 'am' ? 'Morning' : 'Afternoon';
+            
+            // Format recent records
+            let recentAttendeesList = currentRecords.slice(0, 10).map(r => `- ${r.name} (Time: ${r.time})`).join('\n');
+            if (currentRecords.length === 0) {
+                recentAttendeesList = "No attendees have checked in yet.";
+            }
+
+            const prompt = `
+Act as an event management assistant. Provide a brief, professional summary report for the current event check-in session.
+
+**Current Session Data:**
+- Day: ${day}
+- Session: ${sessionName}
+- Total Expected Attendees: ${total}
+- Currently Checked In: ${present}
+- Absent/Pending: ${absent}
+
+**Recent Check-ins (up to 10):**
+${recentAttendeesList}
+
+Please summarize the current attendance status. Include the attendance rate (percentage). 
+If the attendance is low (below 50%), suggest a brief, encouraging action item (e.g., sending a reminder).
+Format the output nicely using Markdown (bullet points, bold text). Keep it concise and suitable for a quick review by an event manager.
+`;
+
+            try {
+                // Initialize the Gemini API client
+                // Note: The API key is left empty as required for the collaborative environment to inject it automatically
+                const apiKey = ""; 
+                const ai = new window.GoogleGenAI({ apiKey: apiKey });
+
+                // Call the Interactions API using gemini-3.7-flash (the recommended model)
+                const interaction = await ai.interactions.create({
+                    model: "gemini-3.7-flash",
+                    input: prompt
+                });
+
+                // Format the markdown output to simple HTML
+                let formattedText = interaction.output_text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n- /g, '<br>• ')
+                    .replace(/^- /g, '• ');
+
+                document.getElementById('ai-content').querySelector('.bg-light').innerHTML = formattedText;
+                
+                document.getElementById('ai-loading').classList.add('d-none');
+                document.getElementById('ai-content').classList.remove('d-none');
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                aiSummaryModal.hide();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to generate report',
+                    text: 'An error occurred while communicating with the AI service. Check console for details.'
+                });
+            }
+        }
+
+        function copyAiReport() {
+            const content = document.getElementById('ai-content').querySelector('.bg-light').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Report copied to clipboard!',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
         }
     </script>
 </body>
