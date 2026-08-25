@@ -4,81 +4,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smart QR Check-in System</title>
-
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/241/241528.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        :root { --nav-h: 80px; --primary-color: #4f46e5; }
-        @media (max-width: 767px) { :root { --nav-h: 135px; } }
+        :root { --nav-h: 70px; --primary-color: #4f46e5; }
+        @media (max-width: 767px) { :root { --nav-h: 140px; } }
 
         body { font-family: 'Prompt', sans-serif; background-color: #f1f5f9; height: 100vh; overflow: hidden; margin: 0; padding-top: var(--nav-h); }
-
         .navbar { position: fixed; top: 0; width: 100%; z-index: 2000; height: var(--nav-h); background: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; }
-        .navbar .container-fluid { height: 100%; display: flex; padding: 0 16px; }
-
+        .navbar .container-fluid { height: 100%; display: flex; padding: 0 16px; align-items: center;}
+        
         .staff-tag { background: var(--primary-color); color: #ffffff; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; white-space: nowrap; }
-
-        .control-group { display: flex; align-items: center; gap: 15px; }
-        .nav-tabs-custom { display: flex; gap: 4px; background: #f1f5f9; padding: 5px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .nav-tabs-custom .btn-day { border: none; background: transparent; padding: 8px 24px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; color: #64748b; transition: 0.2s; }
-        .nav-tabs-custom .btn-day.active { background: #ffffff; color: var(--primary-color); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+        .nav-tabs-custom { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 12px; }
+        .nav-tabs-custom .btn-toggle { border: none; background: transparent; padding: 6px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; color: #64748b; transition: 0.2s; }
+        .nav-tabs-custom .btn-toggle.active { background: #ffffff; color: var(--primary-color); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
 
         .pc-layout { display: flex; width: 100%; justify-content: space-between; align-items: center; }
-        .mobile-layout { display: none; width: 100%; flex-direction: column; gap: 10px; padding-bottom: 5px; }
+        .mobile-layout { display: none; width: 100%; flex-direction: column; gap: 8px; }
 
-        @media (max-width: 991px) {
+        @media (max-width: 767px) {
             .pc-layout { display: none !important; }
-            .mobile-layout { display: flex; }
+            .mobile-layout { display: flex; margin-top: 10px;}
             .mobile-row1 { display: flex; justify-content: space-between; align-items: center; width: 100%; }
             .mobile-row2 { width: 100%; display: flex; gap: 10px; }
-            .mobile-row2 .nav-tabs-custom { width: 50%; display: flex; }
-            .mobile-row2 .btn-day { flex: 1; text-align: center; padding: 10px 0; font-size: 0.9rem; border-radius: 10px; }
+            .mobile-row2 select { border-radius: 10px; font-weight: 600; font-family: 'Prompt', sans-serif;}
         }
 
         .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
         .panel-left { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         .sidebar-right { width: 480px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; }
-        @media (max-width: 991px) { body { height: auto; overflow-y: auto; } .app-wrapper { flex-direction: column; height: auto; } .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; } }
+
+        @media (max-width: 991px) {
+            body { height: auto; overflow-y: auto; }
+            .app-wrapper { flex-direction: column; height: auto; }
+            .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
+        }
 
         #login-screen { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; background: radial-gradient(circle at top right, #4f46e5, #1e293b); }
         .login-card { width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 2.5rem; padding: 40px 30px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); text-align: center; }
         .login-logo { width: 70px; height: 70px; background: #eef2ff; color: var(--primary-color); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 1.8rem; }
+        .password-wrapper { position: relative; width: 100%; }
         .input-group-custom { position: relative; margin-bottom: 15px; }
         .input-group-custom i.prefix-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 5; }
         #staff-id { padding-left: 50px !important; padding-right: 45px !important; height: 55px; border: 2px solid #e2e8f0; border-radius: 15px !important; transition: all 0.3s ease; font-size: 1.1rem; }
         #staff-id:focus { border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
         .toggle-password { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; z-index: 10; font-size: 1.2rem; }
+        #login-error-msg { display: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; margin-top: 8px; text-align: left; padding-left: 5px; }
 
         .scanner-card { width: 100%; max-width: 480px; background: #ffffff; border-radius: 2rem; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
         .cam-view { width: 100%; aspect-ratio: 4 / 3; background: #000000; border-radius: 1.2rem; overflow: hidden; margin-bottom: 15px; position: relative; }
         .manual-box { display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 5px; margin-top: 15px; }
         .manual-box input { flex: 1; border: none; outline: none; background: transparent; padding: 10px; text-align: left; font-weight: 500; }
-        .manual-box button { background: #1e293b; color: #ffffff; border: none; border-radius: 0.8rem; padding: 10px 20px; cursor: pointer; }
-        #timer-banner { display: none; width: 100%; max-width: 480px; margin-bottom: 15px; padding: 14px 18px; font-size: 0.9rem; border-radius: 1rem; }
+        .manual-box button { background: #1e293b; color: #ffffff; border: none; border-radius: 0.8rem; padding: 10px 20px; white-space: nowrap; cursor: pointer; }
+
+        #timer-banner { display: none; width: 100%; max-width: 480px; margin-bottom: 15px; padding: 14px 18px; font-size: 0.875rem; border-radius: 1rem; }
         #timer-banner.status-closed { background: #fef2f2; border: 1.5px solid #fca5a5; color: #b91c1c; }
         #timer-banner.status-open { background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; }
-        
         .id-item { display: flex; align-items: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 12px; margin-bottom: 10px; }
         .id-num { width: 75px; height: 45px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-right: 15px; background: #eef2ff; color: #4f46e5; border-radius: 12px; font-weight: 700; font-size: 0.85rem; }
+        .profile-box { width: 150px; height: 180px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; background: #f8fafc; border-radius: 20px; border: 4px solid #ffffff; overflow: hidden; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+        .profile-box img { width: 100%; height: 100%; object-fit: cover; }
+
         .search-wrapper { padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
         .search-input-group { position: relative; }
         .search-input-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem; }
-        .search-input-group input { width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; transition: all 0.2s; }
-        .search-input-group input:focus { outline: none; background: #ffffff; border-color: var(--primary-color); }
+        .search-input-group input { width: 100%; padding: 8px 12px 8px 35px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; }
         #history-box { flex: 1; overflow-y: auto; padding: 15px; }
-
-        .scanned-status-badge { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto 15px; width: 100%; max-width: 350px; }
+        
+        #splash-screen { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1e293b; transition: opacity 0.4s ease; }
+        .loader-circle { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .swal2-container { z-index: 10500 !important; }
     </style>
 </head>
 <body>
+
+    <div id="splash-screen">
+        <div class="loader-circle mb-3"></div>
+        <div class="text-white small fw-bold">ระบบกำลังเริ่มต้น...</div>
+    </div>
+
     <div id="login-screen">
         <div class="login-card">
             <div class="login-logo"><i class="fa-solid fa-user-shield"></i></div>
@@ -86,12 +97,20 @@
                 <div class="staff-tag d-inline-block mb-2">สำหรับเจ้าหน้าที่</div>
                 <h4 style="font-weight: 600;">ระบบลงทะเบียนเข้างาน</h4>
             </div>
+            
             <div class="input-group-custom">
                 <i class="fa-solid fa-lock prefix-icon"></i>
-                <input type="password" id="staff-id" class="form-control w-100" placeholder="รหัสผ่านเจ้าหน้าที่" oninput="this.value = this.value.replace(/[ก-๙]/g, '')">
-                <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+                <div class="password-wrapper">
+                    <input type="password" id="staff-id" class="form-control" placeholder="รหัสผ่านเจ้าหน้าที่" oninput="this.value = this.value.replace(/[ก-๙]/g, '')">
+                    <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+                </div>
+                <div id="login-error-msg"></div>
             </div>
-            <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 shadow-lg mt-2" style="height: 55px;">ลงชื่อเข้าใช้งาน</button>
+
+            <button onclick="login()" id="login-btn" class="btn btn-primary w-100 py-3 rounded-4 shadow-lg mt-2" style="height: 55px;">
+                <span id="login-text">ลงชื่อเข้าใช้งาน <i class="fa-solid fa-arrow-right ms-1"></i></span>
+                <span id="login-loader" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span> กำลังตรวจสอบ...</span>
+            </button>
         </div>
     </div>
 
@@ -99,30 +118,28 @@
     <div class="modal fade" id="previewModal" data-bs-backdrop="static" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable" style="margin-top: var(--nav-h); margin-bottom: 1rem;">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 25px;">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5>
-                </div>
+                <div class="modal-header border-0 pb-0"><h5 class="fw-bold mx-auto">ตรวจสอบข้อมูลผู้เข้าประชุม</h5></div>
                 <div class="modal-body text-center p-4">
+                    <div class="profile-box d-none"><img id="p-img" src="" style="display: none;" alt="profile"><i id="p-icon" class="fa-solid fa-user-tie"></i></div>
                     <h3 id="p-name" class="fw-bold mb-1 text-dark">-</h3>
-                    <div style="display: inline-flex; background: #eef2ff; color: #4f46e5; padding: 5px 18px; border-radius: 50px; border: 1px solid #c7d2fe; margin-bottom: 15px;">
-                        <span class="me-2 opacity-50 small">ID:</span><span id="p-id" class="fw-bold fs-5">-</span>
-                    </div>
-                    <div id="already-scanned-area" class="d-none">
-                        <div class="scanned-status-badge"><i class="fa-solid fa-circle-check"></i> ลงชื่อแล้ว: วันที่ <span id="scanned-day-label">-</span> <span id="scanned-time-label" class="ms-1">-</span> น.</div>
-                    </div>
-                    <div class="bg-light p-3 rounded-4 text-start mb-3">
-                        <small class="text-secondary d-block">ประเภท</small><div id="p-regType" class="fw-bold mb-2">-</div>
+                    <div class="bg-light p-3 rounded-4 text-start mb-3 mt-3">
+                        <small class="text-secondary d-block">ประเภทการลงทะเบียน</small>
+                        <div id="p-regType" class="fw-bold mb-2">-</div>
+                        <small class="text-secondary d-block">ตำแหน่ง / สถานะ</small>
+                        <div id="p-pos" class="fw-bold mb-2">-</div>
                         <div id="pay-status-area">
                             <hr class="my-2 opacity-10">
-                            <small class="text-secondary d-block">สถานะการชำระเงิน</small><div id="p-status" class="fw-bold">-</div>
+                            <small class="text-secondary d-block">สถานะการชำระเงิน</small>
+                            <div id="p-status" class="fw-bold">-</div>
                         </div>
                     </div>
-                    <div id="pay-warning" class="alert alert-danger rounded-3 fw-bold d-none mb-3" style="font-size:0.9rem;">
-                        <i class="fa-solid fa-ban me-2"></i>ไม่สามารถลงชื่อได้ — ยังไม่ได้ชำระเงิน
-                    </div>
                     <div class="d-grid gap-2">
-                        <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm"><i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อ <span id="confirm-session-label"></span></button>
-                        <button class="btn btn-warning py-3 rounded-4 fw-bold fs-4 shadow-sm text-dark" data-bs-dismiss="modal"><i class="fa-solid fa-qrcode me-2"></i>ยกเลิก / สแกนใหม่</button>
+                        <button id="btn-confirm-record" class="btn btn-success py-3 rounded-3 fw-bold fs-5 shadow-sm">
+                            <i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน
+                        </button>
+                        <button class="btn btn-warning py-3 rounded-4 fw-bold fs-4 shadow-sm text-dark" data-bs-dismiss="modal">
+                            <i class="fa-solid fa-qrcode me-2"></i>ยกเลิก / สแกนใหม่
+                        </button>
                     </div>
                 </div>
             </div>
@@ -136,31 +153,43 @@
             <div class="pc-layout">
                 <div class="d-flex align-items-center gap-3">
                     <div class="staff-tag">STAFF</div>
-                    <div><h6 class="mb-0 fw-bold">QR Check-in</h6><small id="ui-staff" class="text-primary fw-bold">-</small></div>
-                </div>
-                <div class="control-group">
-                    <div class="nav-tabs-custom">
-                        <button onclick="changeDay(1)" id="day1-btn" class="btn-day active">วันที่ 1</button>
-                        <button onclick="changeDay(2)" id="day2-btn" class="btn-day">วันที่ 2</button>
-                    </div>
-                    <div class="nav-tabs-custom">
-                        <button onclick="changeSession('am')" id="am-btn" class="btn-day active"><i class="fa-regular fa-sun me-1"></i> เช้า</button>
-                        <button onclick="changeSession('pm')" id="pm-btn" class="btn-day"><i class="fa-solid fa-cloud-sun me-1"></i> บ่าย</button>
+                    <div>
+                        <h6 class="mb-0 fw-bold">QR Check-in</h6>
+                        <small id="ui-staff" class="text-primary fw-bold">กำลังโหลด...</small>
                     </div>
                 </div>
-                <button onclick="logout()" class="btn btn-outline-danger btn-sm fw-bold px-3"><i class="fa-solid fa-right-from-bracket me-1"></i>ออกจากระบบ</button>
+                <div class="d-flex gap-3">
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeDay(1)" id="day1-btn" class="btn-toggle active">วันที่ 1</button>
+                        <button onclick="changeDay(2)" id="day2-btn" class="btn-toggle">วันที่ 2</button>
+                    </div>
+                    <div class="nav-tabs-custom">
+                        <button onclick="changeSession('am')" id="am-btn" class="btn-toggle active">รอบเช้า</button>
+                        <button onclick="changeSession('pm')" id="pm-btn" class="btn-toggle">รอบบ่าย</button>
+                    </div>
+                </div>
+                <button onclick="logout()" class="btn btn-outline-danger btn-sm fw-bold px-3">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i>ออก
+                </button>
             </div>
             <!-- MOBILE VIEW -->
             <div class="mobile-layout">
                 <div class="mobile-row1">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="staff-tag">STAFF</div><div><h6 class="mb-0 fw-bold" style="font-size:0.85rem">QR Check-in</h6><small id="ui-staff-m" class="text-primary fw-bold" style="font-size:0.7rem">-</small></div>
+                        <div class="staff-tag">STAFF</div>
+                        <h6 class="mb-0 fw-bold" style="font-size:0.85rem">QR Check-in</h6>
                     </div>
                     <button onclick="logout()" class="btn btn-sm btn-light text-danger border fw-bold">ออก <i class="fa-solid fa-power-off ms-1"></i></button>
                 </div>
                 <div class="mobile-row2">
-                    <div class="nav-tabs-custom"><button onclick="changeDay(1)" id="day1-btn-m" class="btn-day active">วันที่ 1</button><button onclick="changeDay(2)" id="day2-btn-m" class="btn-day">วันที่ 2</button></div>
-                    <div class="nav-tabs-custom"><button onclick="changeSession('am')" id="am-btn-m" class="btn-day active">เช้า</button><button onclick="changeSession('pm')" id="pm-btn-m" class="btn-day">บ่าย</button></div>
+                    <select class="form-select form-select-sm" id="mobile-day" onchange="changeDay(this.value)">
+                        <option value="1">วันที่ 1</option>
+                        <option value="2">วันที่ 2</option>
+                    </select>
+                    <select class="form-select form-select-sm" id="mobile-session" onchange="changeSession(this.value)">
+                        <option value="am">รอบเช้า</option>
+                        <option value="pm">รอบบ่าย</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -188,13 +217,19 @@
 
         <aside class="sidebar-right">
             <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0">รายการล่าสุด <span id="session-label-ui" class="badge bg-primary ms-1" style="font-size:0.75rem;">(เช้า)</span></h6>
+                <h6 class="fw-bold mb-0">รายการสแกนล่าสุด</h6>
                 <div class="d-flex gap-2 text-end">
-                    <div class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">มาแล้ว: <span id="ui-present" class="fw-bold">0</span></div>
-                    <div class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">ยังไม่มา: <span id="ui-absent" class="fw-bold">0</span></div>
+                    <div class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.75rem;">
+                        มาแล้ว: <span id="ui-present" class="fw-bold">0</span>
+                    </div>
                 </div>
             </div>
-            <div class="search-wrapper"><div class="search-input-group"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="history-search" placeholder="ค้นหาชื่อ หรือ รหัส ID..." oninput="filterHistory()"></div></div>
+            <div class="search-wrapper">
+                <div class="search-input-group">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="history-search" placeholder="ค้นหาชื่อ หรือ รหัส ID..." oninput="filterHistory()">
+                </div>
+            </div>
             <div id="history-box" class="history-list"></div>
         </aside>
     </div>
@@ -202,218 +237,204 @@
     <video id="video" playsinline hidden></video>
 
     <script>
-        // ⚠️ อย่าลืมใส่ URL ที่ได้จากการ Deploy "เวอร์ชันใหม่" (New Version) ตรงนี้นะครับ
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec";
-        
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbydE1LUZOhCjm9dPCSYE-o90as2kSBh00T0iZExNQ-kvPLAH2fbiCCr7IFCP5-M_eEZ/exec"; // ตรวจสอบ URL อีกครั้ง
         let day = 1;
-        let currentSession = 'am'; 
-        let staff = null, isScanning = false, currentStream = null, previewModal = null, currentPreviewId = null;
+        let session = 'am'; // ค่าเริ่มต้นเป็นรอบเช้า
+        let staff = null, isScanning = false, currentStream = null, previewModal = null;
         const video = document.getElementById("video"), canvas = document.getElementById("canvas"), ctx = canvas.getContext("2d");
 
         window.onload = () => {
             previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-            document.getElementById('previewModal').addEventListener('hidden.bs.modal', () => { currentPreviewId = null; });
+            const splash = document.getElementById('splash-screen');
             const savedStaff = localStorage.getItem('staff_session');
+
             if (savedStaff) {
                 staff = JSON.parse(savedStaff);
                 document.getElementById('login-screen').classList.add('d-none');
-                setStaffName(staff.name);
-                fetchHistory(); checkCurrentDay();
+                document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
+                updateData();
             }
-            document.getElementById('togglePassword').addEventListener('click', function() {
-                const el = document.getElementById('staff-id');
-                el.type = el.type === 'password' ? 'text' : 'password';
-                this.classList.toggle('fa-eye'); this.classList.toggle('fa-eye-slash');
-            });
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 400);
         };
 
-        function setStaffName(name) { document.getElementById('ui-staff').innerText = name; document.getElementById('ui-staff-m').innerText = name; }
-        
+        function updateData() {
+            checkCurrentDay();
+            fetchHistory();
+        }
+
+        async function login() {
+            const id = document.getElementById('staff-id').value.trim();
+            if (!id) return;
+            document.getElementById('login-btn').disabled = true;
+            try {
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id }) });
+                const result = await res.json();
+                if (result.isAllowed) {
+                    staff = result;
+                    localStorage.setItem('staff_session', JSON.stringify(result));
+                    document.getElementById('login-screen').classList.add('d-none');
+                    document.getElementById('ui-staff').innerText = `เจ้าหน้าที่: ${staff.name}`;
+                    updateData();
+                } else {
+                    document.getElementById('login-error-msg').innerText = result.message;
+                    document.getElementById('login-error-msg').style.display = 'block';
+                }
+            } catch (e) { alert("เชื่อมต่อล้มเหลว"); }
+            document.getElementById('login-btn').disabled = false;
+        }
+
+        function logout() {
+            localStorage.removeItem('staff_session');
+            location.reload();
+        }
+
         function changeDay(d) {
-            day = d;
-            ['day1-btn', 'day2-btn', 'day1-btn-m', 'day2-btn-m'].forEach(id => document.getElementById(id)?.classList.remove('active'));
-            document.getElementById(`day${d}-btn`)?.classList.add('active');
-            document.getElementById(`day${d}-btn-m`)?.classList.add('active');
-            checkCurrentDay(); fetchHistory();
+            day = parseInt(d);
+            document.getElementById('day1-btn').classList.toggle('active', day === 1);
+            document.getElementById('day2-btn').classList.toggle('active', day === 2);
+            document.getElementById('mobile-day').value = day;
+            updateData();
         }
 
         function changeSession(s) {
-            currentSession = s;
-            ['am-btn', 'pm-btn', 'am-btn-m', 'pm-btn-m'].forEach(id => document.getElementById(id)?.classList.remove('active'));
-            document.getElementById(`${s}-btn`)?.classList.add('active');
-            document.getElementById(`${s}-btn-m`)?.classList.add('active');
-            const label = s === 'am' ? '(เช้า)' : '(บ่าย)';
-            document.getElementById('session-label-ui').innerText = label;
-            document.getElementById('confirm-session-label').innerText = label;
-            checkCurrentDay(); fetchHistory();
-        }
-
-        function showTimerBanner(type, html) {
-            const banner = document.getElementById('timer-banner');
-            banner.className = `status-${type}`; banner.innerHTML = html; banner.style.display = 'block';
-            const enable = (type === 'open');
-            document.getElementById('start-btn').disabled = !enable;
-            document.getElementById('manual-input').disabled = !enable;
-            document.querySelector('.manual-box button').disabled = !enable;
+            session = s;
+            document.getElementById('am-btn').classList.toggle('active', session === 'am');
+            document.getElementById('pm-btn').classList.toggle('active', session === 'pm');
+            document.getElementById('mobile-session').value = session;
+            updateData();
         }
 
         async function checkCurrentDay() {
             try {
                 const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getTimerSettings' }) });
-                const d = await res.json();
-                if (!d || !d.success) return showTimerBanner('closed', `<b>พบปัญหาในการอ่านเวลา:</b><br><small>${d.message}</small>`);
-                
-                const config = (day === 1) ? d.registrationTime.day1 : d.registrationTime.day2;
-                const sessionConfig = config[currentSession]; // am หรือ pm
-                const start = sessionConfig.start;
-                const end = sessionConfig.end;
-                const label = currentSession === 'am' ? "เช้า" : "บ่าย";
-
-                if (!start || !end) return showTimerBanner('closed', `<i class="fa-solid fa-clock me-2"></i><b>วันที่ ${day} (${label}) : ยังไม่ได้ตั้งเวลา</b><br><small>หรือรูปแบบวันที่ใน Sheet อาจผิดพลาด (ต้องเป็น DD/MM/YYYY hh:mm)</small>`);
+                const timerData = await res.json();
+                if (!timerData.success) return;
 
                 const now = new Date().getTime();
-                const fmt = (t) => { const x = new Date(t); return `${x.getHours().toString().padStart(2, '0')}:${x.getMinutes().toString().padStart(2, '0')} น.`; };
-                if (now < start) showTimerBanner('closed', `<i class="fa-solid fa-clock me-2"></i><b>ยังไม่ถึงเวลาลงทะเบียนรอบ${label}</b><br>เปิดรับ: <b>${fmt(start)}</b> - <b>${fmt(end)}</b>`);
-                else if (now > end) showTimerBanner('closed', `<i class="fa-solid fa-circle-xmark me-2"></i><b>ปิดรับลงทะเบียนรอบ${label}แล้ว</b><br>หมดเวลาเมื่อ: <b>${fmt(end)}</b>`);
-                else showTimerBanner('open', `<i class="fa-solid fa-circle-check me-2"></i><b>กำลังเปิดรับลงทะเบียนรอบ${label}</b><br>ปิดระบบเวลา: <b>${fmt(end)}</b>`);
-            } catch (e) { showTimerBanner('closed', `<b>เกิดข้อผิดพลาดในการเชื่อมต่อ</b><br><small>${e.toString()}</small>`); }
-        }
+                const config = (day === 1) ? timerData.registrationTime.day1 : timerData.registrationTime.day2;
+                const activeSession = config[session];
+                
+                const banner = document.getElementById('timer-banner');
+                const btnStart = document.getElementById('start-btn');
+                const sessionLabel = session === 'am' ? 'เช้า' : 'บ่าย';
 
-        async function login() {
-            const id = document.getElementById('staff-id').value.trim();
-            if (!id) return Swal.fire({icon: 'warning', title: 'กรุณากรอกรหัส'});
-            const btn = document.getElementById('login-btn'); btn.innerText = "กำลังตรวจสอบ..."; btn.disabled = true;
-            try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'checkStaffPrivilege', PASSWARD: id }) });
-                const result = await res.json();
-                if (result.isAllowed) {
-                    staff = result; localStorage.setItem('staff_session', JSON.stringify(result));
-                    document.getElementById('login-screen').classList.add('d-none');
-                    setStaffName(result.name); fetchHistory(); checkCurrentDay();
-                } else { Swal.fire({icon: 'error', title: 'เข้าสู่ระบบไม่ได้', text: result.message}); }
-            } catch (e) { Swal.fire({icon: 'error', title: 'Error', text: 'การเชื่อมต่อขัดข้อง'}); }
-            btn.innerText = "ลงชื่อเข้าใช้งาน"; btn.disabled = false;
+                if (!activeSession.start) {
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `⚠️ วันที่ ${day} รอบ${sessionLabel} ยังไม่ได้กำหนดเวลา`;
+                    btnStart.disabled = true;
+                } else if (now < activeSession.start) {
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `⏳ ยังไม่ถึงเวลาลงทะเบียน รอบ${sessionLabel}`;
+                    btnStart.disabled = true;
+                } else if (now > activeSession.end) {
+                    banner.className = 'status-closed';
+                    banner.innerHTML = `❌ ปิดรับลงทะเบียน รอบ${sessionLabel} แล้ว`;
+                    btnStart.disabled = true;
+                } else {
+                    banner.className = 'status-open';
+                    banner.innerHTML = `✅ เปิดรับลงทะเบียน รอบ${sessionLabel}`;
+                    btnStart.disabled = false;
+                }
+                banner.style.display = 'block';
+            } catch (e) { console.error(e); }
         }
-
-        function logout() {
-            localStorage.removeItem('staff_session'); staff = null;
-            if (isScanning) toggleScanner(false);
-            document.getElementById('staff-id').value = '';
-            document.getElementById('login-screen').classList.remove('d-none');
-        }
-
-        function handleManual() { const v = document.getElementById('manual-input').value.trim(); if(v) { previewUser(v); document.getElementById('manual-input').value = ''; } }
 
         async function toggleScanner(start) {
             if (start) {
-                try {
-                    currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = currentStream; video.play(); isScanning = true;
-                    document.getElementById('start-btn').classList.add('d-none'); document.getElementById('stop-btn').classList.remove('d-none');
-                    document.getElementById('placeholder').classList.add('d-none'); canvas.hidden = false;
-                    requestAnimationFrame(tick);
-                } catch (e) { Swal.fire({ icon: 'error', title: 'ไม่สามารถเปิดกล้องได้', text: e.toString() }); }
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = currentStream; video.play(); isScanning = true;
+                document.getElementById('start-btn').classList.add('d-none');
+                document.getElementById('stop-btn').classList.remove('d-none');
+                document.getElementById('placeholder').classList.add('d-none');
+                canvas.hidden = false; requestAnimationFrame(tick);
             } else {
-                if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+                if(currentStream) currentStream.getTracks().forEach(t => t.stop());
                 isScanning = false;
-                document.getElementById('start-btn').classList.remove('d-none'); document.getElementById('stop-btn').classList.add('d-none');
+                document.getElementById('start-btn').classList.remove('d-none');
+                document.getElementById('stop-btn').classList.add('d-none');
                 canvas.hidden = true; document.getElementById('placeholder').classList.remove('d-none');
             }
         }
 
         function tick() {
             if (video.readyState === video.HAVE_ENOUGH_DATA && isScanning) {
-                canvas.height = video.videoHeight; canvas.width = video.videoWidth; ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.height = video.videoHeight; canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
-                if (code) { if (navigator.vibrate) navigator.vibrate(100); toggleScanner(false); previewUser(code.data); return; }
+                if (code) {
+                    toggleScanner(false); previewUser(code.data); return;
+                }
             }
             if (isScanning) requestAnimationFrame(tick);
         }
 
+        function handleManual() {
+            const val = document.getElementById('manual-input').value.trim();
+            if (val) { previewUser(val); document.getElementById('manual-input').value = ''; }
+        }
+
         async function previewUser(id) {
-            if (currentPreviewId === id) return;
-            currentPreviewId = id;
-            Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({ title: 'กำลังตรวจสอบ...', didOpen: () => Swal.showLoading() });
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day, session: currentSession }) });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getUserPreview', id: id, day: day, session: session }) });
                 const result = await res.json();
                 Swal.close();
-
                 if (result.success) {
                     const u = result.user;
                     document.getElementById('p-name').innerText = u.name;
-                    document.getElementById('p-id').innerText = u.id;
                     document.getElementById('p-regType').innerText = u.regType || '-';
+                    document.getElementById('p-pos').innerText = u.position || '-';
                     
-                    const btnConfirm = document.getElementById('btn-confirm-record');
-                    const payWarn = document.getElementById('pay-warning');
-                    const alreadyArea = document.getElementById('already-scanned-area');
-                    
-                    alreadyArea.classList.add('d-none'); payWarn.classList.add('d-none');
-                    btnConfirm.style.display = 'block'; btnConfirm.disabled = false;
-                    btnConfirm.classList.replace('btn-secondary', 'btn-success');
-
+                    const btn = document.getElementById('btn-confirm-record');
                     if (result.isAlreadyScanned) {
-                        alreadyArea.classList.remove('d-none');
-                        document.getElementById('scanned-day-label').innerText = `${day} (${result.scannedSession})`;
-                        document.getElementById('scanned-time-label').innerText = result.scannedTime;
-                        btnConfirm.style.display = 'none';
-                    } 
-                    else if (u.regType === "สำหรับผู้ลงทะเบียนภายนอก") {
-                        document.getElementById('pay-status-area').style.display = 'block';
-                        const stEl = document.getElementById('p-status');
-                        stEl.innerText = u.payStatus || "ยังไม่ได้ชำระเงิน";
-                        stEl.className = `fw-bold ${u.payStatus === 'ชำระเงินเรียบร้อย' ? 'text-success' : 'text-danger'}`;
-                        if (u.payStatus !== 'ชำระเงินเรียบร้อย') { btnConfirm.disabled = true; btnConfirm.className = "btn btn-secondary py-3 rounded-3 fw-bold fs-5 shadow-sm"; payWarn.classList.remove('d-none'); }
-                    } else { document.getElementById('pay-status-area').style.display = 'none'; }
-
-                    btnConfirm.onclick = () => record(id, false);
+                        btn.disabled = true;
+                        btn.innerHTML = `ลงชื่อไปแล้ว (${result.scannedTime})`;
+                    } else if (u.regType === "สำหรับผู้ลงทะเบียนภายนอก" && u.payStatus !== "ชำระเงินเรียบร้อย") {
+                        btn.disabled = true;
+                        btn.innerHTML = `ยังไม่ได้ชำระเงิน`;
+                    } else {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="fa-solid fa-circle-check me-2"></i>ยืนยันลงชื่อเข้างาน`;
+                        btn.onclick = () => record(id, false);
+                    }
                     previewModal.show();
-                } else { currentPreviewId = null; Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message }); }
-            } catch (e) { currentPreviewId = null; Swal.fire({ icon: 'error', title: 'Error', text: e.toString() }); }
+                } else {
+                    Swal.fire('ไม่พบข้อมูล', result.message, 'error');
+                }
+            } catch (e) { Swal.fire('Error', e.toString(), 'error'); }
         }
 
         async function record(qrText, confirmSkip) {
-            if (previewModal) previewModal.hide();
-            Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            previewModal.hide();
+            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day: day, session: currentSession, confirmSkip: confirmSkip, staffInfo: staff } }) });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'recordAttendance', data: { text: qrText, day, session, confirmSkip, staffInfo: staff } }) });
                 const result = await res.json();
-                Swal.close();
                 if (result.success) {
-                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ ✓', text: result.user.name, timer: 1500, showConfirmButton: false });
-                    fetchHistory(); 
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: result.user.name, timer: 1500, showConfirmButton: false });
+                    fetchHistory();
                 } else if (result.requireConfirm) {
-                    Swal.fire({ title: 'ยืนยันการบันทึก', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก' }).then((r) => { if (r.isConfirmed) record(qrText, true); });
-                } else { Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: result.message }); }
-            } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'การเชื่อมต่อล้มเหลว' }); }
+                    Swal.fire({ title: 'ยืนยัน?', text: result.message, icon: 'warning', showCancelButton: true, confirmButtonText: 'ยืนยันบันทึก' }).then(r => { if (r.isConfirmed) record(qrText, true); });
+                } else { Swal.fire('แจ้งเตือน', result.message, 'warning'); }
+            } catch (e) { Swal.fire('Error', e.toString(), 'error'); }
         }
 
         async function fetchHistory() {
             const box = document.getElementById('history-box');
-            box.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
             try {
-                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day: day, session: currentSession } }) });
+                const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'getRecentRecords', data: { day, session } }) });
                 const result = await res.json();
                 if (result.success) {
                     document.getElementById('ui-present').innerText = result.present;
-                    document.getElementById('ui-absent').innerText = result.absent;
-                    if (result.records.length > 0) {
-                        box.innerHTML = result.records.map(r => {
-                            let displayId = r.id.toString().trim(); if (!isNaN(displayId) && displayId !== "") displayId = displayId.padStart(3, '0');
-                            const idHtml = displayId.includes('-') ? `<span>${displayId.split('-')[0]}</span><span>${displayId.split('-')[1]}</span>` : displayId;
-                            return `<div class="id-item shadow-sm p-3"><div class="id-num">${idHtml}</div><div class="flex-grow-1 overflow-hidden"><h5 class="mb-1 fw-bold text-truncate" style="font-size:1.1rem;">${r.name}</h5><small class="text-muted"><i class="fa-regular fa-clock me-1"></i>${r.time}</small></div><i class="fa-solid fa-circle-check fa-2x text-success ms-2"></i></div>`;
-                        }).join('');
-                    } else { box.innerHTML = `<p class="text-center py-5 text-muted small fw-bold">ยังไม่มีข้อมูลสำหรับรอบนี้</p>`; }
-                    filterHistory();
-                } else { box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">โหลดข้อมูลไม่ได้</p>`; }
-            } catch (e) { box.innerHTML = `<p class="text-center py-5 text-danger fw-bold">เกิดข้อผิดพลาด</p>`; }
-        }
-
-        function filterHistory() {
-            const query = document.getElementById('history-search').value.toLowerCase().trim();
-            document.querySelectorAll('.id-item').forEach(item => { item.style.display = item.innerText.toLowerCase().includes(query) ? 'flex' : 'none'; });
+                    box.innerHTML = result.records.length ? result.records.map(r => `
+                        <div class="id-item shadow-sm p-3">
+                            <div class="flex-grow-1"><h5 class="mb-1 fw-bold">${r.name}</h5><small class="text-muted">${r.time}</small></div>
+                            <i class="fa-solid fa-circle-check fa-2x text-success"></i>
+                        </div>`).join('') : '<p class="text-center py-4">ยังไม่มีข้อมูล</p>';
+                }
+            } catch (e) { console.error(e); }
         }
     </script>
 </body>
