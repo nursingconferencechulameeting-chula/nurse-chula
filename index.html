@@ -367,8 +367,9 @@
         let currentStats = { total: 0, present: 0, absent: 0 };
 
         window.onload = async () => {
-            previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
-            aiModal = new bootstrap.Modal(document.getElementById('aiModal'));
+            previewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('previewModal'));
+            aiModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('aiModal'));
+            
             const splash = document.getElementById('splash-screen');
             const savedStaff = localStorage.getItem('staff_session');
 
@@ -625,7 +626,13 @@
         }
 
         async function record(qrText) {
-            previewModal.hide(); 
+            // เรียกใช้ Modal อย่างปลอดภัย ป้องกัน Error backdrop
+            const modalEl = document.getElementById('previewModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
             try {
                 const res = await fetch(GAS_URL, { 
                     method: 'POST', 
