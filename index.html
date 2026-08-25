@@ -42,15 +42,31 @@
             .mobile-row2 .btn-toggle { flex: 1; padding: 6px 5px; text-align: center; font-size: 0.8rem; border-radius: 8px; }
         }
 
-        /* App Layout */
+        /* App Layout & Sidebar Fix */
         .app-wrapper { display: flex; height: calc(100vh - var(--nav-h)); }
         .panel-left { flex: 1; overflow-y: auto; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; }
-        .sidebar-right { width: 420px; background: #ffffff; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.02); }
+        
+        .sidebar-right { 
+            width: 420px; 
+            min-width: 420px; 
+            flex-shrink: 0; 
+            background: #ffffff; 
+            border-left: 1px solid #e2e8f0; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: -4px 0 15px rgba(0,0,0,0.02); 
+        }
 
         @media (max-width: 991px) {
             body { height: auto; overflow-y: auto; }
             .app-wrapper { flex-direction: column; height: auto; }
-            .sidebar-right { width: 100%; border-left: none; border-top: 1px solid #e2e8f0; }
+            .sidebar-right { 
+                width: 100%; 
+                min-width: auto; 
+                flex-shrink: 1;
+                border-left: none; 
+                border-top: 1px solid #e2e8f0; 
+            }
         }
 
         /* Cards & Scanner */
@@ -188,7 +204,7 @@
     </div>
 
     <!-- ===== AI SUMMARY MODAL ===== -->
-    <!-- <div class="modal fade" id="aiModal" aria-hidden="true">
+    <div class="modal fade" id="aiModal" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg border-0">
                 <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
@@ -204,7 +220,7 @@
                 </div>
             </div>
         </div>
-    </div> -->
+    </div>
 
     <!-- ===== NAVBAR ===== -->
     <nav class="navbar">
